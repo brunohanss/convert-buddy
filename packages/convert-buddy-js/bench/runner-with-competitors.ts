@@ -55,7 +55,8 @@ async function benchmarkPapaParse(
   csvData: string
 ): Promise<BenchmarkResult | null> {
   try {
-    const Papa = await import("papaparse");
+    const papaModule = await import("papaparse");
+    const Papa = papaModule.default || papaModule;
     const data = new TextEncoder().encode(csvData);
     
     const startMem = process.memoryUsage().heapUsed;
@@ -82,7 +83,7 @@ async function benchmarkPapaParse(
       recordsPerSec: parseFloat(recordsPerSec.toFixed(0)),
     };
   } catch (error) {
-    console.log(`⚠️  PapaParse not available (run: npm install)`);
+    console.log(`⚠️  PapaParse not available: ${error}`);
     return null;
   }
 }
@@ -120,7 +121,7 @@ async function benchmarkCsvParse(
       recordsPerSec: parseFloat(recordsPerSec.toFixed(0)),
     };
   } catch (error) {
-    console.log(`⚠️  csv-parse not available (run: npm install)`);
+    console.log(`⚠️  csv-parse not available: ${error}`);
     return null;
   }
 }
@@ -167,7 +168,7 @@ async function benchmarkFastCsv(
       recordsPerSec: parseFloat(recordsPerSec.toFixed(0)),
     };
   } catch (error) {
-    console.log(`⚠️  fast-csv not available (run: npm install)`);
+    console.log(`⚠️  fast-csv not available: ${error}`);
     return null;
   }
 }
