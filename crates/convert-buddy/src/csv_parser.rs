@@ -1,5 +1,4 @@
-use crate::error::{ConvertError, Result};
-use log::debug;
+use crate::error::Result;
 use memchr::memchr;
 use std::io::Write;
 

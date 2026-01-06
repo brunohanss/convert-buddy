@@ -1,5 +1,4 @@
 use std::time::{Duration, Instant};
-use wasm_bindgen::prelude::*;
 
 /// Timer for measuring performance in WASM
 pub struct Timer {

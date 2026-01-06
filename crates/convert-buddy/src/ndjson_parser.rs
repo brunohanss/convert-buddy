@@ -1,4 +1,4 @@
-use crate::error::{ConvertError, Result};
+use crate::error::Result;
 use crate::json_parser::JsonParser;
 use log::debug;
 use memchr::memchr;

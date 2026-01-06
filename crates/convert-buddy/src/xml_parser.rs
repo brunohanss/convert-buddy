@@ -1,8 +1,7 @@
-use crate::error::{ConvertError, Result};
+use crate::error::Result;
 use log::debug;
 use quick_xml::events::Event;
 use quick_xml::Reader;
-use std::io::Write;
 
 /// XML parser configuration
 #[derive(Debug, Clone)]

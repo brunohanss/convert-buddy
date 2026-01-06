@@ -11,7 +11,7 @@ Charlie,35,Tokyo`;
   const result = await convertToString(csvData, {
     inputFormat: "csv",
     outputFormat: "ndjson",
-    debug: true,
+    debug: false,
     profile: true,
   });
 
@@ -40,7 +40,7 @@ async function testStreamingAPI() {
   const buddy = await ConvertBuddy.create({
     inputFormat: "csv",
     outputFormat: "ndjson",
-    debug: true,
+    debug: false,
   });
 
   // Push data in chunks
@@ -78,7 +78,7 @@ async function testNdjsonToJson() {
   const result = await convertToString(ndjsonData, {
     inputFormat: "ndjson",
     outputFormat: "json",
-    debug: true,
+    debug: false,
   });
 
   console.log("Input NDJSON:");
@@ -109,7 +109,7 @@ async function testQuotedCsv() {
   const result = await convertToString(csvData, {
     inputFormat: "csv",
     outputFormat: "ndjson",
-    debug: true,
+    debug: false,
   });
 
   console.log("Input CSV:");
@@ -151,7 +151,7 @@ async function testPartialLines() {
   const buddy = await ConvertBuddy.create({
     inputFormat: "csv",
     outputFormat: "ndjson",
-    debug: true,
+    debug: false,
   });
 
   // Split a line across chunks
@@ -228,7 +228,7 @@ Bob,25
   const result = await convertToString(csvData, {
     inputFormat: "csv",
     outputFormat: "ndjson",
-    debug: true,
+    debug: false,
   });
 
   console.log("Input CSV (with empty lines):");

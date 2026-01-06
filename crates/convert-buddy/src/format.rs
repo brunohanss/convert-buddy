@@ -1,6 +1,5 @@
 use crate::csv_parser::CsvConfig;
 use crate::xml_parser::XmlConfig;
-use wasm_bindgen::prelude::*;
 
 /// Supported input/output formats
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
