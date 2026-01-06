@@ -1,0 +1,14 @@
+{
+  "name": "convert-buddy-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm -w convert-buddy-js run build",
+    "build:wasm": "npm -w convert-buddy-js run build:wasm",
+    "test": "npm -w convert-buddy-js run test",
+    "lint": "npm -w convert-buddy-js run lint",
+    "clean": "npm -w convert-buddy-js run clean"
+  }
+}
