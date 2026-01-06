@@ -12,7 +12,16 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist", "wasm", "wasm-node.cjs"],
+  "files": [
+    "dist/index.js",
+    "dist/index.d.ts",
+    "dist/chunk-*.js",
+    "dist/chunk-*.d.ts",
+    "wasm",
+    "wasm-node.cjs",
+    "!dist/smoke-test.*",
+    "!dist/bench"
+  ],
   "scripts": {
     "clean": "node ./scripts/clean.mjs",
     "build:wasm:web": "set CONVERT_BUDDY_WASM_TARGET=web&& node ./scripts/build-wasm.mjs",
@@ -21,6 +30,7 @@
     "build": "npm run build:wasm && tsup",
     "test": "npm run build && node ./dist/smoke-test.js",
     "bench": "npm run build && node ./dist/bench/runner.js",
+    "bench:competitors": "npm run build && node ./dist/bench/runner-with-competitors.js",
     "lint": "node ./scripts/lint-placeholder.mjs"
   },
   "devDependencies": {
