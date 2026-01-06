@@ -1,0 +1,83 @@
+[
+  {
+    "tool": "convert-buddy",
+    "name": "CSV->NDJSON (small)",
+    "dataset": "0.12 MB",
+    "throughputMbps": 14.14,
+    "latencyMs": 8.22,
+    "memoryMb": 0.25,
+    "recordsPerSec": 121634
+  },
+  {
+    "tool": "convert-buddy",
+    "name": "CSV->NDJSON (medium)",
+    "dataset": "1.26 MB",
+    "throughputMbps": 100.49,
+    "latencyMs": 12.51,
+    "memoryMb": 0.06,
+    "recordsPerSec": 799629
+  },
+  {
+    "tool": "convert-buddy",
+    "name": "CSV->NDJSON (large)",
+    "dataset": "13.52 MB",
+    "throughputMbps": 127.53,
+    "latencyMs": 106.01,
+    "memoryMb": -0.61,
+    "recordsPerSec": 943298
+  },
+  {
+    "tool": "PapaParse",
+    "name": "CSV->NDJSON (medium)",
+    "dataset": "1.26 MB",
+    "throughputMbps": 14.98,
+    "latencyMs": 83.9,
+    "memoryMb": 46.22,
+    "recordsPerSec": 119199
+  },
+  {
+    "tool": "csv-parse",
+    "name": "CSV->NDJSON (medium)",
+    "dataset": "1.26 MB",
+    "throughputMbps": 18.9,
+    "latencyMs": 66.49,
+    "memoryMb": -35.75,
+    "recordsPerSec": 150402
+  },
+  {
+    "tool": "convert-buddy",
+    "name": "CSV->NDJSON (streaming)",
+    "dataset": "1.26 MB (streaming)",
+    "throughputMbps": 144.87,
+    "latencyMs": 8.67,
+    "memoryMb": 0.02,
+    "recordsPerSec": 1152751
+  },
+  {
+    "tool": "convert-buddy",
+    "name": "NDJSON->JSON (small)",
+    "dataset": "0.23 MB",
+    "throughputMbps": 208.52,
+    "latencyMs": 1.09,
+    "memoryMb": 0.03,
+    "recordsPerSec": 0
+  },
+  {
+    "tool": "convert-buddy",
+    "name": "NDJSON->JSON (medium)",
+    "dataset": "2.34 MB",
+    "throughputMbps": 1052.41,
+    "latencyMs": 2.22,
+    "memoryMb": 0.01,
+    "recordsPerSec": 0
+  },
+  {
+    "tool": "convert-buddy",
+    "name": "NDJSON passthrough (large)",
+    "dataset": "23.96 MB",
+    "throughputMbps": 169.02,
+    "latencyMs": 141.77,
+    "memoryMb": -32.93,
+    "recordsPerSec": 705348
+  }
+]
