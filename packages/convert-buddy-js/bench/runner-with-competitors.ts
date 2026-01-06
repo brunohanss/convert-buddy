@@ -1,6 +1,6 @@
 import { performance } from "node:perf_hooks";
 import { ConvertBuddy, convert, createNodeTransform } from "../src/index.js";
-import { generateCsvDataset, generateNdjsonDataset } from "./datasets.js";
+import { generateCsvDataset, generateNdjsonDataset, generateXmlDataset } from "./datasets.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { pipeline } from "node:stream/promises";
@@ -8,7 +8,8 @@ import { Readable, Writable } from "node:stream";
 
 type BenchmarkResult = {
   tool: string;
-  name: string;
+  conversion: string;
+  size: string;
   dataset: string;
   throughputMbps: number;
   latencyMs: number;
@@ -18,7 +19,8 @@ type BenchmarkResult = {
 
 async function benchmarkConversion(
   tool: string,
-  name: string,
+  conversion: string,
+  size: string,
   data: Uint8Array,
   opts: any
 ): Promise<BenchmarkResult> {
@@ -40,7 +42,8 @@ async function benchmarkConversion(
 
   return {
     tool,
-    name,
+    conversion,
+    size,
     dataset: `${(data.length / (1024 * 1024)).toFixed(2)} MB`,
     throughputMbps: parseFloat(throughputMbps.toFixed(2)),
     latencyMs: parseFloat(latencyMs.toFixed(2)),
@@ -51,7 +54,8 @@ async function benchmarkConversion(
 
 // Competitor benchmark: PapaParse
 async function benchmarkPapaParse(
-  name: string,
+  conversion: string,
+  size: string,
   csvData: string
 ): Promise<BenchmarkResult | null> {
   try {
@@ -75,7 +79,8 @@ async function benchmarkPapaParse(
 
     return {
       tool: "PapaParse",
-      name,
+      conversion,
+      size,
       dataset: `${(data.length / (1024 * 1024)).toFixed(2)} MB`,
       throughputMbps: parseFloat(throughputMbps.toFixed(2)),
       latencyMs: parseFloat(latencyMs.toFixed(2)),
@@ -90,7 +95,8 @@ async function benchmarkPapaParse(
 
 // Competitor benchmark: csv-parse
 async function benchmarkCsvParse(
-  name: string,
+  conversion: string,
+  size: string,
   csvData: string
 ): Promise<BenchmarkResult | null> {
   try {
@@ -113,7 +119,8 @@ async function benchmarkCsvParse(
 
     return {
       tool: "csv-parse",
-      name,
+      conversion,
+      size,
       dataset: `${(data.length / (1024 * 1024)).toFixed(2)} MB`,
       throughputMbps: parseFloat(throughputMbps.toFixed(2)),
       latencyMs: parseFloat(latencyMs.toFixed(2)),
@@ -128,7 +135,8 @@ async function benchmarkCsvParse(
 
 // Competitor benchmark: fast-csv
 async function benchmarkFastCsv(
-  name: string,
+  conversion: string,
+  size: string,
   csvData: string
 ): Promise<BenchmarkResult | null> {
   try {
@@ -160,7 +168,8 @@ async function benchmarkFastCsv(
 
     return {
       tool: "fast-csv",
-      name,
+      conversion,
+      size,
       dataset: `${(data.length / (1024 * 1024)).toFixed(2)} MB`,
       throughputMbps: parseFloat(throughputMbps.toFixed(2)),
       latencyMs: parseFloat(latencyMs.toFixed(2)),
@@ -173,53 +182,15 @@ async function benchmarkFastCsv(
   }
 }
 
-async function benchmarkStreaming(
-  tool: string,
-  name: string,
-  data: Uint8Array,
-  opts: any
-): Promise<BenchmarkResult> {
-  const startMem = process.memoryUsage().heapUsed;
-  const start = performance.now();
-
-  const buddy = await ConvertBuddy.create(opts);
-  const result = buddy.push(data);
-  const final = buddy.finish();
-
-  const end = performance.now();
-  const endMem = process.memoryUsage().heapUsed;
-
-  const latencyMs = end - start;
-  const throughputMbps = (data.length / (1024 * 1024)) / (latencyMs / 1000);
-  const memoryMb = (endMem - startMem) / (1024 * 1024);
-
-  const totalOutput = new Uint8Array(result.length + final.length);
-  totalOutput.set(result);
-  totalOutput.set(final, result.length);
-
-  const records = totalOutput.filter((b) => b === 10).length;
-  const recordsPerSec = records / (latencyMs / 1000);
-
-  return {
-    tool,
-    name,
-    dataset: `${(data.length / (1024 * 1024)).toFixed(2)} MB (streaming)`,
-    throughputMbps: parseFloat(throughputMbps.toFixed(2)),
-    latencyMs: parseFloat(latencyMs.toFixed(2)),
-    memoryMb: parseFloat(memoryMb.toFixed(2)),
-    recordsPerSec: parseFloat(recordsPerSec.toFixed(0)),
-  };
-}
-
 async function runBenchmarks() {
   console.log("╔════════════════════════════════════════╗");
-  console.log("║  Convert Buddy Benchmarks (with Competitors)  ║");
+  console.log("║  Convert Buddy Comprehensive Benchmarks  ║");
   console.log("╚════════════════════════════════════════╝\n");
 
   const results: BenchmarkResult[] = [];
 
   // Generate datasets
-  console.log("Generating CSV datasets...\n");
+  console.log("Generating datasets...\n");
   const csvSmall = generateCsvDataset(1_000, 10);
   const csvMedium = generateCsvDataset(10_000, 10);
   const csvLarge = generateCsvDataset(100_000, 10);
@@ -228,72 +199,97 @@ async function runBenchmarks() {
   const csvMediumStr = new TextDecoder().decode(csvMedium);
   const csvLargeStr = new TextDecoder().decode(csvLarge);
 
-  // Benchmark convert-buddy
-  console.log("Benchmarking convert-buddy CSV -> NDJSON (small)...");
-  results.push(
-    await benchmarkConversion("convert-buddy", "CSV->NDJSON (small)", csvSmall, {
-      inputFormat: "csv",
-      outputFormat: "ndjson",
-      profile: true,
-    })
-  );
-
-  console.log("Benchmarking convert-buddy CSV -> NDJSON (medium)...");
-  results.push(
-    await benchmarkConversion("convert-buddy", "CSV->NDJSON (medium)", csvMedium, {
-      inputFormat: "csv",
-      outputFormat: "ndjson",
-      profile: true,
-    })
-  );
-
-  console.log("Benchmarking convert-buddy CSV -> NDJSON (large)...");
-  results.push(
-    await benchmarkConversion("convert-buddy", "CSV->NDJSON (large)", csvLarge, {
-      inputFormat: "csv",
-      outputFormat: "ndjson",
-      profile: true,
-    })
-  );
-
-  // Benchmark competitors (medium dataset only for comparison)
-  console.log("\nBenchmarking competitors (medium dataset)...\n");
-  
-  const papaResult = await benchmarkPapaParse("CSV->NDJSON (medium)", csvMediumStr);
-  if (papaResult) results.push(papaResult);
-
-  const csvParseResult = await benchmarkCsvParse("CSV->NDJSON (medium)", csvMediumStr);
-  if (csvParseResult) results.push(csvParseResult);
-
-  const fastCsvResult = await benchmarkFastCsv("CSV->NDJSON (medium)", csvMediumStr);
-  if (fastCsvResult) results.push(fastCsvResult);
-
-  // Streaming benchmark
-  console.log("\nBenchmarking convert-buddy streaming...");
-  results.push(
-    await benchmarkStreaming("convert-buddy", "CSV->NDJSON (streaming)", csvMedium, {
-      inputFormat: "csv",
-      outputFormat: "ndjson",
-    })
-  );
-
-  // NDJSON benchmarks
-  console.log("\nGenerating NDJSON datasets...\n");
   const ndjsonSmall = generateNdjsonDataset(1_000, 10);
   const ndjsonMedium = generateNdjsonDataset(10_000, 10);
   const ndjsonLarge = generateNdjsonDataset(100_000, 10);
 
-  console.log("Benchmarking NDJSON -> JSON (small)...");
+  const xmlSmall = generateXmlDataset(1_000, 10);
+  const xmlMedium = generateXmlDataset(10_000, 10);
+  const xmlLarge = generateXmlDataset(100_000, 10);
+
+  // ========== CSV -> NDJSON Benchmarks ==========
+  console.log("╔════════════════════════════════════════╗");
+  console.log("║  CSV → NDJSON Benchmarks               ║");
+  console.log("╚════════════════════════════════════════╝\n");
+
+  // Small
+  console.log("Benchmarking CSV → NDJSON (small)...");
   results.push(
-    await benchmarkConversion("convert-buddy", "NDJSON->JSON (small)", ndjsonSmall, {
+    await benchmarkConversion("convert-buddy", "CSV→NDJSON", "small", csvSmall, {
+      inputFormat: "csv",
+      outputFormat: "ndjson",
+    })
+  );
+
+  const papaSmall = await benchmarkPapaParse("CSV→NDJSON", "small", csvSmallStr);
+  if (papaSmall) results.push(papaSmall);
+
+  const csvParseSmall = await benchmarkCsvParse("CSV→NDJSON", "small", csvSmallStr);
+  if (csvParseSmall) results.push(csvParseSmall);
+
+  const fastCsvSmall = await benchmarkFastCsv("CSV→NDJSON", "small", csvSmallStr);
+  if (fastCsvSmall) results.push(fastCsvSmall);
+
+  // Medium
+  console.log("Benchmarking CSV → NDJSON (medium)...");
+  results.push(
+    await benchmarkConversion("convert-buddy", "CSV→NDJSON", "medium", csvMedium, {
+      inputFormat: "csv",
+      outputFormat: "ndjson",
+    })
+  );
+
+  const papaMedium = await benchmarkPapaParse("CSV→NDJSON", "medium", csvMediumStr);
+  if (papaMedium) results.push(papaMedium);
+
+  const csvParseMedium = await benchmarkCsvParse("CSV→NDJSON", "medium", csvMediumStr);
+  if (csvParseMedium) results.push(csvParseMedium);
+
+  const fastCsvMedium = await benchmarkFastCsv("CSV→NDJSON", "medium", csvMediumStr);
+  if (fastCsvMedium) results.push(fastCsvMedium);
+
+  // Large
+  console.log("Benchmarking CSV → NDJSON (large)...");
+  results.push(
+    await benchmarkConversion("convert-buddy", "CSV→NDJSON", "large", csvLarge, {
+      inputFormat: "csv",
+      outputFormat: "ndjson",
+    })
+  );
+
+  const papaLarge = await benchmarkPapaParse("CSV→NDJSON", "large", csvLargeStr);
+  if (papaLarge) results.push(papaLarge);
+
+  const csvParseLarge = await benchmarkCsvParse("CSV→NDJSON", "large", csvLargeStr);
+  if (csvParseLarge) results.push(csvParseLarge);
+
+  const fastCsvLarge = await benchmarkFastCsv("CSV→NDJSON", "large", csvLargeStr);
+  if (fastCsvLarge) results.push(fastCsvLarge);
+
+  // ========== NDJSON Benchmarks ==========
+  console.log("\n╔════════════════════════════════════════╗");
+  console.log("║  NDJSON Benchmarks                     ║");
+  console.log("╚════════════════════════════════════════╝\n");
+
+  console.log("Benchmarking NDJSON → JSON (small)...");
+  results.push(
+    await benchmarkConversion("convert-buddy", "NDJSON→JSON", "small", ndjsonSmall, {
       inputFormat: "ndjson",
       outputFormat: "json",
     })
   );
 
-  console.log("Benchmarking NDJSON -> JSON (medium)...");
+  console.log("Benchmarking NDJSON → JSON (medium)...");
   results.push(
-    await benchmarkConversion("convert-buddy", "NDJSON->JSON (medium)", ndjsonMedium, {
+    await benchmarkConversion("convert-buddy", "NDJSON→JSON", "medium", ndjsonMedium, {
+      inputFormat: "ndjson",
+      outputFormat: "json",
+    })
+  );
+
+  console.log("Benchmarking NDJSON → JSON (large)...");
+  results.push(
+    await benchmarkConversion("convert-buddy", "NDJSON→JSON", "large", ndjsonLarge, {
       inputFormat: "ndjson",
       outputFormat: "json",
     })
@@ -301,15 +297,44 @@ async function runBenchmarks() {
 
   console.log("Benchmarking NDJSON passthrough (large)...");
   results.push(
-    await benchmarkConversion("convert-buddy", "NDJSON passthrough (large)", ndjsonLarge, {
+    await benchmarkConversion("convert-buddy", "NDJSON→NDJSON", "large", ndjsonLarge, {
       inputFormat: "ndjson",
+      outputFormat: "ndjson",
+    })
+  );
+
+  // ========== XML Benchmarks ==========
+  console.log("\n╔════════════════════════════════════════╗");
+  console.log("║  XML → NDJSON Benchmarks               ║");
+  console.log("╚════════════════════════════════════════╝\n");
+
+  console.log("Benchmarking XML → NDJSON (small)...");
+  results.push(
+    await benchmarkConversion("convert-buddy", "XML→NDJSON", "small", xmlSmall, {
+      inputFormat: "xml",
+      outputFormat: "ndjson",
+    })
+  );
+
+  console.log("Benchmarking XML → NDJSON (medium)...");
+  results.push(
+    await benchmarkConversion("convert-buddy", "XML→NDJSON", "medium", xmlMedium, {
+      inputFormat: "xml",
+      outputFormat: "ndjson",
+    })
+  );
+
+  console.log("Benchmarking XML → NDJSON (large)...");
+  results.push(
+    await benchmarkConversion("convert-buddy", "XML→NDJSON", "large", xmlLarge, {
+      inputFormat: "xml",
       outputFormat: "ndjson",
     })
   );
 
   // Print results
   console.log("\n╔════════════════════════════════════════╗");
-  console.log("║  Benchmark Results                     ║");
+  console.log("║  All Benchmark Results                 ║");
   console.log("╚════════════════════════════════════════╝\n");
   console.table(results);
 
@@ -318,21 +343,42 @@ async function runBenchmarks() {
   fs.writeFileSync(outputPath, JSON.stringify(results, null, 2));
   console.log(`\nResults saved to: ${outputPath}`);
 
-  // Print comparison summary
+  // Print comparison summaries by size
   console.log("\n╔════════════════════════════════════════╗");
-  console.log("║  Competitive Comparison (Medium CSV)  ║");
+  console.log("║  CSV→NDJSON Comparison by Size        ║");
   console.log("╚════════════════════════════════════════╝\n");
 
-  const mediumResults = results.filter(r => r.name === "CSV->NDJSON (medium)");
-  if (mediumResults.length > 1) {
-    const sorted = mediumResults.sort((a, b) => b.throughputMbps - a.throughputMbps);
-    console.log("Ranking by Throughput:");
-    sorted.forEach((r, i) => {
-      const speedup = i === 0 ? "" : ` (${(sorted[0].throughputMbps / r.throughputMbps).toFixed(2)}x slower)`;
-      console.log(`  ${i + 1}. ${r.tool}: ${r.throughputMbps} MB/s${speedup}`);
-    });
-    console.log();
+  for (const size of ["small", "medium", "large"]) {
+    const csvResults = results.filter(
+      (r) => r.conversion === "CSV→NDJSON" && r.size === size
+    );
+    
+    if (csvResults.length > 1) {
+      const sorted = csvResults.sort((a, b) => b.throughputMbps - a.throughputMbps);
+      console.log(`\n${size.toUpperCase()} (${sorted[0].dataset}):`);
+      sorted.forEach((r, i) => {
+        const speedup = i === 0 ? "" : ` (${(sorted[0].throughputMbps / r.throughputMbps).toFixed(2)}x slower)`;
+        console.log(`  ${i + 1}. ${r.tool.padEnd(15)} ${r.throughputMbps.toString().padStart(8)} MB/s  ${r.recordsPerSec.toLocaleString().padStart(10)} rec/s${speedup}`);
+      });
+    }
   }
+
+  // Summary statistics
+  console.log("\n╔════════════════════════════════════════╗");
+  console.log("║  Summary Statistics                    ║");
+  console.log("╚════════════════════════════════════════╝\n");
+
+  const convertBuddyResults = results.filter((r) => r.tool === "convert-buddy");
+  const avgThroughput = convertBuddyResults.reduce((sum, r) => sum + r.throughputMbps, 0) / convertBuddyResults.length;
+  const maxThroughput = Math.max(...convertBuddyResults.map((r) => r.throughputMbps));
+  const maxRecordsPerSec = Math.max(...convertBuddyResults.map((r) => r.recordsPerSec));
+
+  console.log(`convert-buddy Performance:`);
+  console.log(`  Average Throughput: ${avgThroughput.toFixed(2)} MB/s`);
+  console.log(`  Peak Throughput: ${maxThroughput.toFixed(2)} MB/s`);
+  console.log(`  Peak Records/sec: ${maxRecordsPerSec.toLocaleString()}`);
+  console.log(`  Conversions Tested: ${new Set(convertBuddyResults.map(r => r.conversion)).size}`);
+  console.log(`  Total Benchmarks: ${convertBuddyResults.length}`);
 }
 
 runBenchmarks().catch(console.error);
