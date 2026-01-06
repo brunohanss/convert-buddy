@@ -9,6 +9,7 @@
     "build:wasm": "npm -w convert-buddy-js run build:wasm",
     "test": "npm -w convert-buddy-js run test",
     "lint": "npm -w convert-buddy-js run lint",
-    "clean": "npm -w convert-buddy-js run clean"
+    "clean": "npm -w convert-buddy-js run clean",
+    "bench": "npm -w convert-buddy-js run bench"
   }
 }
