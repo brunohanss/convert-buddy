@@ -1,0 +1,214 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  /* Kinetic Minimalism Color Palette */
+  --primary: #0D7377; /* Deep Teal - Stability & Trust */
+  --primary-foreground: #FAFAF8; /* Soft Cream */
+  --accent: #FF6B35; /* Warm Coral - Speed & Energy */
+  --accent-foreground: #FAFAF8;
+  --sidebar-primary: #0D7377;
+  --sidebar-primary-foreground: #FAFAF8;
+  --chart-1: #0D7377;
+  --chart-2: #FF6B35;
+  --chart-3: #0D7377;
+  --chart-4: #FF6B35;
+  --chart-5: #0D7377;
+  --radius: 0.5rem;
+  --background: #FAFAF8; /* Soft Cream Background */
+  --foreground: #1F2937; /* Deep Gray Text */
+  --card: #FFFFFF; /* White Cards */
+  --card-foreground: #1F2937;
+  --popover: #FFFFFF;
+  --popover-foreground: #1F2937;
+  --secondary: #E5E7EB; /* Light Gray */
+  --secondary-foreground: #4B5563;
+  --muted: #D1D5DB; /* Medium Gray */
+  --muted-foreground: #6B7280;
+  --destructive: #EF4444;
+  --destructive-foreground: #FAFAF8;
+  --border: #E5E7EB;
+  --input: #F3F4F6;
+  --ring: #0D7377;
+  --sidebar: #FAFAF8;
+  --sidebar-foreground: #1F2937;
+  --sidebar-accent: #FF6B35;
+  --sidebar-accent-foreground: #FAFAF8;
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: #0D7377;
+}
+
+.dark {
+  /* Dark mode disabled for this design - keeping light theme only */
+  --primary: #0D7377;
+  --primary-foreground: #FAFAF8;
+  --sidebar-primary: #0D7377;
+  --sidebar-primary-foreground: #FAFAF8;
+  --background: #FAFAF8;
+  --foreground: #1F2937;
+  --card: #FFFFFF;
+  --card-foreground: #1F2937;
+  --popover: #FFFFFF;
+  --popover-foreground: #1F2937;
+  --secondary: #E5E7EB;
+  --secondary-foreground: #4B5563;
+  --muted: #D1D5DB;
+  --muted-foreground: #6B7280;
+  --accent: #FF6B35;
+  --accent-foreground: #FAFAF8;
+  --destructive: #EF4444;
+  --destructive-foreground: #FAFAF8;
+  --border: #E5E7EB;
+  --input: #F3F4F6;
+  --ring: #0D7377;
+  --chart-1: #0D7377;
+  --chart-2: #FF6B35;
+  --chart-3: #0D7377;
+  --chart-4: #FF6B35;
+  --chart-5: #0D7377;
+  --sidebar: #FAFAF8;
+  --sidebar-foreground: #1F2937;
+  --sidebar-accent: #FF6B35;
+  --sidebar-accent-foreground: #FAFAF8;
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: #0D7377;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  a[href],
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  /**
+   * Custom container utility that centers content and adds responsive padding.
+   *
+   * This overrides Tailwind's default container behavior to:
+   * - Auto-center content (mx-auto)
+   * - Add responsive horizontal padding
+   * - Set max-width for large screens
+   *
+   * Usage: <div className="container">...</div>
+   *
+   * For custom widths, use max-w-* utilities directly:
+   * <div className="max-w-6xl mx-auto px-4">...</div>
+   */
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem; /* 16px - mobile padding */
+    padding-right: 1rem;
+  }
+
+  .flex {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      padding-left: 1.5rem; /* 24px - tablet padding */
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-left: 2rem; /* 32px - desktop padding */
+      padding-right: 2rem;
+      max-width: 1280px; /* Standard content width */
+    }
+  }
+
+  /* Kinetic Minimalism Custom Components */
+  .performance-bar {
+    @apply relative h-8 rounded-sm overflow-hidden bg-secondary;
+  }
+
+  .performance-bar-fill {
+    @apply h-full rounded-sm transition-all duration-500 ease-out;
+    background: linear-gradient(90deg, #0D7377 0%, #FF6B35 100%);
+  }
+
+  .metric-counter {
+    @apply font-mono text-2xl font-bold text-primary transition-all duration-500;
+  }
+
+  .upload-zone {
+    @apply relative border-2 border-dashed border-primary rounded-lg p-12 transition-all duration-300 cursor-pointer hover:border-accent hover:bg-blue-50;
+  }
+
+  .upload-zone.dragover {
+    @apply border-accent bg-blue-50 scale-105;
+  }
+
+  .parser-card {
+    @apply bg-white rounded-lg p-6 shadow-sm border border-border transition-all duration-300 hover:shadow-md;
+  }
+
+  .parser-card.unsupported {
+    @apply opacity-60 border-destructive/50;
+  }
+
+  .parser-card.unsupported::after {
+    content: 'Not Supported';
+    @apply absolute top-3 right-3 text-xs font-semibold text-destructive bg-destructive/10 px-2 py-1 rounded;
+  }
+}
