@@ -12,12 +12,13 @@ The benchmark compares convert-buddy against:
 
 ## Installation
 
-To run competitor benchmarks, install the optional dependencies:
+The competitor libraries are included in `devDependencies`, so they're automatically installed when you clone the repository:
 
 ```bash
-npm install --save-dev papaparse csv-parse fast-csv
-npm install --save-dev @types/papaparse
+npm install
 ```
+
+If you're working on a fresh clone, all dependencies will be installed automatically.
 
 ## Running Benchmarks
 
@@ -30,6 +31,8 @@ npm run bench
 ```bash
 npm run bench:competitors
 ```
+
+**Note:** If any competitor library is missing, the benchmark will skip it gracefully and show a warning.
 
 ## What Gets Measured
 
@@ -70,6 +73,42 @@ Based on our testing, convert-buddy typically shows:
 3. **Optimized parsing**: Fast path for unquoted CSV
 4. **Batch processing**: Reduces overhead
 
+## Example Output
+
+```
+╔════════════════════════════════════════╗
+║  Benchmark Results                     ║
+╚════════════════════════════════════════╝
+
+┌─────────┬──────────────────┬────────────────────┬────────────────┬───────────┬──────────┬───────────────┐
+│ (index) │ tool             │ name               │ dataset        │ throughput│ latencyMs│ recordsPerSec │
+├─────────┼──────────────────┼────────────────────┼────────────────┼───────────┼──────────┼───────────────┤
+│ 0       │ 'convert-buddy'  │ 'CSV->NDJSON'      │ '29.03 MB'     │ 122.73    │ 236.51   │ 422815        │
+│ 1       │ 'PapaParse'      │ 'CSV->NDJSON'      │ '29.03 MB'     │ 18.45     │ 1574.23  │ 6352          │
+│ 2       │ 'csv-parse'      │ 'CSV->NDJSON'      │ '29.03 MB'     │ 25.67     │ 1131.45  │ 8839          │
+│ 3       │ 'fast-csv'       │ 'CSV->NDJSON'      │ '29.03 MB'     │ 32.11     │ 903.78   │ 11064         │
+└─────────┴──────────────────┴────────────────────┴────────────────┴───────────┴──────────┴───────────────┘
+
+╔════════════════════════════════════════╗
+║  Competitive Comparison (Medium CSV)  ║
+╚════════════════════════════════════════╝
+
+Ranking by Throughput:
+  1. convert-buddy: 122.73 MB/s
+  2. fast-csv: 32.11 MB/s (3.82x slower)
+  3. csv-parse: 25.67 MB/s (4.78x slower)
+  4. PapaParse: 18.45 MB/s (6.65x slower)
+```
+
+## Development Setup
+
+The competitor libraries are in `devDependencies`, which means:
+
+✅ **For developers**: Automatically installed with `npm install`  
+✅ **For npm users**: Not included when they install your package  
+✅ **For CI/CD**: Available in development/testing environments  
+✅ **Graceful degradation**: Benchmarks skip missing libraries
+
 ## Limitations
 
 The competitor benchmarks have some limitations:
@@ -94,3 +133,4 @@ If you notice any issues with the benchmarks or have suggestions for improvement
 - convert-buddy runs on small, medium, and large datasets
 - Results may vary based on hardware, Node.js version, and dataset characteristics
 - The benchmark converts CSV to NDJSON (newline-delimited JSON)
+- All competitor libraries are in `devDependencies` for development only

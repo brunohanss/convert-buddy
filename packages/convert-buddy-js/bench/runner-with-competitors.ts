@@ -82,7 +82,7 @@ async function benchmarkPapaParse(
       recordsPerSec: parseFloat(recordsPerSec.toFixed(0)),
     };
   } catch (error) {
-    console.log(`PapaParse not installed (npm install papaparse)`);
+    console.log(`⚠️  PapaParse not available (run: npm install)`);
     return null;
   }
 }
@@ -120,7 +120,7 @@ async function benchmarkCsvParse(
       recordsPerSec: parseFloat(recordsPerSec.toFixed(0)),
     };
   } catch (error) {
-    console.log(`csv-parse not installed (npm install csv-parse)`);
+    console.log(`⚠️  csv-parse not available (run: npm install)`);
     return null;
   }
 }
@@ -167,7 +167,7 @@ async function benchmarkFastCsv(
       recordsPerSec: parseFloat(recordsPerSec.toFixed(0)),
     };
   } catch (error) {
-    console.log(`fast-csv not installed (npm install fast-csv)`);
+    console.log(`⚠️  fast-csv not available (run: npm install)`);
     return null;
   }
 }
