@@ -1,23 +1,39 @@
-use std::time::{Duration, Instant};
+use std::time::Duration;
+
+/// Get current time in milliseconds (WASM-compatible)
+#[cfg(target_arch = "wasm32")]
+fn now_ms() -> f64 {
+    js_sys::Date::now()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn now_ms() -> f64 {
+    use std::time::SystemTime;
+    SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs_f64() * 1000.0
+}
 
 /// Timer for measuring performance in WASM
 pub struct Timer {
-    start: Instant,
+    start_ms: f64,
 }
 
 impl Timer {
     pub fn new() -> Self {
         Self {
-            start: Instant::now(),
+            start_ms: now_ms(),
         }
     }
 
     pub fn elapsed(&self) -> Duration {
-        self.start.elapsed()
+        let elapsed_ms = now_ms() - self.start_ms;
+        Duration::from_secs_f64(elapsed_ms / 1000.0)
     }
 
     pub fn reset(&mut self) {
-        self.start = Instant::now();
+        self.start_ms = now_ms();
     }
 }
 

@@ -116,7 +116,7 @@ impl Converter {
             self.stats.record_chunk(chunk.len());
         }
 
-        let start = std::time::Instant::now();
+        let start = crate::timing::Timer::new();
 
         let result = match self.state.as_mut() {
             Some(ConverterState::CsvToNdjson(parser)) => {
