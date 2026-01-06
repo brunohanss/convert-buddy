@@ -219,9 +219,9 @@ async function runBenchmarks() {
 
   // Generate datasets
   console.log("Generating CSV datasets...\n");
-  const csvSmall = generateCsvDataset(1_000);
-  const csvMedium = generateCsvDataset(10_000);
-  const csvLarge = generateCsvDataset(100_000);
+  const csvSmall = generateCsvDataset(1_000, 10);
+  const csvMedium = generateCsvDataset(10_000, 10);
+  const csvLarge = generateCsvDataset(100_000, 10);
 
   const csvSmallStr = new TextDecoder().decode(csvSmall);
   const csvMediumStr = new TextDecoder().decode(csvMedium);
@@ -278,9 +278,9 @@ async function runBenchmarks() {
 
   // NDJSON benchmarks
   console.log("\nGenerating NDJSON datasets...\n");
-  const ndjsonSmall = generateNdjsonDataset(1_000);
-  const ndjsonMedium = generateNdjsonDataset(10_000);
-  const ndjsonLarge = generateNdjsonDataset(100_000);
+  const ndjsonSmall = generateNdjsonDataset(1_000, 10);
+  const ndjsonMedium = generateNdjsonDataset(10_000, 10);
+  const ndjsonLarge = generateNdjsonDataset(100_000, 10);
 
   console.log("Benchmarking NDJSON -> JSON (small)...");
   results.push(
