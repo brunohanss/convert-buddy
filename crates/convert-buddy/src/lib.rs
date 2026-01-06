@@ -1,12 +1,30 @@
 use wasm_bindgen::prelude::*;
 use log::{debug, info};
 
+mod error;
+mod stats;
+mod json_parser;
+mod ndjson_parser;
+mod csv_parser;
+mod xml_parser;
+mod format;
+mod timing;
+
+pub use error::{ConvertError, Result};
+pub use stats::Stats;
+pub use format::{Format, ConverterConfig};
+pub use csv_parser::CsvConfig;
+pub use xml_parser::XmlConfig;
+
+use ndjson_parser::NdjsonParser;
+use csv_parser::CsvParser;
+use xml_parser::XmlParser;
+use json_parser::JsonParser;
+
 #[wasm_bindgen]
 pub fn init(debug_enabled: bool) {
     console_error_panic_hook::set_once();
 
-    // Default to info; enable debug logs when requested.
-    // In a real tool, you may expose a numeric log level setter.
     if debug_enabled {
         let _ = console_log::init_with_level(log::Level::Debug);
         debug!("convert-buddy: debug logging enabled");
@@ -16,14 +34,23 @@ pub fn init(debug_enabled: bool) {
     }
 }
 
+/// Internal converter state
+enum ConverterState {
+    CsvToNdjson(CsvParser),
+    NdjsonPassthrough(NdjsonParser),
+    NdjsonToJson(NdjsonParser, bool), // (parser, is_first_chunk)
+    XmlToNdjson(XmlParser),
+    JsonPassthrough(JsonParser),
+}
+
 /// A streaming converter state machine.
-/// For now this is a skeleton that simply echoes input bytes.
-/// Replace internals with real parsing + transformation later.
+/// Converts between CSV, NDJSON, JSON, and XML formats with high performance.
 #[wasm_bindgen]
 pub struct Converter {
     debug: bool,
-    // Placeholders for stateful parsers (e.g., partial line buffer for NDJSON/CSV)
-    partial: Vec<u8>,
+    config: ConverterConfig,
+    state: Option<ConverterState>,
+    stats: Stats,
 }
 
 #[wasm_bindgen]
@@ -33,28 +60,185 @@ impl Converter {
         if debug {
             debug!("Converter::new(debug=true)");
         }
-        Converter { debug, partial: Vec::new() }
+        
+        let config = ConverterConfig::default();
+        let state = Self::create_state(&config);
+        
+        Converter {
+            debug,
+            config,
+            state: Some(state),
+            stats: Stats::default(),
+        }
+    }
+
+    /// Create a new converter with specific configuration
+    #[wasm_bindgen(js_name = withConfig)]
+    pub fn with_config(
+        debug: bool,
+        input_format: &str,
+        output_format: &str,
+        chunk_target_bytes: usize,
+        enable_stats: bool,
+    ) -> std::result::Result<Converter, JsValue> {
+        let input = Format::from_string(input_format)
+            .ok_or_else(|| ConvertError::InvalidConfig(format!("Invalid input format: {}", input_format)))?;
+        
+        let output = Format::from_string(output_format)
+            .ok_or_else(|| ConvertError::InvalidConfig(format!("Invalid output format: {}", output_format)))?;
+
+        let config = ConverterConfig::new(input, output)
+            .with_chunk_size(chunk_target_bytes)
+            .with_stats(enable_stats);
+
+        let state = Self::create_state(&config);
+
+        if debug {
+            debug!("Converter::with_config({:?} -> {:?})", input, output);
+        }
+
+        Ok(Converter {
+            debug,
+            config,
+            state: Some(state),
+            stats: Stats::default(),
+        })
     }
 
     /// Push a chunk of bytes. Returns converted output bytes for that chunk.
-    /// IMPORTANT: This method is intentionally "batchy": one call per chunk.
-    /// Avoid per-row callbacks from WASM -> JS to reduce boundary overhead.
-    pub fn push(&mut self, chunk: &[u8]) -> Vec<u8> {
+    pub fn push(&mut self, chunk: &[u8]) -> std::result::Result<Vec<u8>, JsValue> {
         if self.debug {
             debug!("Converter::push chunk_len={}", chunk.len());
         }
 
-        // Skeleton behavior: pass-through.
-        // Replace with format-aware streaming conversion.
-        chunk.to_vec()
+        // Record input stats
+        if self.config.enable_stats {
+            self.stats.record_chunk(chunk.len());
+        }
+
+        let start = std::time::Instant::now();
+
+        let result = match self.state.as_mut() {
+            Some(ConverterState::CsvToNdjson(parser)) => {
+                parser.push_to_ndjson(chunk)?
+            }
+            Some(ConverterState::NdjsonPassthrough(parser)) => {
+                parser.push(chunk)?
+            }
+            Some(ConverterState::NdjsonToJson(parser, is_first)) => {
+                let is_first_chunk = *is_first;
+                *is_first = false;
+                parser.to_json_array(chunk, is_first_chunk, false)?
+            }
+            Some(ConverterState::XmlToNdjson(parser)) => {
+                parser.push_to_ndjson(chunk)?
+            }
+            Some(ConverterState::JsonPassthrough(_parser)) => {
+                // For JSON passthrough, we just validate
+                chunk.to_vec()
+            }
+            None => {
+                return Err(ConvertError::InvalidConfig("Converter already finished".to_string()).into());
+            }
+        };
+
+        // Record output stats
+        if self.config.enable_stats {
+            self.stats.record_output(result.len());
+            self.stats.record_parse_time(start.elapsed());
+            
+            // Update buffer sizes
+            let partial_size = match self.state.as_ref() {
+                Some(ConverterState::CsvToNdjson(p)) => p.partial_size(),
+                Some(ConverterState::NdjsonPassthrough(p)) => p.partial_size(),
+                Some(ConverterState::NdjsonToJson(p, _)) => p.partial_size(),
+                Some(ConverterState::XmlToNdjson(p)) => p.partial_size(),
+                _ => 0,
+            };
+            self.stats.update_buffer_size(partial_size);
+        }
+
+        Ok(result)
     }
 
     /// Finish the stream and return any remaining buffered output.
-    pub fn finish(&mut self) -> Vec<u8> {
+    pub fn finish(&mut self) -> std::result::Result<Vec<u8>, JsValue> {
         if self.debug {
-            debug!("Converter::finish partial_len={}", self.partial.len());
+            debug!("Converter::finish");
         }
-        let out = std::mem::take(&mut self.partial);
-        out
+
+        let result = match self.state.take() {
+            Some(ConverterState::CsvToNdjson(mut parser)) => {
+                parser.finish()?
+            }
+            Some(ConverterState::NdjsonPassthrough(mut parser)) => {
+                parser.finish()?
+            }
+            Some(ConverterState::NdjsonToJson(mut parser, _)) => {
+                // Close the JSON array
+                let mut output = parser.to_json_array(&[], false, true)?;
+                
+                let remaining = parser.finish()?;
+                
+                if !remaining.is_empty() {
+                    output.extend_from_slice(&remaining);
+                }
+                output
+            }
+            Some(ConverterState::XmlToNdjson(mut parser)) => {
+                parser.finish()?
+            }
+            Some(ConverterState::JsonPassthrough(_)) => {
+                Vec::new()
+            }
+            None => {
+                return Err(ConvertError::InvalidConfig("Converter already finished".to_string()).into());
+            }
+        };
+
+        if self.config.enable_stats {
+            self.stats.record_output(result.len());
+        }
+
+        Ok(result)
+    }
+
+    /// Get performance statistics
+    #[wasm_bindgen(js_name = getStats)]
+    pub fn get_stats(&self) -> Stats {
+        self.stats.clone()
     }
 }
+
+impl Converter {
+    fn create_state(config: &ConverterConfig) -> ConverterState {
+        match (config.input_format, config.output_format) {
+            (Format::Csv, Format::Ndjson) => {
+                let csv_config = config.csv_config.clone().unwrap_or_default();
+                ConverterState::CsvToNdjson(CsvParser::new(csv_config, config.chunk_target_bytes))
+            }
+            (Format::Ndjson, Format::Ndjson) => {
+                ConverterState::NdjsonPassthrough(NdjsonParser::new(config.chunk_target_bytes))
+            }
+            (Format::Ndjson, Format::Json) => {
+                ConverterState::NdjsonToJson(NdjsonParser::new(config.chunk_target_bytes), true)
+            }
+            (Format::Xml, Format::Ndjson) => {
+                let xml_config = config.xml_config.clone().unwrap_or_default();
+                ConverterState::XmlToNdjson(XmlParser::new(xml_config, config.chunk_target_bytes))
+            }
+            (Format::Json, Format::Json) => {
+                ConverterState::JsonPassthrough(JsonParser::new())
+            }
+            _ => {
+                // Default to passthrough for unsupported conversions
+                info!("Unsupported conversion: {:?} -> {:?}, using passthrough", 
+                      config.input_format, config.output_format);
+                ConverterState::JsonPassthrough(JsonParser::new())
+            }
+        }
+    }
+}
+
+// Note: Config builders are not exposed to JS directly
+// Configuration is passed through the Converter::with_config method
