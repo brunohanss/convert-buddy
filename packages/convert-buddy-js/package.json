@@ -29,8 +29,15 @@
     "build:wasm": "npm run build:wasm:web && npm run build:wasm:node",
     "build": "npm run build:wasm && tsup",
     "test": "npm run build && node ./dist/smoke-test.js",
+    "test:edge-cases": "npm run build && node --test ./dist/tests/edge-cases/*.test.js",
+    "test:all": "npm run test && npm run test:edge-cases",
     "bench": "npm run build && node ./dist/bench/runner.js",
+    "bench:single-thread": "npm run build && UV_THREADPOOL_SIZE=1 node ./dist/bench/single-thread.js",
+    "bench:multi-thread": "npm run build && node ./dist/bench/multi-thread.js",
+    "bench:compare": "npm run build && node ./dist/bench/compare-threads.js",
     "bench:competitors": "npm run build && node ./dist/bench/runner-with-competitors.js",
+    "bench:competitors-comprehensive": "npm run build && node ./dist/bench/runner-competitors-comprehensive.js",
+    "bench:all": "npm run bench:single-thread && npm run bench:multi-thread && npm run bench:compare && npm run bench:competitors-comprehensive",
     "lint": "node ./scripts/lint-placeholder.mjs"
   },
   "devDependencies": {
