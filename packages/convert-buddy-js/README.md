@@ -76,6 +76,28 @@ const response = await fetch("/data.csv");
 const outputStream = response.body?.pipeThrough(transform);
 ```
 
+### Detect format and CSV fields/delimiter
+
+Use streaming inputs to keep detection fast on large files.
+
+```ts
+import {
+  detectFormat,
+  detectCsvFieldsAndDelimiter,
+} from "convert-buddy-js";
+
+const fileStream = (await fetch("/data")).body!;
+
+const format = await detectFormat(fileStream, { maxBytes: 256 * 1024 });
+console.log(format); // "csv" | "json" | "ndjson" | "xml" | "unknown"
+
+const csvInfo = await detectCsvFieldsAndDelimiter(fileStream);
+if (csvInfo) {
+  console.log(csvInfo.delimiter);
+  console.log(csvInfo.fields);
+}
+```
+
 ## Configuration
 
 ### Formats
