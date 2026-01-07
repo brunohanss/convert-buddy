@@ -38,6 +38,7 @@ export type XmlConfig = {
   recordElement?: string;
   trimText?: boolean;
   includeAttributes?: boolean;
+  expandEntities?: boolean;
 };
 
 export type Stats = {
@@ -114,7 +115,9 @@ export class ConvertBuddy {
         opts.inputFormat,
         opts.outputFormat,
         opts.chunkTargetBytes || 1024 * 1024,
-        profile
+        profile,
+        opts.csvConfig,
+        opts.xmlConfig
       );
     } else {
       converter = new wasmModule.Converter(debug);
