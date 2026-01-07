@@ -6,6 +6,7 @@ export default defineConfig({
   dts: true,
   sourcemap: true,
   clean: true,
+  external: ["papaparse", "csv-parse", "csv-parse/sync", "fast-csv", "fast-xml-parser"],
   esbuildPlugins: [
     {
       name: "externalize-wasm-assets",
