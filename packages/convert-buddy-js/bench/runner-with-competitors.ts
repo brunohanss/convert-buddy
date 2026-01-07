@@ -182,6 +182,52 @@ async function benchmarkFastCsv(
   }
 }
 
+// Competitor benchmark: fast-xml-parser
+async function benchmarkFastXmlParser(
+  conversion: string,
+  size: string,
+  xmlData: string
+): Promise<BenchmarkResult | null> {
+  try {
+    const { XMLParser } = await import("fast-xml-parser");
+    const data = new TextEncoder().encode(xmlData);
+
+    const startMem = process.memoryUsage().heapUsed;
+    const start = performance.now();
+
+    const parser = new XMLParser();
+    const parsed = parser.parse(xmlData);
+    const records = Array.isArray(parsed?.root?.record)
+      ? parsed.root.record
+      : parsed?.root?.record
+        ? [parsed.root.record]
+        : [];
+    const ndjson = records.map((row: any) => JSON.stringify(row)).join("\n");
+
+    const end = performance.now();
+    const endMem = process.memoryUsage().heapUsed;
+
+    const latencyMs = end - start;
+    const throughputMbps = (data.length / (1024 * 1024)) / (latencyMs / 1000);
+    const memoryMb = (endMem - startMem) / (1024 * 1024);
+    const recordsPerSec = records.length / (latencyMs / 1000);
+
+    return {
+      tool: "fast-xml-parser",
+      conversion,
+      size,
+      dataset: `${(data.length / (1024 * 1024)).toFixed(2)} MB`,
+      throughputMbps: parseFloat(throughputMbps.toFixed(2)),
+      latencyMs: parseFloat(latencyMs.toFixed(2)),
+      memoryMb: parseFloat(memoryMb.toFixed(2)),
+      recordsPerSec: parseFloat(recordsPerSec.toFixed(0)),
+    };
+  } catch (error) {
+    console.log(`⚠️  fast-xml-parser not available: ${error}`);
+    return null;
+  }
+}
+
 async function runBenchmarks() {
   console.log("╔════════════════════════════════════════╗");
   console.log("║  Convert Buddy Comprehensive Benchmarks  ║");
@@ -206,6 +252,9 @@ async function runBenchmarks() {
   const xmlSmall = generateXmlDataset(1_000, 10);
   const xmlMedium = generateXmlDataset(10_000, 10);
   const xmlLarge = generateXmlDataset(100_000, 10);
+  const xmlSmallStr = new TextDecoder().decode(xmlSmall);
+  const xmlMediumStr = new TextDecoder().decode(xmlMedium);
+  const xmlLargeStr = new TextDecoder().decode(xmlLarge);
 
   // ========== CSV -> NDJSON Benchmarks ==========
   console.log("╔════════════════════════════════════════╗");
@@ -316,6 +365,9 @@ async function runBenchmarks() {
     })
   );
 
+  const fastXmlSmall = await benchmarkFastXmlParser("XML→NDJSON", "small", xmlSmallStr);
+  if (fastXmlSmall) results.push(fastXmlSmall);
+
   console.log("Benchmarking XML → NDJSON (medium)...");
   results.push(
     await benchmarkConversion("convert-buddy", "XML→NDJSON", "medium", xmlMedium, {
@@ -324,6 +376,9 @@ async function runBenchmarks() {
     })
   );
 
+  const fastXmlMedium = await benchmarkFastXmlParser("XML→NDJSON", "medium", xmlMediumStr);
+  if (fastXmlMedium) results.push(fastXmlMedium);
+
   console.log("Benchmarking XML → NDJSON (large)...");
   results.push(
     await benchmarkConversion("convert-buddy", "XML→NDJSON", "large", xmlLarge, {
@@ -331,6 +386,9 @@ async function runBenchmarks() {
       outputFormat: "ndjson",
     })
   );
+
+  const fastXmlLarge = await benchmarkFastXmlParser("XML→NDJSON", "large", xmlLargeStr);
+  if (fastXmlLarge) results.push(fastXmlLarge);
 
   // Print results
   console.log("\n╔════════════════════════════════════════╗");
@@ -343,25 +401,37 @@ async function runBenchmarks() {
   fs.writeFileSync(outputPath, JSON.stringify(results, null, 2));
   console.log(`\nResults saved to: ${outputPath}`);
 
-  // Print comparison summaries by size
-  console.log("\n╔════════════════════════════════════════╗");
-  console.log("║  CSV→NDJSON Comparison by Size        ║");
-  console.log("╚════════════════════════════════════════╝\n");
+  const printComparisonBySize = (conversion: string, title: string) => {
+    console.log("\n╔════════════════════════════════════════╗");
+    console.log(`║  ${title.padEnd(34)}║`);
+    console.log("╚════════════════════════════════════════╝\n");
 
-  for (const size of ["small", "medium", "large"]) {
-    const csvResults = results.filter(
-      (r) => r.conversion === "CSV→NDJSON" && r.size === size
-    );
-    
-    if (csvResults.length > 1) {
-      const sorted = csvResults.sort((a, b) => b.throughputMbps - a.throughputMbps);
+    for (const size of ["small", "medium", "large"]) {
+      const conversionResults = results.filter(
+        (r) => r.conversion === conversion && r.size === size
+      );
+
+      if (conversionResults.length === 0) {
+        continue;
+      }
+
+      const sorted = conversionResults.sort((a, b) => b.throughputMbps - a.throughputMbps);
       console.log(`\n${size.toUpperCase()} (${sorted[0].dataset}):`);
       sorted.forEach((r, i) => {
-        const speedup = i === 0 ? "" : ` (${(sorted[0].throughputMbps / r.throughputMbps).toFixed(2)}x slower)`;
-        console.log(`  ${i + 1}. ${r.tool.padEnd(15)} ${r.throughputMbps.toString().padStart(8)} MB/s  ${r.recordsPerSec.toLocaleString().padStart(10)} rec/s${speedup}`);
+        const speedup =
+          i === 0
+            ? ""
+            : ` (${(sorted[0].throughputMbps / r.throughputMbps).toFixed(2)}x slower)`;
+        console.log(
+          `  ${i + 1}. ${r.tool.padEnd(15)} ${r.throughputMbps.toString().padStart(8)} MB/s  ${r.recordsPerSec.toLocaleString().padStart(10)} rec/s${speedup}`
+        );
       });
     }
-  }
+  };
+
+  // Print comparison summaries by size
+  printComparisonBySize("CSV→NDJSON", "CSV→NDJSON Comparison by Size");
+  printComparisonBySize("XML→NDJSON", "XML→NDJSON Comparison by Size");
 
   // Summary statistics
   console.log("\n╔════════════════════════════════════════╗");
