@@ -144,7 +144,7 @@ Tracks comprehensive performance metrics:
 
 3. **Node.js Transform Stream:**
    ```typescript
-   const transform = createNodeTransform({...});
+   const transform = await createNodeTransform({...});
    inputStream.pipe(transform).pipe(outputStream);
    ```
 

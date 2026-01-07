@@ -89,7 +89,7 @@ async function benchmarkStreaming(
   const start = performance.now();
 
   const chunks: Buffer[] = [];
-  const transform = createNodeTransform(opts);
+  const transform = await createNodeTransform(opts);
 
   const readable = Readable.from(
     (async function* () {

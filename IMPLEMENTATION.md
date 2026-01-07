@@ -124,7 +124,7 @@ const output2 = buddy.push(chunk2);
 const final = buddy.finish();
 
 // Node.js Transform Stream
-const transform = createNodeTransform({
+const transform = await createNodeTransform({
   inputFormat: "csv",
   outputFormat: "ndjson"
 });
