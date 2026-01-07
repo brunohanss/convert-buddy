@@ -36,6 +36,7 @@
     "build:wasm:node": "set CONVERT_BUDDY_WASM_TARGET=nodejs&& node ./scripts/build-wasm.mjs",
     "build:wasm": "npm run build:wasm:web && npm run build:wasm:node",
     "build": "npm run build:wasm && tsup",
+    "check:wasm": "node ./scripts/check-wasm.mjs",
     "test": "npm run build && node ./dist/smoke-test.js",
     "test:edge-cases": "npm run build && node --test ./dist/tests/edge-cases/*.test.js",
     "test:all": "npm run test && npm run test:edge-cases",
@@ -46,7 +47,8 @@
     "bench:competitors": "npm run build && node ./dist/bench/runner-with-competitors.js",
     "bench:competitors-comprehensive": "npm run build && node ./dist/bench/runner-competitors-comprehensive.js",
     "bench:all": "npm run bench:single-thread && npm run bench:multi-thread && npm run bench:compare && npm run bench:competitors-comprehensive",
-    "lint": "node ./scripts/lint-placeholder.mjs"
+    "lint": "node ./scripts/lint-placeholder.mjs",
+    "prepack": "npm run build && npm run check:wasm"
   },
   "devDependencies": {
     "@types/node": "^25.0.3",
