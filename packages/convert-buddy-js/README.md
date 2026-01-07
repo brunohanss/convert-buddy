@@ -146,10 +146,21 @@ if (csvInfo) {
 ## How it works
 
 - **Rust core** (`crates/convert-buddy`) implements streaming parsers and stats tracking.
-- **WASM bindings** are generated via `wasm-bindgen` and bundled into this package.
+- **WASM bindings** are generated via `wasm-bindgen` and bundled into this package as prebuilt binaries.
 - **TypeScript wrapper** (`src/index.ts`) exposes the `ConvertBuddy` class and stream adapters.
 
+## Package contents (what ships)
+
+The published npm package includes only the runtime artifacts needed to use Convert Buddy:
+
+- Prebuilt WASM binaries (in `wasm/` plus `wasm-node.cjs` for Node.js).
+- Compiled TypeScript output (in `dist/`).
+
+The monorepo demo app, Rust sources, and build/benchmark tooling live in this repository but are **not** published with the npm package.
+
 ### Build (repository)
+
+These steps are **only** for contributors working in this monorepo. If you install `convert-buddy-js` from npm, you do **not** need to run them.
 
 ```bash
 npm install
