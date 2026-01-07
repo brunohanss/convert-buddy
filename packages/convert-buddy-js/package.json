@@ -10,11 +10,17 @@
     ".": {
       "types": "./dist/src/index.d.ts",
       "default": "./dist/src/index.js"
+    },
+    "./node": {
+      "types": "./dist/src/node.d.ts",
+      "default": "./dist/src/node.js"
     }
   },
   "files": [
     "dist/src/index.js",
     "dist/src/index.d.ts",
+    "dist/src/node.js",
+    "dist/src/node.d.ts",
     "dist/chunk-*.js",
     "dist/chunk-*.d.ts",
     "dist/*.js",

@@ -44,8 +44,10 @@ console.log(buddy.stats());
 
 ### Node.js Transform stream
 
+Use the Node-specific entrypoint so bundlers keep `node:stream` out of the browser bundle.
+
 ```ts
-import { createNodeTransform } from "convert-buddy-js";
+import { createNodeTransform } from "convert-buddy-js/node";
 import { createReadStream, createWriteStream } from "node:fs";
 
 const transform = await createNodeTransform({
