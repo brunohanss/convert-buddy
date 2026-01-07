@@ -22,6 +22,8 @@ use csv_parser::CsvParser;
 use xml_parser::XmlParser;
 use json_parser::JsonParser;
 use js_sys::{Array, Object, Reflect};
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
 
 #[wasm_bindgen]
 pub fn init(debug_enabled: bool) {
@@ -81,6 +83,24 @@ pub struct Converter {
     stats: Stats,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CsvConfigInput {
+    delimiter: Option<String>,
+    quote: Option<String>,
+    has_headers: Option<bool>,
+    trim_whitespace: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct XmlConfigInput {
+    record_element: Option<String>,
+    trim_text: Option<bool>,
+    include_attributes: Option<bool>,
+    expand_entities: Option<bool>,
+}
+
 #[wasm_bindgen]
 impl Converter {
     #[wasm_bindgen(constructor)]
@@ -108,8 +128,8 @@ impl Converter {
         output_format: &str,
         chunk_target_bytes: usize,
         enable_stats: bool,
-        csv_config: Option<JsValue>,
-        xml_config: Option<JsValue>,
+        csv_config: JsValue,
+        xml_config: JsValue,
     ) -> std::result::Result<Converter, JsValue> {
         let input = Format::from_string(input_format)
             .ok_or_else(|| ConvertError::InvalidConfig(format!("Invalid input format: {}", input_format)))?;
@@ -121,11 +141,11 @@ impl Converter {
             .with_chunk_size(chunk_target_bytes)
             .with_stats(enable_stats);
 
-        if let Some(csv) = csv_config.and_then(parse_csv_config) {
+        if let Some(csv) = parse_csv_config(csv_config) {
             config = config.with_csv_config(csv);
         }
 
-        if let Some(xml) = xml_config.and_then(parse_xml_config) {
+        if let Some(xml) = parse_xml_config(xml_config) {
             config = config.with_xml_config(xml);
         }
 
@@ -279,80 +299,64 @@ impl Converter {
 }
 
 fn parse_csv_config(value: JsValue) -> Option<CsvConfig> {
-    if value.is_null() || value.is_undefined() || !value.is_object() {
-        return None;
-    }
-
-    let obj = Object::from(value);
+    let input: CsvConfigInput = deserialize_optional(value)?;
     let mut config = CsvConfig::default();
 
-    if let Ok(delimiter) = Reflect::get(&obj, &JsValue::from_str("delimiter")) {
-        if let Some(value) = delimiter.as_string() {
-            if let Some(byte) = value.as_bytes().first() {
-                config.delimiter = *byte;
-            }
+    if let Some(value) = input.delimiter {
+        if let Some(byte) = value.as_bytes().first() {
+            config.delimiter = *byte;
         }
     }
 
-    if let Ok(quote) = Reflect::get(&obj, &JsValue::from_str("quote")) {
-        if let Some(value) = quote.as_string() {
-            if let Some(byte) = value.as_bytes().first() {
-                config.quote = *byte;
-                config.escape = Some(*byte);
-            }
+    if let Some(value) = input.quote {
+        if let Some(byte) = value.as_bytes().first() {
+            config.quote = *byte;
+            config.escape = Some(*byte);
         }
     }
 
-    if let Ok(has_headers) = Reflect::get(&obj, &JsValue::from_str("hasHeaders")) {
-        if let Some(value) = has_headers.as_bool() {
-            config.has_headers = value;
-        }
+    if let Some(has_headers) = input.has_headers {
+        config.has_headers = has_headers;
     }
 
-    if let Ok(trim_whitespace) = Reflect::get(&obj, &JsValue::from_str("trimWhitespace")) {
-        if let Some(value) = trim_whitespace.as_bool() {
-            config.trim_whitespace = value;
-        }
+    if let Some(trim_whitespace) = input.trim_whitespace {
+        config.trim_whitespace = trim_whitespace;
     }
 
     Some(config)
 }
 
 fn parse_xml_config(value: JsValue) -> Option<XmlConfig> {
-    if value.is_null() || value.is_undefined() || !value.is_object() {
-        return None;
-    }
-
-    let obj = Object::from(value);
+    let input: XmlConfigInput = deserialize_optional(value)?;
     let mut config = XmlConfig::default();
 
-    if let Ok(record_element) = Reflect::get(&obj, &JsValue::from_str("recordElement")) {
-        if let Some(value) = record_element.as_string() {
-            if !value.is_empty() {
-                config.record_element = value;
-            }
+    if let Some(value) = input.record_element {
+        if !value.is_empty() {
+            config.record_element = value;
         }
     }
 
-    if let Ok(trim_text) = Reflect::get(&obj, &JsValue::from_str("trimText")) {
-        if let Some(value) = trim_text.as_bool() {
-            config.trim_text = value;
-        }
+    if let Some(trim_text) = input.trim_text {
+        config.trim_text = trim_text;
     }
 
-    if let Ok(include_attributes) = Reflect::get(&obj, &JsValue::from_str("includeAttributes")) {
-        if let Some(value) = include_attributes.as_bool() {
-            config.include_attributes = value;
-        }
+    if let Some(include_attributes) = input.include_attributes {
+        config.include_attributes = include_attributes;
     }
 
-    if let Ok(expand_entities) = Reflect::get(&obj, &JsValue::from_str("expandEntities")) {
-        if let Some(value) = expand_entities.as_bool() {
-            config.expand_entities = value;
-        }
+    if let Some(expand_entities) = input.expand_entities {
+        config.expand_entities = expand_entities;
     }
 
     Some(config)
+}
+
+fn deserialize_optional<T: DeserializeOwned>(value: JsValue) -> Option<T> {
+    if value.is_null() || value.is_undefined() {
+        return None;
+    }
+
+    serde_wasm_bindgen::from_value(value).ok()
 }
 
 // Note: Config builders are not exposed to JS directly
