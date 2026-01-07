@@ -9,6 +9,7 @@ mod csv_parser;
 mod xml_parser;
 mod format;
 mod timing;
+mod detect;
 
 pub use error::{ConvertError, Result};
 pub use stats::Stats;
@@ -20,6 +21,7 @@ use ndjson_parser::NdjsonParser;
 use csv_parser::CsvParser;
 use xml_parser::XmlParser;
 use json_parser::JsonParser;
+use js_sys::{Array, Object, Reflect};
 
 #[wasm_bindgen]
 pub fn init(debug_enabled: bool) {
@@ -32,6 +34,32 @@ pub fn init(debug_enabled: bool) {
         let _ = console_log::init_with_level(log::Level::Info);
         info!("convert-buddy: logging initialized");
     }
+}
+
+/// Detect the input format from a sample of bytes.
+#[wasm_bindgen(js_name = detectFormat)]
+pub fn detect_format(sample: &[u8]) -> Option<String> {
+    detect::detect_format(sample).map(|format| format.to_string_js())
+}
+
+/// Detect CSV fields and delimiter from a sample of bytes.
+#[wasm_bindgen(js_name = detectCsvFields)]
+pub fn detect_csv_fields(sample: &[u8]) -> JsValue {
+    let Some(detection) = detect::detect_csv(sample) else {
+        return JsValue::NULL;
+    };
+
+    let result = Object::new();
+    let delimiter = String::from_utf8_lossy(&[detection.delimiter]).to_string();
+    let fields = Array::new();
+    for field in detection.fields {
+        fields.push(&JsValue::from(field));
+    }
+
+    let _ = Reflect::set(&result, &JsValue::from("delimiter"), &JsValue::from(delimiter));
+    let _ = Reflect::set(&result, &JsValue::from("fields"), &fields);
+
+    result.into()
 }
 
 /// Internal converter state
