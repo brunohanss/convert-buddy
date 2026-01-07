@@ -1,0 +1,17 @@
+{
+  "name": "convert-buddy",
+  "type": "module",
+  "description": "High-performance streaming converters (CSV/XML/JSON/NDJSON) core",
+  "version": "0.1.0",
+  "license": "MIT",
+  "files": [
+    "convert_buddy_bg.wasm",
+    "convert_buddy.js",
+    "convert_buddy.d.ts"
+  ],
+  "main": "convert_buddy.js",
+  "types": "convert_buddy.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
