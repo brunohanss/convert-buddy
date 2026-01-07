@@ -1,0 +1,30 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const sourceRoot = path.join(rootDir, "wasm");
+const destRoot = path.join(rootDir, "dist", "wasm");
+const targets = ["web", "nodejs"];
+
+if (!fs.existsSync(sourceRoot)) {
+  console.error("[convert-buddy-js] Missing wasm source directory:", sourceRoot);
+  process.exit(1);
+}
+
+fs.rmSync(destRoot, { recursive: true, force: true });
+
+for (const target of targets) {
+  const sourceDir = path.join(sourceRoot, target);
+  const destDir = path.join(destRoot, target);
+
+  if (!fs.existsSync(sourceDir)) {
+    console.error(`[convert-buddy-js] Missing wasm source: ${sourceDir}`);
+    process.exit(1);
+  }
+
+  fs.mkdirSync(destDir, { recursive: true });
+  fs.cpSync(sourceDir, destDir, { recursive: true });
+}
+
+console.log("[convert-buddy-js] Synced wasm assets into dist/wasm.");

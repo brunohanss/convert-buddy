@@ -6,12 +6,14 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const wasmTargets = [
   {
     label: "web",
-    dir: path.join(rootDir, "wasm", "web"),
+    sourceDir: path.join(rootDir, "wasm", "web"),
+    distDir: path.join(rootDir, "dist", "wasm", "web"),
     files: ["convert_buddy.js", "convert_buddy_bg.wasm"],
   },
   {
     label: "nodejs",
-    dir: path.join(rootDir, "wasm", "nodejs"),
+    sourceDir: path.join(rootDir, "wasm", "nodejs"),
+    distDir: path.join(rootDir, "dist", "wasm", "nodejs"),
     files: ["convert_buddy.js", "convert_buddy_bg.wasm"],
   },
 ];
@@ -20,9 +22,14 @@ const missing = [];
 
 for (const target of wasmTargets) {
   for (const file of target.files) {
-    const filePath = path.join(target.dir, file);
-    if (!fs.existsSync(filePath)) {
-      missing.push(`${target.label}: ${path.relative(rootDir, filePath)}`);
+    const sourcePath = path.join(target.sourceDir, file);
+    if (!fs.existsSync(sourcePath)) {
+      missing.push(`${target.label} source: ${path.relative(rootDir, sourcePath)}`);
+    }
+
+    const distPath = path.join(target.distDir, file);
+    if (!fs.existsSync(distPath)) {
+      missing.push(`${target.label} dist: ${path.relative(rootDir, distPath)}`);
     }
   }
 }
