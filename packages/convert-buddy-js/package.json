@@ -17,15 +17,8 @@
     }
   },
   "files": [
-    "dist/src/index.js",
-    "dist/src/index.d.ts",
-    "dist/src/node.js",
-    "dist/src/node.d.ts",
-    "dist/chunk-*.js",
-    "dist/chunk-*.d.ts",
-    "dist/*.js",
-    "dist/*.d.ts",
-    "wasm",
+    "dist/**",
+    "wasm/**",
     "wasm-node.cjs",
     "!dist/smoke-test.*",
     "!dist/bench"
