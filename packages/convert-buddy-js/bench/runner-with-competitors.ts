@@ -368,6 +368,7 @@ async function runBenchmarks() {
     await benchmarkConversion("convert-buddy", "XML→NDJSON", "small", xmlSmall, {
       inputFormat: "xml",
       outputFormat: "ndjson",
+      xmlConfig: { recordElement: "record" },
     })
   );
 
@@ -379,6 +380,7 @@ async function runBenchmarks() {
     await benchmarkConversion("convert-buddy", "XML→NDJSON", "medium", xmlMedium, {
       inputFormat: "xml",
       outputFormat: "ndjson",
+      xmlConfig: { recordElement: "record" },
     })
   );
 
@@ -390,6 +392,7 @@ async function runBenchmarks() {
     await benchmarkConversion("convert-buddy", "XML→NDJSON", "large", xmlLarge, {
       inputFormat: "xml",
       outputFormat: "ndjson",
+      xmlConfig: { recordElement: "record" },
     })
   );
 
