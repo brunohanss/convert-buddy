@@ -1,5 +1,6 @@
 import { performance } from "node:perf_hooks";
-import { ConvertBuddy, convert, createNodeTransform } from "../src/index.js";
+import { ConvertBuddy, convert } from "../src/index.js";
+import { createNodeTransform } from "../src/node.js";
 import { generateCsvDataset, generateNdjsonDataset, generateXmlDataset } from "./datasets.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
