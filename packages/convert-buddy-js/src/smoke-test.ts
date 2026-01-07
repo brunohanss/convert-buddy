@@ -1,4 +1,6 @@
-import { ConvertBuddy, convert, convertToString, createNodeTransform } from "./index.js";
+import { ConvertBuddy, convert, convertToString } from "./index.js";
+import { createNodeTransform } from "../src/node.js";
+
 
 async function testBasicConversion() {
   console.log("\n=== Test: Basic CSV to NDJSON ===");
