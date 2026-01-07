@@ -221,6 +221,9 @@ export default function Home() {
                     Stream Process
                   </Button>
                 </div>
+                <p className="mt-4 text-xs text-muted-foreground">
+                  Working with large files? Use Stream Process to avoid browser memory limits.
+                </p>
               </div>
 
               {/* Results */}
