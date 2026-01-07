@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, Github, Code2, Zap, Flame } from "lucide-react";
+import { Upload, Github, Code2, Zap, Flame, Search } from "lucide-react";
 import FileUploadZone from "@/components/FileUploadZone";
 import ParserComparison from "@/components/ParserComparison";
 import StreamingProcessor from "@/components/StreamingProcessor";
 import Footer from "@/components/Footer";
-import { benchmarkAllParsers, detectFormat } from "@/lib/benchmarkParsers";
+import FormatDetection from "@/components/FormatDetection";
+import { benchmarkAllParsers, detectFormat as detectFormatHeuristic } from "@/lib/benchmarkParsers";
+import { detectCsvFieldsAndDelimiter, detectFormat } from "convert-buddy-js";
 
 /**
  * Design Philosophy: Kinetic Minimalism with Performance Visualization
@@ -17,14 +19,24 @@ import { benchmarkAllParsers, detectFormat } from "@/lib/benchmarkParsers";
 
 export default function Home() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [mode, setMode] = useState<"upload" | "check" | "parse" | "stream">("upload");
+  const [mode, setMode] = useState<"upload" | "check" | "parse" | "stream" | "detect">("upload");
   const [results, setResults] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [detectResult, setDetectResult] = useState<{
+    format: string;
+    csv: { delimiter: string; fields: string[] } | null;
+  } | null>(null);
+  const [detectLoading, setDetectLoading] = useState(false);
+  const [detectError, setDetectError] = useState<string | null>(null);
+  const isBusy = loading || detectLoading;
 
   const handleFileUpload = (file: File) => {
     setUploadedFile(file);
     setMode("upload");
     setResults(null);
+    setDetectResult(null);
+    setDetectError(null);
+    setDetectLoading(false);
   };
 
   const handleCheckFormat = async () => {
@@ -34,7 +46,7 @@ export default function Home() {
     
     try {
       const fileContent = await uploadedFile.text();
-      const detectedFormat = detectFormat(uploadedFile.name, fileContent) as "csv" | "xml" | "unknown";
+      const detectedFormat = detectFormatHeuristic(uploadedFile.name, fileContent) as "csv" | "xml" | "unknown";
       
       // Run benchmarks
       const benchmarkResults = await benchmarkAllParsers(fileContent, detectedFormat);
@@ -69,7 +81,7 @@ export default function Home() {
     
     try {
       const fileContent = await uploadedFile.text();
-      const detectedFormat = detectFormat(uploadedFile.name, fileContent) as "csv" | "xml" | "unknown";
+      const detectedFormat = detectFormatHeuristic(uploadedFile.name, fileContent) as "csv" | "xml" | "unknown";
       
       // Run benchmarks
       const benchmarkResults = await benchmarkAllParsers(fileContent, detectedFormat);
@@ -94,6 +106,30 @@ export default function Home() {
       console.error("Error parsing file:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDetect = async () => {
+    if (!uploadedFile) return;
+    setDetectLoading(true);
+    setDetectError(null);
+    setMode("detect");
+
+    try {
+      const format = await detectFormat(uploadedFile.stream());
+      const csvInfo = format === "csv"
+        ? await detectCsvFieldsAndDelimiter(uploadedFile.stream())
+        : null;
+
+      setDetectResult({
+        format,
+        csv: csvInfo,
+      });
+    } catch (error) {
+      console.error("Error detecting format:", error);
+      setDetectError("Unable to detect format. Please try a different file.");
+    } finally {
+      setDetectLoading(false);
     }
   };
 
@@ -176,6 +212,9 @@ export default function Home() {
                       setUploadedFile(null);
                       setMode("upload");
                       setResults(null);
+                      setDetectResult(null);
+                      setDetectError(null);
+                      setDetectLoading(false);
                     }}
                   >
                     Change File
@@ -186,7 +225,7 @@ export default function Home() {
                 <div className="flex gap-4 flex-wrap">
                   <Button
                     onClick={handleCheckFormat}
-                    disabled={loading}
+                    disabled={isBusy}
                     className={`${
                       mode === "check" 
                         ? "bg-primary text-primary-foreground" 
@@ -198,7 +237,7 @@ export default function Home() {
                   </Button>
                   <Button
                     onClick={handleParse}
-                    disabled={loading}
+                    disabled={isBusy}
                     className={`${
                       mode === "parse" 
                         ? "bg-accent text-accent-foreground" 
@@ -210,7 +249,7 @@ export default function Home() {
                   </Button>
                   <Button
                     onClick={() => setMode("stream")}
-                    disabled={loading}
+                    disabled={isBusy}
                     className={`${
                       mode === "stream" 
                         ? "bg-destructive text-destructive-foreground" 
@@ -220,6 +259,18 @@ export default function Home() {
                     <Flame className="w-4 h-4 mr-2" />
                     Stream Process
                   </Button>
+                  <Button
+                    onClick={handleDetect}
+                    disabled={isBusy}
+                    className={`${
+                      mode === "detect" 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-secondary text-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    <Search className="w-4 h-4 mr-2" />
+                    Detect Format & CSV
+                  </Button>
                 </div>
                 <p className="mt-4 text-xs text-muted-foreground">
                   Working with large files? Use Stream Process to avoid browser memory limits.
@@ -227,7 +278,7 @@ export default function Home() {
               </div>
 
               {/* Results */}
-              {results && mode !== "stream" && (
+              {results && (mode === "check" || mode === "parse") && (
                 <ParserComparison 
                   results={results} 
                   mode={mode}
@@ -242,7 +293,19 @@ export default function Home() {
                   onComplete={() => {
                     setMode("upload");
                     setUploadedFile(null);
+                    setDetectResult(null);
+                    setDetectError(null);
+                    setDetectLoading(false);
                   }}
+                />
+              )}
+
+              {mode === "detect" && uploadedFile && (
+                <FormatDetection
+                  file={uploadedFile}
+                  loading={detectLoading}
+                  error={detectError}
+                  result={detectResult}
                 />
               )}
             </div>
