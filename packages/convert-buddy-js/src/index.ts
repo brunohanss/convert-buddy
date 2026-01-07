@@ -79,7 +79,8 @@ async function loadWasmModule(): Promise<WasmModule> {
     return mod as WasmModule;
   }
 
-  const mod = (await import("../wasm/web/convert_buddy.js")) as unknown as WasmModule;
+  const wasmUrl = new URL("../../wasm/web/convert_buddy.js", import.meta.url);
+  const mod = (await import(wasmUrl.href)) as unknown as WasmModule;
   return mod;
 }
 
