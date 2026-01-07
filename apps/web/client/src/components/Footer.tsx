@@ -62,8 +62,8 @@ export default function Footer() {
               Performance
             </h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>CSV: 200-500 MB/s</li>
-              <li>XML: 100-200 MB/s</li>
+              <li>CSV: 30-60 MB/s</li>
+              <li>XML: 40-90 MB/s</li>
               <li>WASM: 162 KB</li>
             </ul>
           </div>
