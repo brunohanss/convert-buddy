@@ -108,6 +108,8 @@ impl Converter {
         output_format: &str,
         chunk_target_bytes: usize,
         enable_stats: bool,
+        csv_config: Option<JsValue>,
+        xml_config: Option<JsValue>,
     ) -> std::result::Result<Converter, JsValue> {
         let input = Format::from_string(input_format)
             .ok_or_else(|| ConvertError::InvalidConfig(format!("Invalid input format: {}", input_format)))?;
@@ -115,9 +117,17 @@ impl Converter {
         let output = Format::from_string(output_format)
             .ok_or_else(|| ConvertError::InvalidConfig(format!("Invalid output format: {}", output_format)))?;
 
-        let config = ConverterConfig::new(input, output)
+        let mut config = ConverterConfig::new(input, output)
             .with_chunk_size(chunk_target_bytes)
             .with_stats(enable_stats);
+
+        if let Some(csv) = csv_config.and_then(parse_csv_config) {
+            config = config.with_csv_config(csv);
+        }
+
+        if let Some(xml) = xml_config.and_then(parse_xml_config) {
+            config = config.with_xml_config(xml);
+        }
 
         let state = Self::create_state(&config);
 
@@ -266,6 +276,83 @@ impl Converter {
             }
         }
     }
+}
+
+fn parse_csv_config(value: JsValue) -> Option<CsvConfig> {
+    if value.is_null() || value.is_undefined() || !value.is_object() {
+        return None;
+    }
+
+    let obj = Object::from(value);
+    let mut config = CsvConfig::default();
+
+    if let Ok(delimiter) = Reflect::get(&obj, &JsValue::from_str("delimiter")) {
+        if let Some(value) = delimiter.as_string() {
+            if let Some(byte) = value.as_bytes().first() {
+                config.delimiter = *byte;
+            }
+        }
+    }
+
+    if let Ok(quote) = Reflect::get(&obj, &JsValue::from_str("quote")) {
+        if let Some(value) = quote.as_string() {
+            if let Some(byte) = value.as_bytes().first() {
+                config.quote = *byte;
+                config.escape = Some(*byte);
+            }
+        }
+    }
+
+    if let Ok(has_headers) = Reflect::get(&obj, &JsValue::from_str("hasHeaders")) {
+        if let Some(value) = has_headers.as_bool() {
+            config.has_headers = value;
+        }
+    }
+
+    if let Ok(trim_whitespace) = Reflect::get(&obj, &JsValue::from_str("trimWhitespace")) {
+        if let Some(value) = trim_whitespace.as_bool() {
+            config.trim_whitespace = value;
+        }
+    }
+
+    Some(config)
+}
+
+fn parse_xml_config(value: JsValue) -> Option<XmlConfig> {
+    if value.is_null() || value.is_undefined() || !value.is_object() {
+        return None;
+    }
+
+    let obj = Object::from(value);
+    let mut config = XmlConfig::default();
+
+    if let Ok(record_element) = Reflect::get(&obj, &JsValue::from_str("recordElement")) {
+        if let Some(value) = record_element.as_string() {
+            if !value.is_empty() {
+                config.record_element = value;
+            }
+        }
+    }
+
+    if let Ok(trim_text) = Reflect::get(&obj, &JsValue::from_str("trimText")) {
+        if let Some(value) = trim_text.as_bool() {
+            config.trim_text = value;
+        }
+    }
+
+    if let Ok(include_attributes) = Reflect::get(&obj, &JsValue::from_str("includeAttributes")) {
+        if let Some(value) = include_attributes.as_bool() {
+            config.include_attributes = value;
+        }
+    }
+
+    if let Ok(expand_entities) = Reflect::get(&obj, &JsValue::from_str("expandEntities")) {
+        if let Some(value) = expand_entities.as_bool() {
+            config.expand_entities = value;
+        }
+    }
+
+    Some(config)
 }
 
 // Note: Config builders are not exposed to JS directly
