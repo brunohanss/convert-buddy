@@ -140,7 +140,8 @@ async function benchmarkFastCsv(
   csvData: string
 ): Promise<BenchmarkResult | null> {
   try {
-    const fastCsv = await import("fast-csv");
+    const fastCsvModule = await import("fast-csv");
+    const fastCsv = fastCsvModule.default ?? fastCsvModule;
     const { Readable } = await import("stream");
     const data = new TextEncoder().encode(csvData);
     
@@ -189,12 +190,17 @@ async function benchmarkFastXmlParser(
   xmlData: string
 ): Promise<BenchmarkResult | null> {
   try {
-    const { XMLParser } = await import("fast-xml-parser");
+    const fastXmlModule = await import("fast-xml-parser");
+    const XMLParser =
+      fastXmlModule.XMLParser ?? fastXmlModule.default?.XMLParser ?? fastXmlModule.default;
     const data = new TextEncoder().encode(xmlData);
 
     const startMem = process.memoryUsage().heapUsed;
     const start = performance.now();
 
+    if (typeof XMLParser !== "function") {
+      throw new TypeError("XMLParser constructor not available");
+    }
     const parser = new XMLParser();
     const parsed = parser.parse(xmlData);
     const records = Array.isArray(parsed?.root?.record)
