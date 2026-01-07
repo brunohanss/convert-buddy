@@ -58,7 +58,7 @@ console.log(buddy.stats());
 import { createNodeTransform } from "convert-buddy-js";
 import { createReadStream, createWriteStream } from "node:fs";
 
-const transform = createNodeTransform({
+const transform = await createNodeTransform({
   inputFormat: "csv",
   outputFormat: "ndjson",
   csvConfig: { hasHeaders: true },

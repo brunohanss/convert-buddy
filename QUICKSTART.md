@@ -133,7 +133,7 @@ console.log(`Throughput: ${stats.throughputMbPerSec} MB/s`);
 import { createNodeTransform } from "convert-buddy-js";
 import { createReadStream, createWriteStream } from "fs";
 
-const transform = createNodeTransform({
+const transform = await createNodeTransform({
   inputFormat: "csv",
   outputFormat: "ndjson",
   profile: true

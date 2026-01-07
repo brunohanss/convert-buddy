@@ -1,4 +1,4 @@
-import { Readable, Writable, Transform } from "node:stream";
+import type { Transform as NodeTransform } from "node:stream";
 
 export type Format = "csv" | "ndjson" | "json" | "xml";
 
@@ -124,10 +124,26 @@ export class ConvertBuddy {
 }
 
 // Node.js Transform Stream adapter
-export function createNodeTransform(opts: ConvertBuddyOptions = {}): Transform {
+async function loadNodeTransform(): Promise<typeof import("node:stream").Transform> {
+  const isNode =
+    typeof process !== "undefined" &&
+    !!(process as any).versions?.node;
+
+  if (!isNode) {
+    throw new Error("createNodeTransform is only available in Node.js runtimes.");
+  }
+
+  const streamModule = await import("node:stream");
+  return streamModule.Transform;
+}
+
+export async function createNodeTransform(
+  opts: ConvertBuddyOptions = {}
+): Promise<NodeTransform> {
   let buddy: ConvertBuddy | null = null;
   let initPromise: Promise<void> | null = null;
 
+  const Transform = await loadNodeTransform();
   const transform = new Transform({
     async transform(chunk: Buffer, encoding: string, callback: Function) {
       try {
