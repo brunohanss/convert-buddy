@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourceRoot = path.join(rootDir, "wasm");
-const destRoot = path.join(rootDir, "dist");
+const destRoot = path.join(rootDir, "dist", "wasm");
 const targets = ["web", "nodejs"];
 
 if (!fs.existsSync(sourceRoot)) {
@@ -26,4 +26,4 @@ for (const target of targets) {
   fs.cpSync(sourceDir, destDir, { recursive: true });
 }
 
-console.log("[convert-buddy-js] Synced wasm assets into dist/wasm.");
+console.log(`[convert-buddy-js] Synced wasm assets into ${destRoot}`);
