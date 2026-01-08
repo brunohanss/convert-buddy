@@ -1,3 +1,4 @@
+import { describe, it } from "node:test";
 import { convertToString, convert } from "../../src/index.js";
 import { strict as assert } from "node:assert";
 

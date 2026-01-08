@@ -1,3 +1,4 @@
+import { describe, it } from "node:test";
 import { convertToString, convert, ConvertBuddy } from "../../src/index.js";
 import { strict as assert } from "node:assert";
 
@@ -225,7 +226,7 @@ describe("Error Handling - Comprehensive Safety Tests", () => {
         // OOM or timeout is acceptable for very large data
         assert.ok(error);
       }
-    }).timeout(30000); // 30 second timeout
+    });
 
     it("should handle deeply nested recursion (stack overflow protection)", async () => {
       // Create deeply nested JSON
