@@ -2,14 +2,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, Github, Code2, Zap, Flame, Search, Download } from "lucide-react";
+import { Upload, Github, Flame, Zap } from "lucide-react";
 import FileUploadZone from "@/components/FileUploadZone";
-import ParserComparison from "@/components/ParserComparison";
 import StreamingProcessor from "@/components/StreamingProcessor";
 import Footer from "@/components/Footer";
-import FormatDetection from "@/components/FormatDetection";
-import { benchmarkAllParsers, detectFormat as detectFormatHeuristic } from "@/lib/benchmarkParsers";
-import { convert, detectCsvFieldsAndDelimiter, detectFormat, type Format } from "convert-buddy-js";
+import { detectCsvFieldsAndDelimiter, detectFormat, type Format } from "convert-buddy-js";
 
 /**
  * Design Philosophy: Kinetic Minimalism with Performance Visualization
@@ -21,178 +18,61 @@ import { convert, detectCsvFieldsAndDelimiter, detectFormat, type Format } from 
 
 // Maximum file size for non-streaming operations (10 MB)
 const MAX_NON_STREAMING_SIZE = 10 * 1024 * 1024;
+const PREVIEW_BYTES = 5000;
 const OUTPUT_FORMATS: Format[] = ["csv", "ndjson", "json", "xml"];
 
 export default function Home() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [mode, setMode] = useState<"upload" | "check" | "parse" | "stream" | "detect">("upload");
-  const [results, setResults] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [convertLoading, setConvertLoading] = useState(false);
-  const [convertError, setConvertError] = useState<string | null>(null);
-  const [outputFormat, setOutputFormat] = useState<Format>("ndjson");
-  const [detectResult, setDetectResult] = useState<{
+  const [mode, setMode] = useState<"upload" | "check" | "stream">("upload");
+  const [checkResult, setCheckResult] = useState<{
     format: string;
-    csv: { delimiter: string; fields: string[] } | null;
+    fileSize: number;
+    preview: string;
+    delimiter: string | null;
+    fields: string[];
+    sampled: boolean;
   } | null>(null);
-  const [detectLoading, setDetectLoading] = useState(false);
-  const [detectError, setDetectError] = useState<string | null>(null);
-  const isBusy = loading || detectLoading || convertLoading;
+  const [loading, setLoading] = useState(false);
+  const [outputFormat, setOutputFormat] = useState<Format>("ndjson");
+  const [checkError, setCheckError] = useState<string | null>(null);
+  const isBusy = loading;
   const isFileTooLarge = uploadedFile ? uploadedFile.size > MAX_NON_STREAMING_SIZE : false;
 
   const handleFileUpload = (file: File) => {
     setUploadedFile(file);
-    setMode("upload");
-    setResults(null);
-    setDetectResult(null);
-    setDetectError(null);
-    setDetectLoading(false);
-    setConvertError(null);
-    setConvertLoading(false);
+    setMode("check");
+    setCheckResult(null);
+    setCheckError(null);
+    void handleCheckFormat(file);
   };
 
-  const handleCheckFormat = async () => {
-    if (!uploadedFile) return;
+  const handleCheckFormat = async (file?: File) => {
+    const targetFile = file ?? uploadedFile;
+    if (!targetFile) return;
     setLoading(true);
     setMode("check");
-    
-    try {
-      const fileContent = await uploadedFile.text();
-      const detectedFormat = detectFormatHeuristic(uploadedFile.name, fileContent) as "csv" | "xml" | "unknown";
-      
-      // Run benchmarks
-      const benchmarkResults = await benchmarkAllParsers(fileContent, detectedFormat);
-      
-      const results = {
-        format: detectedFormat,
-        fileSize: uploadedFile.size,
-        parsers: benchmarkResults.map(result => ({
-          name: result.parserName,
-          supported: result.supported,
-          speed: result.throughputMbPerSec,
-          time: result.parseTimeMs,
-          memoryUsage: result.memoryUsageMb,
-          recordsProcessed: result.recordsProcessed,
-          success: result.success,
-        })),
-        preview: fileContent.substring(0, 500),
-      };
-      
-      setResults(results);
-    } catch (error) {
-      console.error("Error checking format:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleParse = async () => {
-    if (!uploadedFile) return;
-    setLoading(true);
-    setMode("parse");
-    
-    try {
-      const fileContent = await uploadedFile.text();
-      const detectedFormat = detectFormatHeuristic(uploadedFile.name, fileContent) as "csv" | "xml" | "unknown";
-      
-      // Run benchmarks
-      const benchmarkResults = await benchmarkAllParsers(fileContent, detectedFormat);
-      
-      const results = {
-        format: detectedFormat,
-        fileSize: uploadedFile.size,
-        parsers: benchmarkResults.map(result => ({
-          name: result.parserName,
-          supported: result.supported,
-          speed: result.throughputMbPerSec,
-          time: result.parseTimeMs,
-          memoryUsage: result.memoryUsageMb,
-          recordsProcessed: result.recordsProcessed,
-          success: result.success,
-        })),
-        preview: fileContent.substring(0, 500),
-      };
-      
-      setResults(results);
-    } catch (error) {
-      console.error("Error parsing file:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDetect = async () => {
-    if (!uploadedFile) return;
-    setDetectLoading(true);
-    setDetectError(null);
-    setMode("detect");
 
     try {
-      const format = await detectFormat(uploadedFile.stream());
-      const csvInfo = format === "csv"
-        ? await detectCsvFieldsAndDelimiter(uploadedFile.stream())
+      const detectedFormat = await detectFormat(targetFile.stream());
+      const csvInfo = detectedFormat === "csv"
+        ? await detectCsvFieldsAndDelimiter(targetFile.stream())
         : null;
 
-      setDetectResult({
-        format,
-        csv: csvInfo,
+      const previewBytes = await targetFile.slice(0, PREVIEW_BYTES).text();
+
+      setCheckResult({
+        format: detectedFormat,
+        fileSize: targetFile.size,
+        preview: previewBytes,
+        delimiter: csvInfo?.delimiter ?? null,
+        fields: csvInfo?.fields ?? [],
+        sampled: targetFile.size > PREVIEW_BYTES,
       });
     } catch (error) {
-      console.error("Error detecting format:", error);
-      setDetectError("Unable to detect format. Please try a different file.");
+      console.error("Error checking format:", error);
+      setCheckError("Unable to detect the file format. Please try a different file.");
     } finally {
-      setDetectLoading(false);
-    }
-  };
-
-  const handleConvertDownload = async () => {
-    if (!uploadedFile) return;
-    if (isFileTooLarge) {
-      setConvertError(`File is larger than ${(MAX_NON_STREAMING_SIZE / (1024 * 1024)).toFixed(0)} MB. Use Stream Process for conversions.`);
-      return;
-    }
-
-    setConvertLoading(true);
-    setConvertError(null);
-
-    try {
-      const detectedFormat = await detectFormat(uploadedFile.stream());
-      const buffer = await uploadedFile.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      const fallbackFormat = detectFormatHeuristic(uploadedFile.name, new TextDecoder().decode(bytes)) as Format | "unknown";
-      const inputFormat = detectedFormat !== "unknown" ? detectedFormat : fallbackFormat;
-
-      if (inputFormat === "unknown") {
-        throw new Error("Unable to detect the input format. Please try a different file.");
-      }
-
-      const outputBytes = await convert(bytes, {
-        inputFormat,
-        outputFormat,
-      });
-
-      const mimeTypes: Record<Format, string> = {
-        csv: "text/csv",
-        ndjson: "application/x-ndjson",
-        json: "application/json",
-        xml: "application/xml",
-      };
-
-      const blob = new Blob([outputBytes], { type: mimeTypes[outputFormat] });
-      const url = URL.createObjectURL(blob);
-      const baseName = uploadedFile.name.replace(/\.[^/.]+$/, "");
-      const downloadName = `${baseName}.${outputFormat}`;
-
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = downloadName;
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to convert file.";
-      setConvertError(message);
-    } finally {
-      setConvertLoading(false);
+      setLoading(false);
     }
   };
 
@@ -268,47 +148,49 @@ export default function Home() {
                       {(uploadedFile.size / 1024).toFixed(2)} KB • {uploadedFile.type}
                     </p>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      setUploadedFile(null);
-                      setMode("upload");
-                      setResults(null);
-                      setDetectResult(null);
-                      setDetectError(null);
-                      setDetectLoading(false);
-                    }}
-                  >
-                    Change File
-                  </Button>
+                  <div className="flex flex-col items-end gap-3">
+                    <div className="space-y-2 min-w-[180px]">
+                      <Label htmlFor="target-format">Target format</Label>
+                      <Select value={outputFormat} onValueChange={(value) => setOutputFormat(value as Format)}>
+                        <SelectTrigger id="target-format" className="w-full">
+                          <SelectValue placeholder="Choose format" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {OUTPUT_FORMATS.map((format) => (
+                            <SelectItem key={format} value={format}>
+                              {format.toUpperCase()}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setUploadedFile(null);
+                        setMode("upload");
+                        setCheckResult(null);
+                        setCheckError(null);
+                      }}
+                    >
+                      Change File
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Mode Selection */}
                 <div className="flex gap-4 flex-wrap">
                   <Button
-                    onClick={handleCheckFormat}
-                    disabled={isBusy || isFileTooLarge}
+                    onClick={() => void handleCheckFormat()}
+                    disabled={isBusy}
                     className={`${
                       mode === "check" 
                         ? "bg-primary text-primary-foreground" 
                         : "bg-secondary text-foreground hover:bg-secondary/80"
                     }`}
                   >
-                    <Code2 className="w-4 h-4 mr-2" />
                     Check Format
-                  </Button>
-                  <Button
-                    onClick={handleParse}
-                    disabled={isBusy || isFileTooLarge}
-                    className={`${
-                      mode === "parse" 
-                        ? "bg-accent text-accent-foreground" 
-                        : "bg-secondary text-foreground hover:bg-secondary/80"
-                    }`}
-                  >
-                    <Zap className="w-4 h-4 mr-2" />
-                    Parse & Benchmark
                   </Button>
                   <Button
                     onClick={() => setMode("stream")}
@@ -322,22 +204,10 @@ export default function Home() {
                     <Flame className="w-4 h-4 mr-2" />
                     Stream Process
                   </Button>
-                  <Button
-                    onClick={handleDetect}
-                    disabled={isBusy}
-                    className={`${
-                      mode === "detect" 
-                        ? "bg-primary text-primary-foreground" 
-                        : "bg-secondary text-foreground hover:bg-secondary/80"
-                    }`}
-                  >
-                    <Search className="w-4 h-4 mr-2" />
-                    Detect Format & CSV
-                  </Button>
                 </div>
                 {isFileTooLarge ? (
                   <p className="mt-4 text-xs text-amber-600 dark:text-amber-500 font-medium">
-                    ⚠️ File is larger than {(MAX_NON_STREAMING_SIZE / (1024 * 1024)).toFixed(0)} MB. Please use Stream Process to avoid browser memory limits.
+                    ⚠️ File is larger than {(MAX_NON_STREAMING_SIZE / (1024 * 1024)).toFixed(0)} MB. We only sample the file for format detection. Use Stream Process for full conversion.
                   </p>
                 ) : (
                   <p className="mt-4 text-xs text-muted-foreground">
@@ -346,54 +216,100 @@ export default function Home() {
                 )}
               </div>
 
-              <div className="bg-white rounded-lg p-6 border border-border mb-6">
-                <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold text-foreground">Convert & Download</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Select an output format and download the converted file to inspect it locally.
-                    </p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="space-y-2 min-w-[180px]">
-                      <Label htmlFor="output-format">Output format</Label>
-                      <Select value={outputFormat} onValueChange={(value) => setOutputFormat(value as Format)}>
-                        <SelectTrigger id="output-format" className="w-full">
-                          <SelectValue placeholder="Choose format" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {OUTPUT_FORMATS.map((format) => (
-                            <SelectItem key={format} value={format}>
-                              {format.toUpperCase()}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+              {/* Results */}
+              {mode === "check" && (
+                <div className="space-y-6">
+                  <div className="bg-white rounded-lg p-6 border border-border">
+                    <div className="flex items-start justify-between gap-4 mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-foreground" style={{ fontFamily: "Poppins" }}>
+                          Format Check
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          We sample the file to detect format, delimiter, and fields.
+                        </p>
+                      </div>
+                      {checkResult && !loading && !checkError && (
+                        <div className="text-sm text-green-600 font-medium">Ready</div>
+                      )}
                     </div>
-                    <Button
-                      onClick={handleConvertDownload}
-                      disabled={isBusy || isFileTooLarge}
-                      className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      {convertLoading ? "Converting..." : "Convert & Download"}
-                    </Button>
+
+                    {loading && (
+                      <div className="mt-6 p-4 bg-secondary/50 rounded-lg text-sm text-muted-foreground">
+                        Checking the file sample...
+                      </div>
+                    )}
+
+                    {checkError && (
+                      <div className="mt-6 p-4 bg-destructive/10 rounded-lg border border-destructive/20 text-sm text-destructive">
+                        {checkError}
+                      </div>
+                    )}
+
+                    {checkResult && !loading && !checkError && (
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Format</p>
+                            <p className="text-lg font-semibold text-foreground uppercase">{checkResult.format}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">File Size</p>
+                            <p className="text-lg font-semibold text-foreground">
+                              {(checkResult.fileSize / 1024).toFixed(2)} KB
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">CSV Delimiter</p>
+                            <p className="text-lg font-semibold text-foreground">
+                              {checkResult.delimiter ?? "—"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Fields Detected</p>
+                            <p className="text-lg font-semibold text-foreground">
+                              {checkResult.fields.length}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="rounded-lg border border-border bg-secondary/40 p-4">
+                          <p className="text-xs text-muted-foreground mb-3">Field Names</p>
+                          {checkResult.fields.length ? (
+                            <div className="flex flex-wrap gap-2">
+                              {checkResult.fields.map((field) => (
+                                <span
+                                  key={field}
+                                  className="text-xs font-medium bg-white border border-border rounded-full px-3 py-1"
+                                >
+                                  {field}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              No field names detected. Try a CSV file with a header row.
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="mt-6 pt-6 border-t border-border">
+                          <p className="text-sm text-muted-foreground mb-3">
+                            File Preview{checkResult.sampled ? " (sample)" : ""}
+                          </p>
+                          <div className="bg-secondary/50 rounded p-4 text-sm font-mono text-foreground overflow-auto max-h-40">
+                            {checkResult.preview || "No preview available."}
+                          </div>
+                          {isFileTooLarge && (
+                            <p className="mt-3 text-xs text-amber-600 dark:text-amber-500 font-medium">
+                              Large file detected. Use Stream Process for full conversion without loading the entire file.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-                {convertError && (
-                  <p className="mt-4 text-sm text-destructive font-medium">
-                    {convertError}
-                  </p>
-                )}
-              </div>
-
-              {/* Results */}
-              {results && (mode === "check" || mode === "parse") && (
-                <ParserComparison 
-                  results={results} 
-                  mode={mode}
-                  loading={loading}
-                />
               )}
 
               {/* Streaming Processor */}
@@ -404,19 +320,9 @@ export default function Home() {
                   onComplete={() => {
                     setMode("upload");
                     setUploadedFile(null);
-                    setDetectResult(null);
-                    setDetectError(null);
-                    setDetectLoading(false);
+                    setCheckResult(null);
+                    setCheckError(null);
                   }}
-                />
-              )}
-
-              {mode === "detect" && uploadedFile && (
-                <FormatDetection
-                  file={uploadedFile}
-                  loading={detectLoading}
-                  error={detectError}
-                  result={detectResult}
                 />
               )}
             </div>
