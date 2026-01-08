@@ -7,7 +7,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   bundle: false,
-  outDir: "dist/src",
+  outDir: "dist",
   external: ["papaparse", "csv-parse", "csv-parse/sync", "fast-csv", "fast-xml-parser"],
   esbuildPlugins: [
     {

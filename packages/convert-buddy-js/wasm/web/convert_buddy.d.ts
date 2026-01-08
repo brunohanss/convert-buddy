@@ -1,6 +1,14 @@
 /* tslint:disable */
 /* eslint-disable */
+/**
+ * Detect CSV fields and delimiter from a sample of bytes.
+ */
+export function detectCsvFields(sample: Uint8Array): any;
 export function init(debug_enabled: boolean): void;
+/**
+ * Detect the input format from a sample of bytes.
+ */
+export function detectFormat(sample: Uint8Array): string | undefined;
 /**
  * A streaming converter state machine.
  * Converts between CSV, NDJSON, JSON, and XML formats with high performance.
@@ -10,7 +18,7 @@ export class Converter {
   /**
    * Create a new converter with specific configuration
    */
-  static withConfig(debug: boolean, input_format: string, output_format: string, chunk_target_bytes: number, enable_stats: boolean): Converter;
+  static withConfig(debug: boolean, input_format: string, output_format: string, chunk_target_bytes: number, enable_stats: boolean, csv_config: any, xml_config: any): Converter;
   constructor(debug: boolean);
   /**
    * Push a chunk of bytes. Returns converted output bytes for that chunk.
@@ -53,7 +61,9 @@ export interface InitOutput {
   readonly converter_getStats: (a: number) => number;
   readonly converter_new: (a: number) => number;
   readonly converter_push: (a: number, b: number, c: number) => [number, number, number, number];
-  readonly converter_withConfig: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number];
+  readonly converter_withConfig: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: any, i: any) => [number, number, number];
+  readonly detectCsvFields: (a: number, b: number) => any;
+  readonly detectFormat: (a: number, b: number) => [number, number];
   readonly init: (a: number) => void;
   readonly stats_bytes_in: (a: number) => number;
   readonly stats_bytes_out: (a: number) => number;
@@ -66,9 +76,11 @@ export interface InitOutput {
   readonly stats_transform_time_ms: (a: number) => number;
   readonly stats_write_time_ms: (a: number) => number;
   readonly __wbindgen_free: (a: number, b: number, c: number) => void;
+  readonly __wbindgen_exn_store: (a: number) => void;
+  readonly __externref_table_alloc: () => number;
+  readonly __wbindgen_export_3: WebAssembly.Table;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
-  readonly __wbindgen_export_3: WebAssembly.Table;
   readonly __externref_table_dealloc: (a: number) => void;
   readonly __wbindgen_start: () => void;
 }

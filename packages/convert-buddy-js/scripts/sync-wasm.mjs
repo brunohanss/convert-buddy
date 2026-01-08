@@ -24,6 +24,12 @@ for (const target of targets) {
   fs.rmSync(destDir, { recursive: true, force: true });
   fs.mkdirSync(destDir, { recursive: true });
   fs.cpSync(sourceDir, destDir, { recursive: true });
+  
+  // Remove .gitignore files created by wasm-pack that prevent npm from including wasm files
+  const gitignorePath = path.join(destDir, ".gitignore");
+  if (fs.existsSync(gitignorePath)) {
+    fs.unlinkSync(gitignorePath);
+  }
 }
 
 console.log(`[convert-buddy-js] Synced wasm assets into ${destRoot}`);

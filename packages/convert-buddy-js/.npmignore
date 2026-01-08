@@ -1,0 +1,33 @@
+# Source files - only ship built artifacts
+src/
+bench/
+tests/
+scripts/
+
+# Config files
+tsconfig.json
+tsup.config.ts
+
+# Build artifacts we don't want to ship
+*.tsbuildinfo
+
+# Development files
+.history
+node_modules
+
+# Wasm source (we ship the copies in dist/wasm instead)
+wasm/web/
+wasm/nodejs/
+
+# Keep wasm root files like package.json manifests
+!wasm/package.json
+!wasm/web/package.json
+!wasm/nodejs/package.json
+
+# CRITICAL: wasm-pack creates .gitignore files that ignore everything
+# We need to explicitly negate them so npm includes the wasm files
+!dist/wasm/**/.gitignore
+!dist/wasm/**/*.wasm
+!dist/wasm/**/*.js
+!dist/wasm/**/*.d.ts
+!dist/wasm/**/package.json

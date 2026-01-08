@@ -17,6 +17,9 @@ import { detectCsvFieldsAndDelimiter, detectFormat } from "convert-buddy-js";
  * - Poppins (display) + Inter (body) typography
  */
 
+// Maximum file size for non-streaming operations (10 MB)
+const MAX_NON_STREAMING_SIZE = 10 * 1024 * 1024;
+
 export default function Home() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [mode, setMode] = useState<"upload" | "check" | "parse" | "stream" | "detect">("upload");
@@ -29,6 +32,7 @@ export default function Home() {
   const [detectLoading, setDetectLoading] = useState(false);
   const [detectError, setDetectError] = useState<string | null>(null);
   const isBusy = loading || detectLoading;
+  const isFileTooLarge = uploadedFile ? uploadedFile.size > MAX_NON_STREAMING_SIZE : false;
 
   const handleFileUpload = (file: File) => {
     setUploadedFile(file);
@@ -225,7 +229,7 @@ export default function Home() {
                 <div className="flex gap-4 flex-wrap">
                   <Button
                     onClick={handleCheckFormat}
-                    disabled={isBusy}
+                    disabled={isBusy || isFileTooLarge}
                     className={`${
                       mode === "check" 
                         ? "bg-primary text-primary-foreground" 
@@ -237,7 +241,7 @@ export default function Home() {
                   </Button>
                   <Button
                     onClick={handleParse}
-                    disabled={isBusy}
+                    disabled={isBusy || isFileTooLarge}
                     className={`${
                       mode === "parse" 
                         ? "bg-accent text-accent-foreground" 
@@ -272,9 +276,15 @@ export default function Home() {
                     Detect Format & CSV
                   </Button>
                 </div>
-                <p className="mt-4 text-xs text-muted-foreground">
-                  Working with large files? Use Stream Process to avoid browser memory limits.
-                </p>
+                {isFileTooLarge ? (
+                  <p className="mt-4 text-xs text-amber-600 dark:text-amber-500 font-medium">
+                    ⚠️ File is larger than {(MAX_NON_STREAMING_SIZE / (1024 * 1024)).toFixed(0)} MB. Please use Stream Process to avoid browser memory limits.
+                  </p>
+                ) : (
+                  <p className="mt-4 text-xs text-muted-foreground">
+                    Working with large files? Use Stream Process to avoid browser memory limits.
+                  </p>
+                )}
               </div>
 
               {/* Results */}

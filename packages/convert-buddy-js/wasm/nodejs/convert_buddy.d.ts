@@ -1,6 +1,14 @@
 /* tslint:disable */
 /* eslint-disable */
+/**
+ * Detect CSV fields and delimiter from a sample of bytes.
+ */
+export function detectCsvFields(sample: Uint8Array): any;
 export function init(debug_enabled: boolean): void;
+/**
+ * Detect the input format from a sample of bytes.
+ */
+export function detectFormat(sample: Uint8Array): string | undefined;
 /**
  * A streaming converter state machine.
  * Converts between CSV, NDJSON, JSON, and XML formats with high performance.
@@ -10,7 +18,7 @@ export class Converter {
   /**
    * Create a new converter with specific configuration
    */
-  static withConfig(debug: boolean, input_format: string, output_format: string, chunk_target_bytes: number, enable_stats: boolean): Converter;
+  static withConfig(debug: boolean, input_format: string, output_format: string, chunk_target_bytes: number, enable_stats: boolean, csv_config: any, xml_config: any): Converter;
   constructor(debug: boolean);
   /**
    * Push a chunk of bytes. Returns converted output bytes for that chunk.
