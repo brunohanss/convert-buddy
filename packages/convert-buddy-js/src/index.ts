@@ -75,7 +75,7 @@ async function loadWasmModule(): Promise<WasmModule> {
   if (isNode) {
     const { createRequire } = await import("node:module");
     const require = createRequire(import.meta.url);
-    const mod = require("../wasm-node.cjs");
+    const mod = require("../../wasm-node.cjs");
     return mod as WasmModule;
   }
 
