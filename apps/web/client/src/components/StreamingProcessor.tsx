@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { AlertCircle, CheckCircle2, Zap } from "lucide-react";
 import { streamProcessFile, isFileSystemAccessSupported, formatBytes, formatTime, type StreamingProgress, type StreamingResult } from "@/lib/streamingProcessor";
+import type { Format } from "convert-buddy-js";
 
 interface StreamingProcessorProps {
   file: File;
+  outputFormat: Format;
   onComplete?: (result: StreamingResult) => void;
 }
 
@@ -17,7 +19,7 @@ interface StreamingProcessorProps {
  * - Detailed metrics display
  */
 
-export default function StreamingProcessor({ file, onComplete }: StreamingProcessorProps) {
+export default function StreamingProcessor({ file, outputFormat, onComplete }: StreamingProcessorProps) {
   const [progress, setProgress] = useState<StreamingProgress>({
     bytesRead: 0,
     bytesWritten: 0,
@@ -56,9 +58,15 @@ export default function StreamingProcessor({ file, onComplete }: StreamingProces
       status: "reading",
     });
 
-    const result = await streamProcessFile(file, (newProgress) => {
-      setProgress(newProgress);
-    });
+    const result = await streamProcessFile(
+      file,
+      (newProgress) => {
+        setProgress(newProgress);
+      },
+      {
+        outputFormat,
+      }
+    );
 
     setResult(result);
     setIsProcessing(false);
@@ -73,7 +81,7 @@ export default function StreamingProcessor({ file, onComplete }: StreamingProces
       <div className="bg-white rounded-lg p-6 border border-border">
         <h3 className="text-lg font-semibold text-foreground mb-4">Stream Processing</h3>
         
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div>
             <p className="text-sm text-muted-foreground mb-1">File Name</p>
             <p className="font-medium text-foreground">{file.name}</p>
@@ -81,6 +89,10 @@ export default function StreamingProcessor({ file, onComplete }: StreamingProces
           <div>
             <p className="text-sm text-muted-foreground mb-1">File Size</p>
             <p className="font-medium text-foreground">{formatBytes(file.size)}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Output Format</p>
+            <p className="font-medium text-foreground uppercase">{outputFormat}</p>
           </div>
         </div>
 

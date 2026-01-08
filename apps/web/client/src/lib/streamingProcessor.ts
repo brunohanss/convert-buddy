@@ -8,7 +8,7 @@
  * 4. Tracking real-time performance metrics
  */
 
-import { ConvertBuddy } from 'convert-buddy-js';
+import { ConvertBuddy, detectFormat, type Format } from 'convert-buddy-js';
 
 export interface StreamingProgress {
   bytesRead: number;
@@ -31,6 +31,7 @@ export interface StreamingResult {
   totalTimeSeconds: number;
   averageThroughputMbPerSec: number;
   outputFileName: string;
+  outputFormat: Format;
   error?: string;
 }
 
@@ -42,7 +43,11 @@ const CHUNK_SIZE = 1024 * 1024; // 1MB chunks for optimal processing
  */
 export async function streamProcessFile(
   file: File,
-  onProgress: (progress: StreamingProgress) => void
+  onProgress: (progress: StreamingProgress) => void,
+  options: {
+    outputFormat: Format;
+    inputFormat?: Format;
+  }
 ): Promise<StreamingResult> {
   const startTime = performance.now();
   let bytesRead = 0;
@@ -50,19 +55,30 @@ export async function streamProcessFile(
   let recordsProcessed = 0;
   let fileHandle: FileSystemFileHandle | null = null;
   let writable: FileSystemWritableFileStream | null = null;
+  const outputFormat = options.outputFormat;
 
   try {
+    const inputFormat = options.inputFormat ?? await detectFormat(file.stream());
+    if (inputFormat === "unknown") {
+      throw new Error("Unable to detect the input format for streaming conversion.");
+    }
+
     // Initialize convert-buddy parser with actual WASM library
-    const parser = await ConvertBuddy.create({ debug: false });
+    const parser = await ConvertBuddy.create({
+      debug: false,
+      inputFormat,
+      outputFormat,
+    });
 
     // Request write permission using File System Access API
-    const fileName = `${file.name.split('.')[0]}_parsed_${Date.now()}.${file.name.split('.').pop()}`;
+    const baseName = file.name.replace(/\.[^/.]+$/, "");
+    const fileName = `${baseName}_converted_${Date.now()}.${outputFormat}`;
     fileHandle = await (window as any).showSaveFilePicker({
       suggestedName: fileName,
       types: [
         {
-          description: 'Parsed Files',
-          accept: { 'text/*': ['.csv', '.xml'] },
+          description: 'Converted Files',
+          accept: { 'text/*': [`.${outputFormat}`] },
         },
       ],
     });
@@ -163,6 +179,7 @@ export async function streamProcessFile(
       totalTimeSeconds,
       averageThroughputMbPerSec,
       outputFileName: fileName,
+      outputFormat,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -197,6 +214,7 @@ export async function streamProcessFile(
       totalTimeSeconds: (performance.now() - startTime) / 1000,
       averageThroughputMbPerSec: 0,
       outputFileName: '',
+      outputFormat,
       error: errorMessage,
     };
   }
