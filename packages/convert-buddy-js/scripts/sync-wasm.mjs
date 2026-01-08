@@ -4,15 +4,13 @@ import { fileURLToPath } from "node:url";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourceRoot = path.join(rootDir, "wasm");
-const destRoot = path.join(rootDir, "dist", "wasm");
+const destRoot = path.join(rootDir, "dist");
 const targets = ["web", "nodejs"];
 
 if (!fs.existsSync(sourceRoot)) {
   console.error("[convert-buddy-js] Missing wasm source directory:", sourceRoot);
   process.exit(1);
 }
-
-fs.rmSync(destRoot, { recursive: true, force: true });
 
 for (const target of targets) {
   const sourceDir = path.join(sourceRoot, target);
@@ -23,6 +21,7 @@ for (const target of targets) {
     process.exit(1);
   }
 
+  fs.rmSync(destDir, { recursive: true, force: true });
   fs.mkdirSync(destDir, { recursive: true });
   fs.cpSync(sourceDir, destDir, { recursive: true });
 }
