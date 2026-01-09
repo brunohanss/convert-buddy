@@ -212,6 +212,56 @@ packages/convert-buddy-js/      # TypeScript wrapper & WASM bundles
 apps/web/                       # Demo app
 ```
 
-## License
+## Development
 
-MIT
+### Building and syncing the WASM bundle
+
+After making changes to the Rust code (`crates/convert-buddy/src/`), you need to rebuild the WASM and sync it to the root distribution files:
+
+```bash
+cd packages/convert-buddy-js
+npm run build
+```
+
+This command automatically:
+1. Compiles the Rust code to WASM for both web and Node.js targets
+2. Generates TypeScript bindings
+3. Builds the JavaScript bundle
+4. Syncs the WASM files to the distribution directory
+
+**Note**: The `npm run build` command handles the complete build pipeline. You don't need to run individual build steps unless you're debugging a specific stage.
+
+### Testing
+
+Before publishing, ensure all tests pass:
+
+```bash
+# Run all tests (Rust + WASM validation) - runs automatically with prepack
+npm -w convert-buddy-js run prepack
+
+# Individual test commands
+npm -w convert-buddy-js run test:rust        # Rust unit tests (including XML detection)
+npm -w convert-buddy-js run test             # JavaScript smoke tests
+npm -w convert-buddy-js run test:edge-cases  # JavaScript edge case tests
+npm -w convert-buddy-js run test:all         # All JavaScript tests
+```
+
+**Important**: The `prepack` script runs automatically before `npm publish`. It:
+1. Runs all Rust unit tests (including XML detection tests)
+2. Rebuilds the WASM bundle
+3. Validates all WASM artifacts are present
+
+This ensures no untested code reaches npm.
+
+### Individual build steps (if needed)
+
+- **Build WASM only**: `npm run build:wasm`
+- **Build TypeScript**: `npm run build:ts`
+- **Sync WASM to dist**: `npm run sync:wasm`
+
+### When to rebuild
+
+- After modifying any Rust files in `crates/convert-buddy/src/`
+- After updating the TypeScript wrapper in `packages/convert-buddy-js/src/`
+- Before publishing a new version to npm
+

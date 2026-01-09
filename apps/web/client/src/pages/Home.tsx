@@ -2,11 +2,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, Github, Flame, Zap } from "lucide-react";
+import { Upload, Github, Flame, Zap, Download, Loader2 } from "lucide-react";
 import FileUploadZone from "@/components/FileUploadZone";
 import StreamingProcessor from "@/components/StreamingProcessor";
 import Footer from "@/components/Footer";
-import { detectCsvFieldsAndDelimiter, detectFormat, type Format } from "convert-buddy-js";
+import { convert, convertToString, detectCsvFieldsAndDelimiter, detectXmlElements, detectFormat, type Format } from "convert-buddy-js";
 
 /**
  * Design Philosophy: Kinetic Minimalism with Performance Visualization
@@ -31,11 +31,13 @@ export default function Home() {
     delimiter: string | null;
     fields: string[];
     sampled: boolean;
+    xmlRecordElement?: string;
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [outputFormat, setOutputFormat] = useState<Format>("ndjson");
   const [checkError, setCheckError] = useState<string | null>(null);
-  const isBusy = loading;
+  const [isDownloading, setIsDownloading] = useState(false);
+  const isBusy = loading || isDownloading;
   const isFileTooLarge = uploadedFile ? uploadedFile.size > MAX_NON_STREAMING_SIZE : false;
 
   const handleFileUpload = (file: File) => {
@@ -53,10 +55,30 @@ export default function Home() {
     setMode("check");
 
     try {
+      console.log("Detecting format for:", targetFile.name);
       const detectedFormat = await detectFormat(targetFile.stream());
-      const csvInfo = detectedFormat === "csv"
-        ? await detectCsvFieldsAndDelimiter(targetFile.stream())
-        : null;
+      console.log("Detected format:", detectedFormat);
+      
+      if (!detectedFormat || detectedFormat === "unknown") {
+        setCheckError("Unable to detect the file format. Please try a different file.");
+        setLoading(false);
+        return;
+      }
+
+      let csvInfo = null;
+      let xmlElements: string[] = [];
+      let xmlRecordElement: string | undefined;
+      
+      if (detectedFormat === "csv") {
+        csvInfo = await detectCsvFieldsAndDelimiter(targetFile.stream());
+      } else if (detectedFormat === "xml") {
+        // Extract XML elements using the WASM function
+        const xmlDetection = await detectXmlElements(targetFile.stream());
+        console.log("XML Detection result:", xmlDetection);
+        xmlElements = xmlDetection?.elements ?? [];
+        xmlRecordElement = xmlDetection?.recordElement;
+        console.log("Detected XML record element:", xmlRecordElement);
+      }
 
       const previewBytes = await targetFile.slice(0, PREVIEW_BYTES).text();
 
@@ -65,14 +87,130 @@ export default function Home() {
         fileSize: targetFile.size,
         preview: previewBytes,
         delimiter: csvInfo?.delimiter ?? null,
-        fields: csvInfo?.fields ?? [],
+        fields: csvInfo?.fields ?? xmlElements,
         sampled: targetFile.size > PREVIEW_BYTES,
+        xmlRecordElement,
       });
+      console.log("Check result set:", detectedFormat);
     } catch (error) {
       console.error("Error checking format:", error);
       setCheckError("Unable to detect the file format. Please try a different file.");
     } finally {
       setLoading(false);
+    }
+  };
+  const testBuddy = async () => {
+    const sampleXml = `<movies> <movie> <title>The Shawshank Redemption</title> <genre>Drama</genre> <year>1994</year> <cast> <actor> <name>Tim Robbins</name> <role>Andy Dufresne</role> </actor> <actor> <name>Morgan Freeman</name> <role>Ellis Boyd 'Red' Redding</role> </actor> </cast> </movie> <movie> <title>The Matrix</title> <genre>Sci-Fi</genre> <year>1999</year> <cast> <actor> <name>Keanu Reeves</name> <role>Neo</role> </actor> <actor> <name>Laurence Fishburne</name> <role>Morpheus</role> </actor> </cast> </movie> <movie> <title>Inception</title> <genre>Thriller</genre> <year>2010</year> <cast> <actor> <name>Leonardo DiCaprio</name> <role>Cobb</role> </actor> <actor> <name>Joseph Gordon-Levitt</name> <role>Arthur</role> </actor> </cast> </movie> </movies>`;
+    
+    console.log("=== Testing AUTO-DETECTION (no config provided) ===");
+    // Test XML to JSON without providing xmlConfig - should auto-detect "movie" element
+    const resultAutoJson = await convertToString(new TextEncoder().encode(sampleXml), {
+      inputFormat: "xml",
+      outputFormat: "json",
+      // NO xmlConfig provided - library should auto-detect!
+    });
+    console.log("Auto-detected JSON result:", resultAutoJson);
+    
+    // Test XML to NDJSON without config
+    const resultAutoNdjson = await convertToString(new TextEncoder().encode(sampleXml), {
+      inputFormat: "xml",
+      outputFormat: "ndjson",
+      // NO xmlConfig provided - library should auto-detect!
+    });
+    console.log("Auto-detected NDJSON result:", resultAutoNdjson);
+    
+    console.log("=== Testing WITH explicit config (should match auto-detection) ===");
+    // Test with explicit config to compare
+    const resultExplicit = await convertToString(new TextEncoder().encode(sampleXml), {
+      inputFormat: "xml",
+      outputFormat: "json", 
+      xmlConfig: {
+        recordElement: "movie",
+      },
+    });
+    console.log("Explicit config JSON result:", resultExplicit);
+    
+    // Test CSV auto-detection
+    const sampleCsv = `title,genre,year,cast.actor.0.name,cast.actor.0.role,cast.actor.1.name,cast.actor.1.role
+The Shawshank Redemption,Drama,1994,Tim Robbins,Andy Dufresne,Morgan Freeman,Ellis Boyd 'Red' Redding
+The Matrix,Sci-Fi,1999,Keanu Reeves,Neo,Laurence Fishburne,Morpheus
+Inception,Thriller,2010,Leonardo DiCaprio,Cobb,Joseph Gordon-Levitt,Arthur`;
+    
+    console.log("=== Testing CSV auto-detection ===");
+    const csvResult = await convertToString(new TextEncoder().encode(sampleCsv), {
+      inputFormat: "csv",
+      outputFormat: "json",
+      // NO csvConfig provided - library should auto-detect comma delimiter!
+    });
+    console.log("Auto-detected CSV to JSON:", csvResult);
+  }
+
+  const handleDownload = async () => {
+    if (!uploadedFile) return;
+
+    // Ensure format has been detected
+    if (!checkResult?.format) {
+      alert("Please wait for format detection to complete before downloading.");
+      return;
+    }
+
+    setIsDownloading(true);
+    try {
+      // Read the file as ArrayBuffer
+      const arrayBuffer = await uploadedFile.arrayBuffer();
+      
+      // Build conversion options - the library will auto-detect configs if not provided
+      const convertOptions: Parameters<typeof convert>[1] = {
+        outputFormat,
+        inputFormat: checkResult.format as Format,
+      };
+
+      // Optionally pass detected configs for better performance (skips re-detection)
+      // But if we don't pass them, the library will auto-detect on first chunk
+      if (checkResult.format === "csv" && checkResult.delimiter) {
+        convertOptions.csvConfig = {
+          delimiter: checkResult.delimiter,
+        };
+      }
+
+      if (checkResult.format === "xml" && checkResult.xmlRecordElement) {
+        convertOptions.xmlConfig = {
+          recordElement: checkResult.xmlRecordElement,
+        };
+      }
+
+      console.log("Conversion options:", convertOptions);
+      
+      // Convert using the WASM library
+      const convertedData = await convert(new Uint8Array(arrayBuffer), convertOptions);
+
+      // Create a blob from Uint8Array - convert to proper type
+      const blobPart: BlobPart = new Uint8Array(convertedData) as unknown as BlobPart;
+      const blob = new Blob([blobPart], {
+        type: outputFormat === "json" 
+          ? "application/json" 
+          : outputFormat === "csv"
+          ? "text/csv"
+          : outputFormat === "xml"
+          ? "application/xml"
+          : "application/x-ndjson",
+      });
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const nameWithoutExt = uploadedFile.name.split(".").slice(0, -1).join(".");
+      link.href = url;
+      link.download = `${nameWithoutExt}.${outputFormat}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Download failed:", error);
+      alert("Failed to convert and download the file. Please try again.");
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -99,6 +237,8 @@ export default function Home() {
           <h1 className="text-5xl md:text-6xl font-bold mb-6 text-foreground" style={{ fontFamily: 'Poppins' }}>
             Next-Gen File Parser
           </h1>
+
+          <button onClick={() => testBuddy()}>My test</button>
           
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Convert Buddy outperforms traditional parsers. See the difference with real-time benchmarks on your files.
@@ -149,7 +289,7 @@ export default function Home() {
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-3">
-                    <div className="space-y-2 min-w-[180px]">
+                  <div className="space-y-2 min-w-[180px]">
                       <Label htmlFor="target-format">Target format</Label>
                       <Select value={outputFormat} onValueChange={(value) => setOutputFormat(value as Format)}>
                         <SelectTrigger id="target-format" className="w-full">
@@ -164,18 +304,45 @@ export default function Home() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        setUploadedFile(null);
-                        setMode("upload");
-                        setCheckResult(null);
-                        setCheckError(null);
-                      }}
-                    >
-                      Change File
-                    </Button>
+                    <div className="space-y-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setUploadedFile(null);
+                          setMode("upload");
+                          setCheckResult(null);
+                          setCheckError(null);
+                        }}
+                      >
+                        Change File
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      <Button 
+                        onClick={handleDownload}
+                        disabled={isBusy || isFileTooLarge}
+                        className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+                        title={isFileTooLarge ? "File is too large. Use Stream Process instead." : "Download converted file"}
+                      >
+                        {isDownloading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Converting...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </>
+                        )}
+                      </Button>
+                      {isFileTooLarge && (
+                        <p className="text-xs text-amber-600 dark:text-amber-500 text-center">
+                          Use Stream Process for large files
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -260,13 +427,17 @@ export default function Home() {
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-muted-foreground">CSV Delimiter</p>
+                            <p className="text-sm text-muted-foreground">
+                              {checkResult.format === "csv" ? "CSV Delimiter" : "Record Element"}
+                            </p>
                             <p className="text-lg font-semibold text-foreground">
-                              {checkResult.delimiter ?? "—"}
+                              {checkResult.delimiter ?? checkResult.xmlRecordElement ?? "—"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-muted-foreground">Fields Detected</p>
+                            <p className="text-sm text-muted-foreground">
+                              {checkResult.format === "xml" ? "Elements" : "Fields"} Detected
+                            </p>
                             <p className="text-lg font-semibold text-foreground">
                               {checkResult.fields.length}
                             </p>
@@ -274,7 +445,9 @@ export default function Home() {
                         </div>
 
                         <div className="rounded-lg border border-border bg-secondary/40 p-4">
-                          <p className="text-xs text-muted-foreground mb-3">Field Names</p>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            {checkResult.format === "xml" ? "XML Elements" : "Field Names"}
+                          </p>
                           {checkResult.fields.length ? (
                             <div className="flex flex-wrap gap-2">
                               {checkResult.fields.map((field) => (
@@ -288,7 +461,7 @@ export default function Home() {
                             </div>
                           ) : (
                             <p className="text-sm text-muted-foreground">
-                              No field names detected. Try a CSV file with a header row.
+                              No {checkResult.format === "xml" ? "elements" : "field names"} detected.
                             </p>
                           )}
                         </div>

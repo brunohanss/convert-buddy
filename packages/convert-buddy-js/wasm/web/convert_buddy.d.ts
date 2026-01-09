@@ -6,6 +6,10 @@
 export function detectCsvFields(sample: Uint8Array): any;
 export function init(debug_enabled: boolean): void;
 /**
+ * Detect XML elements from a sample of bytes.
+ */
+export function detectXmlElements(sample: Uint8Array): any;
+/**
  * Detect the input format from a sample of bytes.
  */
 export function detectFormat(sample: Uint8Array): string | undefined;
@@ -64,6 +68,7 @@ export interface InitOutput {
   readonly converter_withConfig: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: any, i: any) => [number, number, number];
   readonly detectCsvFields: (a: number, b: number) => any;
   readonly detectFormat: (a: number, b: number) => [number, number];
+  readonly detectXmlElements: (a: number, b: number) => any;
   readonly init: (a: number) => void;
   readonly stats_bytes_in: (a: number) => number;
   readonly stats_bytes_out: (a: number) => number;

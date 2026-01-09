@@ -193,6 +193,18 @@ export function init(debug_enabled) {
 }
 
 /**
+ * Detect XML elements from a sample of bytes.
+ * @param {Uint8Array} sample
+ * @returns {any}
+ */
+export function detectXmlElements(sample) {
+    const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.detectXmlElements(ptr0, len0);
+    return ret;
+}
+
+/**
  * Detect the input format from a sample of bytes.
  * @param {Uint8Array} sample
  * @returns {string | undefined}

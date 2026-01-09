@@ -2,6 +2,14 @@ use crate::error::Result;
 use log::debug;
 use quick_xml::events::Event;
 use quick_xml::Reader;
+use std::collections::HashMap;
+
+#[derive(Debug, Clone, PartialEq)]
+enum JsonValue {
+    String(String),
+    Object(HashMap<String, JsonValue>),
+    Array(Vec<JsonValue>),
+}
 
 /// XML parser configuration
 #[derive(Debug, Clone)]
@@ -73,10 +81,7 @@ impl XmlParser {
 
         let mut buf = Vec::new();
         let mut in_record = false;
-        let mut record_depth: usize = 0;
-        let mut _current_record: Vec<u8> = Vec::new();
-        let mut current_path: Vec<String> = Vec::new();
-        let mut current_object: Vec<(String, String)> = Vec::new();
+        let mut element_stack: Vec<(String, HashMap<String, JsonValue>)> = Vec::new();
         let mut current_text = String::new();
 
         loop {
@@ -86,8 +91,7 @@ impl XmlParser {
                     
                     if name == self.config.record_element && !in_record {
                         in_record = true;
-                        record_depth = 0;
-                        current_object.clear();
+                        let mut root = HashMap::new();
                         
                         // Include attributes if configured
                         if self.config.include_attributes {
@@ -95,38 +99,46 @@ impl XmlParser {
                                 if let Ok(attr) = attr {
                                     let key = format!("@{}", String::from_utf8_lossy(attr.key.as_ref()));
                                     let value = String::from_utf8_lossy(&attr.value).to_string();
-                                    current_object.push((key, value));
+                                    root.insert(key, JsonValue::String(value));
                                 }
                             }
                         }
+                        
+                        element_stack.push((name, root));
                     } else if in_record {
-                        current_path.push(name.clone());
-                        record_depth += 1;
+                        // Push a new element onto the stack
+                        element_stack.push((name, HashMap::new()));
                         current_text.clear();
                     }
                 }
                 Ok(Event::End(e)) => {
                     let name = String::from_utf8_lossy(e.name().as_ref()).to_string();
                     
-                    if name == self.config.record_element && in_record && record_depth == 0 {
+                    if name == self.config.record_element && in_record {
                         // End of record - convert to JSON
-                        self.object_to_json(&current_object, output)?;
-                        output.push(b'\n');
-                        
-                        in_record = false;
-                        current_object.clear();
-                        self.record_count += 1;
-                    } else if in_record {
-                        // Store the text content with the element path
-                        if !current_text.is_empty() {
-                            let path = current_path.join(".");
-                            current_object.push((path, current_text.clone()));
-                            current_text.clear();
+                        if let Some((_, root_obj)) = element_stack.pop() {
+                            self.json_value_to_output(&JsonValue::Object(root_obj), output)?;
+                            output.push(b'\n');
+                            self.record_count += 1;
                         }
-                        
-                        if !current_path.is_empty() {
-                            current_path.pop();
-                            record_depth = record_depth.saturating_sub(1);
+                        in_record = false;
+                        element_stack.clear();
+                    } else if in_record && !element_stack.is_empty() {
+                        // Pop the current element
+                        if let Some((elem_name, mut elem_obj)) = element_stack.pop() {
+                            // If we have text content and no children, store it as a string
+                            if !current_text.is_empty() && elem_obj.is_empty() {
+                                // This is a leaf element with text
+                                if let Some((_, parent_obj)) = element_stack.last_mut() {
+                                    self.insert_value(parent_obj, &elem_name, JsonValue::String(current_text.clone()));
+                                }
+                                current_text.clear();
+                            } else if !elem_obj.is_empty() {
+                                // This element has children, add it as an object
+                                if let Some((_, parent_obj)) = element_stack.last_mut() {
+                                    self.insert_value(parent_obj, &elem_name, JsonValue::Object(elem_obj));
+                                }
+                            }
                         }
                     }
                 }
@@ -138,40 +150,12 @@ impl XmlParser {
                         }
                     }
                 }
-                Ok(Event::Empty(e)) => {
-                    let name = String::from_utf8_lossy(e.name().as_ref()).to_string();
-                    
-                    if in_record {
-                        let path = if current_path.is_empty() {
-                            name.clone()
-                        } else {
-                            format!("{}.{}", current_path.join("."), name)
-                        };
-                        
-                        // Empty element - store as empty string or with attributes
-                        if self.config.include_attributes {
-                            let mut attr_values = Vec::new();
-                            for attr in e.attributes() {
-                                if let Ok(attr) = attr {
-                                    let key = String::from_utf8_lossy(attr.key.as_ref());
-                                    let value = String::from_utf8_lossy(&attr.value);
-                                    attr_values.push(format!("{}={}", key, value));
-                                }
-                            }
-                            if !attr_values.is_empty() {
-                                current_object.push((path, attr_values.join(", ")));
-                            } else {
-                                current_object.push((path, String::new()));
-                            }
-                        } else {
-                            current_object.push((path, String::new()));
-                        }
-                    }
+                Ok(Event::Empty(_e)) => {
+                    // Handle empty elements if needed
                 }
                 Ok(Event::Eof) => break,
                 Err(e) => {
                     debug!("XML parse error: {:?}", e);
-                    // For streaming, we might have incomplete XML, so we break and wait for more data
                     break;
                 }
                 _ => {}
@@ -181,8 +165,6 @@ impl XmlParser {
         }
 
         // Clear processed data from buffer
-        // In a real implementation, you'd track how much was successfully parsed
-        // and only remove that portion
         if self.record_count > 0 {
             self.partial_buffer.clear();
         }
@@ -190,27 +172,65 @@ impl XmlParser {
         Ok(())
     }
 
-    /// Convert object to JSON
-    fn object_to_json(&self, object: &[(String, String)], output: &mut Vec<u8>) -> Result<()> {
-        output.push(b'{');
-
-        for (i, (key, value)) in object.iter().enumerate() {
-            if i > 0 {
-                output.push(b',');
+    /// Insert a value into a HashMap, creating arrays for duplicate keys
+    fn insert_value(&self, map: &mut HashMap<String, JsonValue>, key: &str, value: JsonValue) {
+        match map.get_mut(key) {
+            Some(JsonValue::Array(arr)) => {
+                // Already an array, append the new value
+                arr.push(value);
             }
-
-            // Write key
-            output.push(b'"');
-            self.escape_json_string(key.as_bytes(), output);
-            output.extend_from_slice(b"\":");
-
-            // Write value
-            output.push(b'"');
-            self.escape_json_string(value.as_bytes(), output);
-            output.push(b'"');
+            Some(existing) => {
+                // Convert to array with old and new values
+                let old_value = existing.clone();
+                *existing = JsonValue::Array(vec![old_value, value]);
+            }
+            None => {
+                // New key, insert directly
+                map.insert(key.to_string(), value);
+            }
         }
+    }
 
-        output.push(b'}');
+    /// Convert JsonValue to JSON output
+    fn json_value_to_output(&self, value: &JsonValue, output: &mut Vec<u8>) -> Result<()> {
+        match value {
+            JsonValue::String(s) => {
+                output.push(b'"');
+                self.escape_json_string(s.as_bytes(), output);
+                output.push(b'"');
+            }
+            JsonValue::Array(arr) => {
+                output.push(b'[');
+                for (i, item) in arr.iter().enumerate() {
+                    if i > 0 {
+                        output.push(b',');
+                    }
+                    self.json_value_to_output(item, output)?;
+                }
+                output.push(b']');
+            }
+            JsonValue::Object(obj) => {
+                output.push(b'{');
+                let mut first = true;
+                let mut keys: Vec<&String> = obj.keys().collect();
+                keys.sort();
+                
+                for key in keys {
+                    if let Some(val) = obj.get(key) {
+                        if !first {
+                            output.push(b',');
+                        }
+                        first = false;
+                        
+                        output.push(b'"');
+                        self.escape_json_string(key.as_bytes(), output);
+                        output.extend_from_slice(b"\":");
+                        self.json_value_to_output(val, output)?;
+                    }
+                }
+                output.push(b'}');
+            }
+        }
         Ok(())
     }
 

@@ -6,6 +6,7 @@ mod stats;
 mod json_parser;
 mod ndjson_parser;
 mod csv_parser;
+mod csv_writer;
 mod xml_parser;
 mod format;
 mod timing;
@@ -64,13 +65,38 @@ pub fn detect_csv_fields(sample: &[u8]) -> JsValue {
     result.into()
 }
 
+/// Detect XML elements from a sample of bytes.
+#[wasm_bindgen(js_name = detectXmlElements)]
+pub fn detect_xml_elements(sample: &[u8]) -> JsValue {
+    let Some(detection) = detect::detect_xml(sample) else {
+        return JsValue::NULL;
+    };
+
+    let result = Object::new();
+    let elements = Array::new();
+    for element in detection.elements {
+        elements.push(&JsValue::from(element));
+    }
+
+    let _ = Reflect::set(&result, &JsValue::from("elements"), &elements);
+    if let Some(record_element) = detection.record_element {
+        let _ = Reflect::set(&result, &JsValue::from("recordElement"), &JsValue::from(record_element));
+    }
+
+    result.into()
+}
+
 /// Internal converter state
 enum ConverterState {
     CsvToNdjson(CsvParser),
+    CsvToJson(CsvParser, NdjsonParser, bool), // (csv_parser, ndjson_parser, is_first_chunk)
     NdjsonPassthrough(NdjsonParser),
     NdjsonToJson(NdjsonParser, bool), // (parser, is_first_chunk)
     XmlToNdjson(XmlParser),
+    XmlToJson(XmlParser, NdjsonParser, bool), // (xml_parser, ndjson_parser, is_first_chunk)
+    XmlToCsv(XmlParser, csv_writer::CsvWriter),
     JsonPassthrough(JsonParser),
+    NeedsDetection(Vec<u8>), // Buffered first chunk for auto-detection
 }
 
 /// A streaming converter state machine.
@@ -141,15 +167,40 @@ impl Converter {
             .with_chunk_size(chunk_target_bytes)
             .with_stats(enable_stats);
 
-        if let Some(csv) = parse_csv_config(csv_config) {
+        let csv_provided = parse_csv_config(csv_config.clone());
+        let xml_provided = parse_xml_config(xml_config.clone());
+
+        if let Some(csv) = csv_provided.clone() {
             config = config.with_csv_config(csv);
         }
 
-        if let Some(xml) = parse_xml_config(xml_config) {
+        if let Some(xml) = xml_provided.clone() {
             config = config.with_xml_config(xml);
         }
 
-        let state = Self::create_state(&config);
+        // Determine if we need auto-detection
+        let needs_detection = match input {
+            Format::Csv => csv_provided.is_none() || csv_provided.as_ref().and_then(|_c| {
+                // Check if delimiter was explicitly provided via the input
+                let input_obj: Option<CsvConfigInput> = deserialize_optional(csv_config);
+                input_obj.and_then(|i| i.delimiter)
+            }).is_none(),
+            Format::Xml => xml_provided.is_none() || xml_provided.as_ref().and_then(|_x| {
+                // Check if recordElement was explicitly provided
+                let input_obj: Option<XmlConfigInput> = deserialize_optional(xml_config);
+                input_obj.and_then(|i| i.record_element)
+            }).is_none(),
+            _ => false,
+        };
+
+        let state = if needs_detection {
+            if debug {
+                debug!("Converter will auto-detect config on first chunk");
+            }
+            ConverterState::NeedsDetection(Vec::new())
+        } else {
+            Self::create_state(&config)
+        };
 
         if debug {
             debug!("Converter::with_config({:?} -> {:?})", input, output);
@@ -174,11 +225,46 @@ impl Converter {
             self.stats.record_chunk(chunk.len());
         }
 
+        // Handle auto-detection on first chunk
+        let needs_init = matches!(self.state, Some(ConverterState::NeedsDetection(_)));
+        if needs_init {
+            // Extract buffer and prepare for detection
+            if let Some(ConverterState::NeedsDetection(ref mut buffer)) = self.state {
+                buffer.extend_from_slice(chunk);
+                
+                // Wait for enough data to detect (at least 256 bytes or until we have some data)
+                if buffer.len() < 256 && !chunk.is_empty() {
+                    // Need more data for reliable detection
+                    return Ok(Vec::new());
+                }
+            }
+            
+            // Take the buffer and do detection
+            let detection_sample = if let Some(ConverterState::NeedsDetection(buffer)) = self.state.take() {
+                buffer
+            } else {
+                Vec::new()
+            };
+            
+            self.auto_detect_and_initialize(&detection_sample)?;
+            
+            // Now process the buffered chunk with the newly initialized state
+            return self.push(&detection_sample);
+        }
+
         let start = crate::timing::Timer::new();
 
         let result = match self.state.as_mut() {
             Some(ConverterState::CsvToNdjson(parser)) => {
                 parser.push_to_ndjson(chunk)?
+            }
+            Some(ConverterState::CsvToJson(csv_parser, ndjson_parser, is_first)) => {
+                // First convert CSV to NDJSON
+                let ndjson_chunk = csv_parser.push_to_ndjson(chunk)?;
+                // Then convert NDJSON to JSON array
+                let is_first_chunk = *is_first;
+                *is_first = false;
+                ndjson_parser.to_json_array(&ndjson_chunk, is_first_chunk, false)?
             }
             Some(ConverterState::NdjsonPassthrough(parser)) => {
                 parser.push(chunk)?
@@ -191,9 +277,36 @@ impl Converter {
             Some(ConverterState::XmlToNdjson(parser)) => {
                 parser.push_to_ndjson(chunk)?
             }
+            Some(ConverterState::XmlToJson(xml_parser, ndjson_parser, is_first)) => {
+                // First convert XML to NDJSON
+                let ndjson_chunk = xml_parser.push_to_ndjson(chunk)?;
+                // Then convert NDJSON to JSON array
+                let is_first_chunk = *is_first;
+                *is_first = false;
+                ndjson_parser.to_json_array(&ndjson_chunk, is_first_chunk, false)?
+            }
+            Some(ConverterState::XmlToCsv(xml_parser, csv_writer)) => {
+                // First convert XML to NDJSON
+                let ndjson_chunk = xml_parser.push_to_ndjson(chunk)?;
+                // Then convert NDJSON to CSV
+                let ndjson_str = std::str::from_utf8(&ndjson_chunk)
+                    .map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let mut output = Vec::new();
+                for line in ndjson_str.lines() {
+                    let trimmed: &str = line.trim();
+                    if !trimmed.is_empty() {
+                        output.extend(csv_writer.process_json_line(line)?);
+                    }
+                }
+                output
+            }
             Some(ConverterState::JsonPassthrough(_parser)) => {
                 // For JSON passthrough, we just validate
                 chunk.to_vec()
+            }
+            Some(ConverterState::NeedsDetection(_)) => {
+                // Should not reach here as it's handled above
+                return Err(ConvertError::InvalidConfig("Invalid state: detection should have been completed".to_string()).into());
             }
             None => {
                 return Err(ConvertError::InvalidConfig("Converter already finished".to_string()).into());
@@ -208,9 +321,17 @@ impl Converter {
             // Update buffer sizes
             let partial_size = match self.state.as_ref() {
                 Some(ConverterState::CsvToNdjson(p)) => p.partial_size(),
+                Some(ConverterState::CsvToJson(csv_p, ndjson_p, _)) => {
+                    csv_p.partial_size() + ndjson_p.partial_size()
+                }
                 Some(ConverterState::NdjsonPassthrough(p)) => p.partial_size(),
                 Some(ConverterState::NdjsonToJson(p, _)) => p.partial_size(),
                 Some(ConverterState::XmlToNdjson(p)) => p.partial_size(),
+                Some(ConverterState::XmlToJson(xml_p, ndjson_p, _)) => {
+                    xml_p.partial_size() + ndjson_p.partial_size()
+                }
+                Some(ConverterState::XmlToCsv(xml_p, _)) => xml_p.partial_size(),
+                Some(ConverterState::NeedsDetection(buffer)) => buffer.len(),
                 _ => 0,
             };
             self.stats.update_buffer_size(partial_size);
@@ -225,9 +346,47 @@ impl Converter {
             debug!("Converter::finish");
         }
 
+        // If still in detection state, initialize with buffered data
+        if let Some(ConverterState::NeedsDetection(ref buffer)) = self.state {
+            if !buffer.is_empty() {
+                let detection_sample = buffer.clone();
+                self.auto_detect_and_initialize(&detection_sample)?;
+                
+                // Process the buffered data and then finish
+                let buffered = detection_sample;
+                let mut output = self.push(&buffered)?;
+                
+                // Now call finish to get any remaining data
+                let remaining = self.finish()?;
+                output.extend_from_slice(&remaining);
+                
+                return Ok(output);
+            }
+        }
+
         let result = match self.state.take() {
             Some(ConverterState::CsvToNdjson(mut parser)) => {
                 parser.finish()?
+            }
+            Some(ConverterState::CsvToJson(mut csv_parser, mut ndjson_parser, is_first_flag)) => {
+                // Finish CSV parsing
+                let ndjson_chunk = csv_parser.finish()?;
+                
+                // Process remaining NDJSON through JSON converter
+                // Use the is_first flag to determine if we need opening bracket
+                let mut output = ndjson_parser.to_json_array(&ndjson_chunk, is_first_flag, false)?;
+                
+                // Close the JSON array
+                let closing = ndjson_parser.to_json_array(&[], false, true)?;
+                output.extend_from_slice(&closing);
+                
+                // Get any final buffered content
+                let remaining = ndjson_parser.finish()?;
+                if !remaining.is_empty() {
+                    output.extend_from_slice(&remaining);
+                }
+                
+                output
             }
             Some(ConverterState::NdjsonPassthrough(mut parser)) => {
                 parser.finish()?
@@ -246,7 +405,51 @@ impl Converter {
             Some(ConverterState::XmlToNdjson(mut parser)) => {
                 parser.finish()?
             }
+            Some(ConverterState::XmlToJson(mut xml_parser, mut ndjson_parser, _)) => {
+                // Finish XML parsing
+                let ndjson_chunk = xml_parser.finish()?;
+                
+                // Process remaining NDJSON through JSON converter
+                let mut output = ndjson_parser.to_json_array(&ndjson_chunk, false, false)?;
+                
+                // Close the JSON array
+                let closing = ndjson_parser.to_json_array(&[], false, true)?;
+                output.extend_from_slice(&closing);
+                
+                // Get any final buffered content
+                let remaining = ndjson_parser.finish()?;
+                if !remaining.is_empty() {
+                    output.extend_from_slice(&remaining);
+                }
+                
+                output
+            }
+            Some(ConverterState::XmlToCsv(mut xml_parser, mut csv_writer)) => {
+                // Finish XML parsing
+                let ndjson_chunk = xml_parser.finish()?;
+                
+                // Process remaining NDJSON through CSV writer
+                let ndjson_str = std::str::from_utf8(&ndjson_chunk)
+                    .map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let mut output = Vec::new();
+                for line in ndjson_str.lines() {
+                    let trimmed: &str = line.trim();
+                    if !trimmed.is_empty() {
+                        output.extend(csv_writer.process_json_line(line)?);
+                    }
+                }
+                
+                // Finalize CSV writer
+                let final_output = csv_writer.finish()?;
+                output.extend_from_slice(&final_output);
+                
+                output
+            }
             Some(ConverterState::JsonPassthrough(_)) => {
+                Vec::new()
+            }
+            Some(ConverterState::NeedsDetection(_)) => {
+                // Already handled above, should not reach here
                 Vec::new()
             }
             None => {
@@ -269,11 +472,67 @@ impl Converter {
 }
 
 impl Converter {
+    /// Auto-detect configuration from a sample and initialize the converter state
+    fn auto_detect_and_initialize(&mut self, sample: &[u8]) -> std::result::Result<(), JsValue> {
+        if self.debug {
+            debug!("Auto-detecting configuration from {} byte sample", sample.len());
+        }
+
+        match self.config.input_format {
+            Format::Csv => {
+                if let Some(detection) = detect::detect_csv(sample) {
+                    let mut csv_config = self.config.csv_config.clone().unwrap_or_default();
+                    csv_config.delimiter = detection.delimiter;
+                    self.config.csv_config = Some(csv_config.clone());
+                    
+                    if self.debug {
+                        let delim_bytes = [detection.delimiter];
+                        let delim_char = String::from_utf8_lossy(&delim_bytes);
+                        debug!("Auto-detected CSV delimiter: '{}' ({} fields)", delim_char, detection.fields.len());
+                    }
+                } else if self.debug {
+                    debug!("CSV auto-detection failed, using default config");
+                }
+            }
+            Format::Xml => {
+                if let Some(detection) = detect::detect_xml(sample) {
+                    if let Some(record_element) = detection.record_element {
+                        let mut xml_config = self.config.xml_config.clone().unwrap_or_default();
+                        xml_config.record_element = record_element.clone();
+                        self.config.xml_config = Some(xml_config.clone());
+                        
+                        if self.debug {
+                            debug!("Auto-detected XML record element: '{}'", record_element);
+                        }
+                    }
+                } else if self.debug {
+                    debug!("XML auto-detection failed, using default config");
+                }
+            }
+            _ => {
+                // No auto-detection needed for other formats
+            }
+        }
+
+        // Create the proper state with detected/default config
+        let new_state = Self::create_state(&self.config);
+        self.state = Some(new_state);
+
+        Ok(())
+    }
+
     fn create_state(config: &ConverterConfig) -> ConverterState {
         match (config.input_format, config.output_format) {
             (Format::Csv, Format::Ndjson) => {
                 let csv_config = config.csv_config.clone().unwrap_or_default();
                 ConverterState::CsvToNdjson(CsvParser::new(csv_config, config.chunk_target_bytes))
+            }
+            (Format::Csv, Format::Json) => {
+                // CSV -> NDJSON -> JSON pipeline
+                let csv_config = config.csv_config.clone().unwrap_or_default();
+                let csv_parser = CsvParser::new(csv_config, config.chunk_target_bytes);
+                let ndjson_parser = NdjsonParser::new(config.chunk_target_bytes);
+                ConverterState::CsvToJson(csv_parser, ndjson_parser, true)
             }
             (Format::Ndjson, Format::Ndjson) => {
                 ConverterState::NdjsonPassthrough(NdjsonParser::new(config.chunk_target_bytes))
@@ -285,8 +544,25 @@ impl Converter {
                 let xml_config = config.xml_config.clone().unwrap_or_default();
                 ConverterState::XmlToNdjson(XmlParser::new(xml_config, config.chunk_target_bytes))
             }
+            (Format::Xml, Format::Json) => {
+                let xml_config = config.xml_config.clone().unwrap_or_default();
+                let xml_parser = XmlParser::new(xml_config, config.chunk_target_bytes);
+                let ndjson_parser = NdjsonParser::new(config.chunk_target_bytes);
+                ConverterState::XmlToJson(xml_parser, ndjson_parser, true)
+            }
+            (Format::Xml, Format::Csv) => {
+                let xml_config = config.xml_config.clone().unwrap_or_default();
+                let xml_parser = XmlParser::new(xml_config, config.chunk_target_bytes);
+                let csv_writer = csv_writer::CsvWriter::new();
+                ConverterState::XmlToCsv(xml_parser, csv_writer)
+            }
             (Format::Json, Format::Json) => {
                 ConverterState::JsonPassthrough(JsonParser::new())
+            }
+            (Format::Csv, Format::Csv) => {
+                // CSV passthrough
+                let csv_config = config.csv_config.clone().unwrap_or_default();
+                ConverterState::CsvToNdjson(CsvParser::new(csv_config, config.chunk_target_bytes))
             }
             _ => {
                 // Default to passthrough for unsupported conversions
@@ -361,3 +637,275 @@ fn deserialize_optional<T: DeserializeOwned>(value: JsValue) -> Option<T> {
 
 // Note: Config builders are not exposed to JS directly
 // Configuration is passed through the Converter::with_config method
+#[cfg(test)]
+mod integration_tests {
+    use super::*;
+
+    /// Helper to create a converter without WASM bindings for testing
+    fn create_test_converter(input_format: Format, output_format: Format) -> Result<Converter> {
+        let mut config = ConverterConfig::new(input_format, output_format)
+            .with_chunk_size(1024 * 1024)
+            .with_stats(false);
+
+        // Don't provide configs - force auto-detection
+        config.csv_config = None;
+        config.xml_config = None;
+
+        let needs_detection = match input_format {
+            Format::Csv | Format::Xml => true,
+            _ => false,
+        };
+
+        let state = if needs_detection {
+            ConverterState::NeedsDetection(Vec::new())
+        } else {
+            Converter::create_state(&config)
+        };
+
+        Ok(Converter {
+            debug: false,
+            config,
+            state: Some(state),
+            stats: Stats::default(),
+        })
+    }
+
+    #[test]
+    fn test_xml_to_json_auto_detect_movie() -> Result<()> {
+        let xml = b"<movies><movie><title>The Matrix</title><year>1999</year></movie><movie><title>Inception</title><year>2010</year></movie></movies>";
+        let mut converter = create_test_converter(Format::Xml, Format::Json)?;
+        
+        let output = converter.push(xml).map_err(|_| ConvertError::InvalidConfig("push failed".to_string()))?;
+        let final_output = converter.finish().map_err(|_| ConvertError::InvalidConfig("finish failed".to_string()))?;
+        
+        let result = [&output[..], &final_output[..]].concat();
+        let result_str = String::from_utf8_lossy(&result);
+        
+        // Should auto-detect "movie" as record element
+        assert!(result_str.contains("The Matrix"));
+        assert!(result_str.contains("Inception"));
+        assert!(result_str.starts_with('['));
+        assert!(result_str.ends_with(']'));
+        
+        Ok(())
+    }
+
+    #[test]
+    fn test_xml_to_ndjson_auto_detect_product() -> Result<()> {
+        let xml = b"<catalog><product><id>123</id><name>Widget</name></product><product><id>456</id><name>Gadget</name></product></catalog>";
+        let mut converter = create_test_converter(Format::Xml, Format::Ndjson)?;
+        
+        let output = converter.push(xml).map_err(|_| ConvertError::InvalidConfig("push failed".to_string()))?;
+        let final_output = converter.finish().map_err(|_| ConvertError::InvalidConfig("finish failed".to_string()))?;
+        
+        let result = [&output[..], &final_output[..]].concat();
+        let result_str = String::from_utf8_lossy(&result);
+        
+        // Should auto-detect "product" as record element
+        assert!(result_str.contains("Widget"));
+        assert!(result_str.contains("Gadget"));
+        
+        // NDJSON should have two lines
+        let lines: Vec<&str> = result_str.lines().collect();
+        assert_eq!(lines.len(), 2);
+        
+        Ok(())
+    }
+
+    #[test]
+    fn test_xml_to_csv_auto_detect_person() -> Result<()> {
+        let xml = b"<people><person><name>Alice</name><age>30</age></person><person><name>Bob</name><age>25</age></person></people>";
+        let mut converter = create_test_converter(Format::Xml, Format::Csv)?;
+        
+        let output = converter.push(xml).map_err(|_| ConvertError::InvalidConfig("push failed".to_string()))?;
+        let final_output = converter.finish().map_err(|_| ConvertError::InvalidConfig("finish failed".to_string()))?;
+        
+        let result = [&output[..], &final_output[..]].concat();
+        let result_str = String::from_utf8_lossy(&result);
+        
+        // Should auto-detect "person" as record element
+        assert!(result_str.contains("Alice"));
+        assert!(result_str.contains("Bob"));
+        assert!(result_str.contains("name"));
+        assert!(result_str.contains("age"));
+        
+        Ok(())
+    }
+
+    #[test]
+    fn test_csv_comma_to_json_auto_detect() -> Result<()> {
+        let csv = b"name,age,city\nAlice,30,NYC\nBob,25,LA";
+        let mut converter = create_test_converter(Format::Csv, Format::Json)?;
+        
+        let output = converter.push(csv).map_err(|_| ConvertError::InvalidConfig("push failed".to_string()))?;
+        let final_output = converter.finish().map_err(|_| ConvertError::InvalidConfig("finish failed".to_string()))?;
+        
+        let result = [&output[..], &final_output[..]].concat();
+        let result_str = String::from_utf8_lossy(&result);
+        
+        // Should auto-detect comma delimiter
+        assert!(result_str.contains("Alice"));
+        assert!(result_str.contains("NYC"));
+        assert!(result_str.contains("Bob"));
+        assert!(result_str.starts_with('['));
+        assert!(result_str.ends_with(']'));
+        
+        Ok(())
+    }
+
+    #[test]
+    fn test_csv_semicolon_to_json_auto_detect() -> Result<()> {
+        let csv = b"product;price;stock\nWidget;19.99;100\nGadget;29.99;50";
+        let mut converter = create_test_converter(Format::Csv, Format::Json)?;
+        
+        let output = converter.push(csv).map_err(|_| ConvertError::InvalidConfig("push failed".to_string()))?;
+        let final_output = converter.finish().map_err(|_| ConvertError::InvalidConfig("finish failed".to_string()))?;
+        
+        let result = [&output[..], &final_output[..]].concat();
+        let result_str = String::from_utf8_lossy(&result);
+        
+        // Should auto-detect semicolon delimiter
+        assert!(result_str.contains("Widget"));
+        assert!(result_str.contains("19.99"));
+        assert!(result_str.contains("Gadget"));
+        
+        Ok(())
+    }
+
+    #[test]
+    fn test_csv_tab_to_json_auto_detect() -> Result<()> {
+        let csv = b"id\tname\temail\n1\tAlice\talice@test.com\n2\tBob\tbob@test.com";
+        let mut converter = create_test_converter(Format::Csv, Format::Json)?;
+        
+        let output = converter.push(csv).map_err(|_| ConvertError::InvalidConfig("push failed".to_string()))?;
+        let final_output = converter.finish().map_err(|_| ConvertError::InvalidConfig("finish failed".to_string()))?;
+        
+        let result = [&output[..], &final_output[..]].concat();
+        let result_str = String::from_utf8_lossy(&result);
+        
+        // Should auto-detect tab delimiter
+        assert!(result_str.contains("Alice"));
+        assert!(result_str.contains("alice@test.com"));
+        
+        Ok(())
+    }
+
+    #[test]
+    fn test_csv_pipe_to_ndjson_auto_detect() -> Result<()> {
+        let csv = b"code|description|quantity\nA001|Item One|10\nB002|Item Two|20";
+        let mut converter = create_test_converter(Format::Csv, Format::Ndjson)?;
+        
+        let output = converter.push(csv).map_err(|_| ConvertError::InvalidConfig("push failed".to_string()))?;
+        let final_output = converter.finish().map_err(|_| ConvertError::InvalidConfig("finish failed".to_string()))?;
+        
+        let result = [&output[..], &final_output[..]].concat();
+        let result_str = String::from_utf8_lossy(&result);
+        
+        // Should auto-detect pipe delimiter
+        assert!(result_str.contains("Item One"));
+        assert!(result_str.contains("B002"));
+        
+        let lines: Vec<&str> = result_str.lines().collect();
+        assert_eq!(lines.len(), 2);
+        
+        Ok(())
+    }
+
+    #[test]
+    fn test_xml_nested_arrays_to_json() -> Result<()> {
+        let xml = b"<movies><movie><title>The Matrix</title><cast><actor><name>Keanu</name></actor><actor><name>Laurence</name></actor></cast></movie></movies>";
+        let mut converter = create_test_converter(Format::Xml, Format::Json)?;
+        
+        let output = converter.push(xml).map_err(|_| ConvertError::InvalidConfig("push failed".to_string()))?;
+        let final_output = converter.finish().map_err(|_| ConvertError::InvalidConfig("finish failed".to_string()))?;
+        
+        let result = [&output[..], &final_output[..]].concat();
+        let result_str = String::from_utf8_lossy(&result);
+        
+        // Should handle nested arrays
+        assert!(result_str.contains("Keanu"));
+        assert!(result_str.contains("Laurence"));
+        
+        Ok(())
+    }
+
+    #[test]
+    fn test_xml_nested_arrays_to_csv_flattening() -> Result<()> {
+        let xml = b"<movies><movie><title>Test</title><cast><actor><name>Actor1</name><role>Role1</role></actor><actor><name>Actor2</name><role>Role2</role></actor></cast></movie></movies>";
+        let mut converter = create_test_converter(Format::Xml, Format::Csv)?;
+        
+        let output = converter.push(xml).map_err(|_| ConvertError::InvalidConfig("push failed".to_string()))?;
+        let final_output = converter.finish().map_err(|_| ConvertError::InvalidConfig("finish failed".to_string()))?;
+        
+        let result = [&output[..], &final_output[..]].concat();
+        let result_str = String::from_utf8_lossy(&result);
+        
+        // Should flatten nested arrays with dot notation
+        assert!(result_str.contains("cast.actor.0.name") || result_str.contains("Actor1"));
+        assert!(result_str.contains("cast.actor.1.name") || result_str.contains("Actor2"));
+        
+        Ok(())
+    }
+
+    #[test]
+    fn test_csv_complex_nested_to_json() -> Result<()> {
+        let csv = b"title,cast.actor.0.name,cast.actor.0.role,cast.actor.1.name,cast.actor.1.role\nMatrix,Keanu,Neo,Laurence,Morpheus";
+        let mut converter = create_test_converter(Format::Csv, Format::Json)?;
+        
+        let output = converter.push(csv).map_err(|_| ConvertError::InvalidConfig("push failed".to_string()))?;
+        let final_output = converter.finish().map_err(|_| ConvertError::InvalidConfig("finish failed".to_string()))?;
+        
+        let result = [&output[..], &final_output[..]].concat();
+        let result_str = String::from_utf8_lossy(&result);
+        
+        // Should parse complex nested field names
+        assert!(result_str.contains("Keanu"));
+        assert!(result_str.contains("Morpheus"));
+        
+        Ok(())
+    }
+
+    #[test]
+    fn test_xml_different_record_elements() -> Result<()> {
+        // Test with "item" as record element
+        let xml1 = b"<catalog><item><sku>A001</sku></item><item><sku>A002</sku></item></catalog>";
+        let mut converter1 = create_test_converter(Format::Xml, Format::Json)?;
+        let output1 = converter1.push(xml1).map_err(|_| ConvertError::InvalidConfig("push failed".to_string()))?;
+        let final1 = converter1.finish().map_err(|_| ConvertError::InvalidConfig("finish failed".to_string()))?;
+        let result1 = [&output1[..], &final1[..]].concat();
+        let result1_str = String::from_utf8_lossy(&result1);
+        assert!(result1_str.contains("A001"));
+        assert!(result1_str.contains("A002"));
+
+        // Test with "order" as record element
+        let xml2 = b"<orders><order><id>123</id></order><order><id>456</id></order></orders>";
+        let mut converter2 = create_test_converter(Format::Xml, Format::Json)?;
+        let output2 = converter2.push(xml2).map_err(|_| ConvertError::InvalidConfig("push failed".to_string()))?;
+        let final2 = converter2.finish().map_err(|_| ConvertError::InvalidConfig("finish failed".to_string()))?;
+        let result2 = [&output2[..], &final2[..]].concat();
+        let result2_str = String::from_utf8_lossy(&result2);
+        assert!(result2_str.contains("123"));
+        assert!(result2_str.contains("456"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_ndjson_to_json_conversion() -> Result<()> {
+        let ndjson = b"{\"a\":1}\n{\"b\":2}\n{\"c\":3}";
+        let mut converter = create_test_converter(Format::Ndjson, Format::Json)?;
+        
+        let output = converter.push(ndjson).map_err(|_| ConvertError::InvalidConfig("push failed".to_string()))?;
+        let final_output = converter.finish().map_err(|_| ConvertError::InvalidConfig("finish failed".to_string()))?;
+        
+        let result = [&output[..], &final_output[..]].concat();
+        let result_str = String::from_utf8_lossy(&result);
+        
+        assert!(result_str.starts_with('['));
+        assert!(result_str.ends_with(']'));
+        assert!(result_str.contains(r#""a":1"#));
+        assert!(result_str.contains(r#""b":2"#));
+        
+        Ok(())
+    }
+}

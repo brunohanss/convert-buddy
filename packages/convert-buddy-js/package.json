@@ -1,6 +1,6 @@
 {
   "name": "convert-buddy-js",
-  "version": "0.9.0",
+  "version": "0.9.4",
   "description": "TypeScript wrapper for convert-buddy (Rust/WASM core)",
   "license": "MIT",
   "type": "module",
@@ -42,7 +42,8 @@
     "bench:competitors-comprehensive": "npm run build && node ./dist/bench/runner-competitors-comprehensive.js",
     "bench:all": "npm run bench:single-thread && npm run bench:multi-thread && npm run bench:compare && npm run bench:competitors-comprehensive",
     "lint": "node ./scripts/lint-placeholder.mjs",
-    "prepack": "npm run build && npm run check:wasm"
+    "test:rust": "cargo test --lib --manifest-path ../../crates/convert-buddy/Cargo.toml --release",
+    "prepack": "npm run test:rust && npm run build && npm run check:wasm"
   },
   "devDependencies": {
     "@types/node": "^25.0.3",

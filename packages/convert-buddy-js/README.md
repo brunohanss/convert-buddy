@@ -84,6 +84,7 @@ Use streaming inputs to keep detection fast on large files.
 import {
   detectFormat,
   detectCsvFieldsAndDelimiter,
+  detectXmlElements,
 } from "convert-buddy-js";
 
 const fileStream = (await fetch("/data")).body!;
@@ -91,10 +92,17 @@ const fileStream = (await fetch("/data")).body!;
 const format = await detectFormat(fileStream, { maxBytes: 256 * 1024 });
 console.log(format); // "csv" | "json" | "ndjson" | "xml" | "unknown"
 
+// For CSV files, detect delimiter and field names
 const csvInfo = await detectCsvFieldsAndDelimiter(fileStream);
 if (csvInfo) {
-  console.log(csvInfo.delimiter);
-  console.log(csvInfo.fields);
+  console.log(csvInfo.delimiter);    // ","
+  console.log(csvInfo.fields);       // ["name", "age", "city"]
+}
+
+// For XML files, detect element names
+const xmlInfo = await detectXmlElements(fileStream);
+if (xmlInfo) {
+  console.log(xmlInfo.elements);     // ["root", "record", "field", ...]
 }
 ```
 

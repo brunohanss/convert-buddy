@@ -11,6 +11,11 @@ export type CsvDetection = {
   fields: string[];
 };
 
+export type XmlDetection = {
+  elements: string[];
+  recordElement?: string;
+};
+
 export type DetectOptions = {
   maxBytes?: number;
   debug?: boolean;
@@ -64,6 +69,7 @@ type WasmModule = {
   };
   detectFormat?: (sample: Uint8Array) => string | null | undefined;
   detectCsvFields?: (sample: Uint8Array) => CsvDetection | null | undefined;
+  detectXmlElements?: (sample: Uint8Array) => XmlDetection | null | undefined;
   __wbg_set_wasm?: (wasm: unknown) => void;
 };
 
@@ -117,8 +123,8 @@ export class ConvertBuddy {
         opts.outputFormat,
         opts.chunkTargetBytes || 1024 * 1024,
         profile,
-        opts.csvConfig,
-        opts.xmlConfig
+        opts.csvConfig || null,
+        opts.xmlConfig || null
       );
     } else {
       converter = new wasmModule.Converter(debug);
@@ -243,6 +249,16 @@ export async function detectCsvFieldsAndDelimiter(
   const wasmModule = await loadDetectionWasm(!!opts.debug);
   const sample = await readSample(input, opts.maxBytes);
   const result = wasmModule.detectCsvFields?.(sample);
+  return result ?? null;
+}
+
+export async function detectXmlElements(
+  input: DetectInput,
+  opts: DetectOptions = {}
+): Promise<XmlDetection | null> {
+  const wasmModule = await loadDetectionWasm(!!opts.debug);
+  const sample = await readSample(input, opts.maxBytes);
+  const result = wasmModule.detectXmlElements?.(sample);
   return result ?? null;
 }
 
