@@ -17,13 +17,196 @@ interface CompetitorBenchmark {
 // Benchmark csv-parse
 async function benchmarkCsvParse(fileBytes: Uint8Array): Promise<CompetitorBenchmark> {
   try {
-    // Dynamically import csv-parse
-    const csvParse = await import("csv-parse/sync");
-    const parse = csvParse.parse;
-    
+    // Ensure a minimal Buffer shim exists in browsers so csv-parse's
+    // module initialization doesn't throw when it references Buffer.
+    // The shim provides `Buffer.from(...)` and `Buffer.isBuffer(...)` used
+    // by some Node-targeted libraries; it intentionally returns Uint8Array
+    // or lightweight wrappers sufficient for parsing text inputs.
+    if (typeof (globalThis as any).Buffer === "undefined") {
+      // Minimal Buffer shim backed by Uint8Array. This provides the small
+      // subset of Buffer functionality used by some libraries: `from`,
+      // `concat`, `isBuffer`, and `toString` on returned objects.
+      class ShimBuffer extends Uint8Array {
+        toString(encoding?: string) {
+          // We only support utf-8 text decoding in the browser shim
+          return new TextDecoder(encoding || "utf-8").decode(this);
+        }
+        static from(input: any, encoding?: string) {
+          if (typeof input === "string") {
+            const enc = new TextEncoder();
+            return new ShimBuffer(enc.encode(input));
+          }
+          if (input instanceof Uint8Array) {
+            return new ShimBuffer(input);
+          }
+          if (Array.isArray(input)) {
+            return new ShimBuffer(new Uint8Array(input));
+          }
+          // Last resort
+          const str = String(input ?? "");
+          return ShimBuffer.from(str, encoding);
+        }
+        static concat(list: Uint8Array[]) {
+          const total = list.reduce((sum, arr) => sum + arr.length, 0);
+          const out = new ShimBuffer(new Uint8Array(total));
+          let offset = 0;
+          for (const arr of list) {
+            out.set(arr, offset);
+            offset += arr.length;
+          }
+          return out;
+        }
+        static compare(a: Uint8Array | ShimBuffer, b: Uint8Array | ShimBuffer) {
+          // Return -1, 0, or 1 similar to Node's Buffer.compare
+          const la = a.length;
+          const lb = b.length;
+          const len = Math.min(la, lb);
+          for (let i = 0; i < len; i++) {
+            const va = a[i];
+            const vb = b[i];
+            if (va !== vb) return va < vb ? -1 : 1;
+          }
+          if (la === lb) return 0;
+          return la < lb ? -1 : 1;
+        }
+        static isBuffer(obj: any) {
+          return obj instanceof Uint8Array || obj instanceof ShimBuffer;
+        }
+        static alloc(size: number, fill?: number) {
+          const out = new ShimBuffer(new Uint8Array(size));
+          if (typeof fill === 'number') out.fill(fill);
+          return out;
+        }
+        static allocUnsafe(size: number) {
+          // Return a buffer of the requested length. For safety in browsers
+          // we initialize to zeros (allocUnsafe in Node returns uninitialized memory).
+          return ShimBuffer.alloc(size, 0);
+        }
+      }
+
+      (globalThis as any).Buffer = ShimBuffer as any;
+    }
+
+    // Try the browser-friendly ESM build first, then fall back to the sync entry
+    let parse: any;
+    try {
+      const mod = await import("csv-parse/browser/esm");
+      parse = (mod as any).parse as any;
+    } catch {
+      const csvParse = await import("csv-parse/sync");
+      parse = csvParse.parse as any;
+    }
+
     const startTime = performance.now();
     const text = new TextDecoder().decode(fileBytes);
-    const records = parse(text, { columns: true, skip_empty_lines: true });
+
+    // Helper to invoke parse in multiple modes: direct return, callback-style,
+    // or stream-like parser that emits 'data'/'readable'/'end' events.
+    async function invokeParse(textInput: string, options: any) {
+      // Try direct/callback/stream patterns
+      // 1) direct: parse(text, opts) -> array or object
+      // 2) callback: parse(text, opts, cb)
+      // 3) stream-like: const p = parse(opts); p.on('data'...); p.write(text); p.end();
+
+      // Try direct call first
+      try {
+        const maybe = parse(textInput, options);
+        // If it returned a Promise, await it
+        if (maybe && typeof maybe.then === 'function') {
+          return await maybe;
+        }
+
+        // If it's an array or object, return it
+        if (Array.isArray(maybe) || (maybe && typeof maybe === 'object' && !maybe.on)) {
+          return maybe;
+        }
+
+        // If it's stream-like (has .on), collect data
+        if (maybe && typeof maybe.on === 'function') {
+          return await new Promise((resolve, reject) => {
+            const out: any[] = [];
+            maybe.on('readable', () => {
+              try {
+                let r;
+                while ((r = maybe.read()) !== null) out.push(r);
+              } catch (e) {
+                // ignore
+              }
+            });
+            maybe.on('data', (d: any) => out.push(d));
+            maybe.on('end', () => resolve(out));
+            maybe.on('error', (err: any) => reject(err));
+            try {
+              if (typeof maybe.write === 'function') {
+                maybe.write(textInput);
+                if (typeof maybe.end === 'function') maybe.end();
+              }
+            } catch (e) {
+              // ignore
+            }
+          });
+        }
+      } catch (err) {
+        // If parse supports callback form (parse(text, opts, cb))
+        if (typeof parse === 'function' && parse.length >= 3) {
+          return await new Promise((resolve, reject) => {
+            try {
+              parse(textInput, options, (err2: any, out: any) => {
+                if (err2) return reject(err2);
+                resolve(out);
+              });
+            } catch (e) {
+              reject(e);
+            }
+          });
+        }
+        throw err;
+      }
+
+      // Fallback empty
+      return [];
+    }
+
+    // Normalize into records array
+    const normalizeRaw = (r: any) => {
+      if (Array.isArray(r)) return r;
+      if (r && typeof r === 'object') {
+        if (Array.isArray(r.records)) return r.records;
+        if (Array.isArray(r.data)) return r.data;
+        try {
+          if (typeof r[Symbol.iterator] === 'function') return Array.from(r as Iterable<any>);
+        } catch {}
+      }
+      return [];
+    };
+
+    let raw: any = [];
+    try {
+      raw = await invokeParse(text, { columns: true, skip_empty_lines: true });
+    } catch (err) {
+      // If the parser threw 'Invalid Record Length' synchronously or asynchronously,
+      // attempt relaxed strategies.
+      const msg = err && err.message ? String(err.message) : String(err);
+      if (msg.includes('Invalid Record Length') || msg.includes('Invalid Record')) {
+        try {
+          raw = await invokeParse(text, { columns: true, relax_column_count: true, skip_empty_lines: true });
+        } catch (err2) {
+          // final fallback: parse without columns to retrieve raw rows
+          try {
+            raw = await invokeParse(text, { columns: false, skip_empty_lines: true });
+          } catch (err3) {
+            console.error('csv-parse fallback attempts failed:', err, err2, err3);
+            raw = [];
+          }
+        }
+      } else {
+        console.error('csv-parse initial parse error:', err);
+        raw = [];
+      }
+    }
+
+    let records: any[] = normalizeRaw(raw);
+
     const latencyMs = performance.now() - startTime;
     const fileSizeMb = fileBytes.length / (1024 * 1024);
     const throughputMbPerSec = fileSizeMb / (latencyMs / 1000);
@@ -117,6 +300,16 @@ async function benchmarkPapaparse(fileBytes: Uint8Array): Promise<CompetitorBenc
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }
+}
+
+// Benchmark fast-csv (not browser-friendly) - return explanatory error
+async function benchmarkFastCsv(_fileBytes: Uint8Array): Promise<CompetitorBenchmark> {
+  return {
+    name: "fast-csv",
+    throughputMbPerSec: 0,
+    latencyMs: 0,
+    error: "Only for node.js instead",
+  };
 }
 
 // Helper function to generate code snippets
@@ -302,53 +495,84 @@ export default function LiveBenchmarkSection({
         const initialMemory = (performance as any).memory?.usedJSHeapSize || 0;
         const isLargeFile = file.size > STREAMING_THRESHOLD;
 
-        // Read file
-        setProgress(10);
-        const arrayBuffer = await file.arrayBuffer();
-        const fileBytes = new Uint8Array(arrayBuffer);
-        const fileSizeMb = file.size / (1024 * 1024);
-
-        // Detect format
+        // Detect format first (doesn't require loading entire file)
         setProgress(30);
         const detectedFmt = await detectFormat(file.stream());
         setDetectedFormat(detectedFmt as Format);
 
+        // Only load entire file into memory if it's small
+        let fileBytes: Uint8Array;
+        if (isLargeFile) {
+          // For large files, don't load into memory - will use streaming
+          fileBytes = new Uint8Array(0); // Empty placeholder
+        } else {
+          // For small files, load entire file
+          const arrayBuffer = await file.arrayBuffer();
+          fileBytes = new Uint8Array(arrayBuffer);
+        }
+
+        const fileSizeMb = file.size / (1024 * 1024);
+
         // Convert to target format
         setProgress(50);
-        const { convert } = await import("convert-buddy-js");
+        const { ConvertBuddy } = await import("convert-buddy-js");
 
         const startConvert = performance.now();
-        const convertOptions: any = {
+        
+        // Create a single ConvertBuddy instance for all chunks
+        const buddy = await ConvertBuddy.create({
           outputFormat,
           inputFormat: detectedFmt as Format,
-        };
+        });
 
         let result: Uint8Array;
 
         if (isLargeFile) {
-          // Streaming mode for large files
-          const chunks: Uint8Array[] = [];
-          for (let i = 0; i < fileBytes.length; i += STREAM_CHUNK_SIZE) {
-            const chunk = fileBytes.slice(i, i + STREAM_CHUNK_SIZE);
-            const chunkResult = await convert(chunk, convertOptions);
-            chunks.push(chunkResult);
-            
-            // Update progress during streaming
-            const progressPercent = 50 + ((i / fileBytes.length) * 30);
-            setProgress(Math.min(progressPercent, 80));
+          // Streaming mode for large files - use File.stream() for better compatibility
+          const blobParts: BlobPart[] = [];
+          let totalProcessedBytes = 0;
+          
+          const reader = (file as any).stream().getReader();
+          try {
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+
+              const chunk = value as Uint8Array;
+              const chunkResult = buddy.push(chunk);
+              if (chunkResult.length > 0) {
+                blobParts.push(chunkResult as BlobPart);
+              }
+              totalProcessedBytes += chunk.length;
+              
+              // Update progress during streaming
+              const progressPercent = 50 + ((totalProcessedBytes / file.size) * 30);
+              setProgress(Math.min(progressPercent, 80));
+            }
+          } finally {
+            try {
+              if ((reader as any).cancel) await (reader as any).cancel();
+            } catch {}
+          }
+
+          // Finish the conversion to get any remaining output
+          const finalResult = buddy.finish();
+          if (finalResult.length > 0) {
+            blobParts.push(finalResult as BlobPart);
           }
           
-          // Combine chunks
-          const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-          result = new Uint8Array(totalLength);
-          let offset = 0;
-          for (const chunk of chunks) {
-            result.set(chunk, offset);
-            offset += chunk.length;
-          }
+          // Combine chunks using Blob to avoid massive Uint8Array allocation
+          const resultBlob = new Blob(blobParts);
+          result = new Uint8Array(await resultBlob.arrayBuffer());
         } else {
           // Direct mode for small files
-          result = await convert(fileBytes, convertOptions);
+          const output = buddy.push(fileBytes);
+          const finalResult = buddy.finish();
+          
+          // Combine outputs
+          result = new Uint8Array(output.length + finalResult.length);
+          result.set(output, 0);
+          result.set(finalResult, output.length);
         }
 
         const endConvert = performance.now();
@@ -375,17 +599,36 @@ export default function LiveBenchmarkSection({
           isComplete: true,
         });
 
-        // Benchmark competitors for CSV files
-        if (detectedFmt === "csv") {
-          const [csvParseResult, papaparseResult] = await Promise.all([
-            benchmarkCsvParse(fileBytes),
-            benchmarkPapaparse(fileBytes),
-          ]);
-          // Only include successfully measured results (no errors)
-          const successfulResults = [csvParseResult, papaparseResult].filter(
-            (result) => !result.error && result.throughputMbPerSec > 0
-          );
-          setCompetitorResults(successfulResults);
+        // Benchmark competitors for CSV files - only on small files where we have fileBytes
+        if (detectedFmt === "csv" && !isLargeFile && fileBytes.length > 0) {
+          const competitorsToRun: Array<() => Promise<CompetitorBenchmark>> = [
+            () => benchmarkCsvParse(fileBytes),
+            () => benchmarkPapaparse(fileBytes),
+            () => benchmarkFastCsv(fileBytes),
+          ];
+
+          const results: CompetitorBenchmark[] = [];
+          for (const run of competitorsToRun) {
+            try {
+              // Each benchmark implementation handles its own try/catch and
+              // returns an object with error populated on failure.
+              const res = await run();
+              results.push(res);
+            } catch (err) {
+              // Fallback if the function itself throws (shouldn't happen)
+              console.error('Competitor benchmark threw:', err);
+              results.push({
+                name: 'unknown',
+                throughputMbPerSec: 0,
+                latencyMs: 0,
+                error: err instanceof Error ? err.message : String(err),
+              });
+            }
+          }
+
+          // Only include measured results (throughput > 0) or errors to show why
+          // a competitor couldn't be run in the current environment.
+          setCompetitorResults(results);
         }
 
         setProgress(100);
@@ -414,6 +657,9 @@ export default function LiveBenchmarkSection({
   if (isLargeFile) {
     return <StreamingBenchmark file={file} outputFormat={outputFormat} isProcessing={hasStarted} />;
   }
+
+  // Helper to normalize names for matching parser examples to measured competitors
+  const normalizeName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
   return (
     <div className="mt-8 space-y-8">
@@ -508,49 +754,59 @@ export default function LiveBenchmarkSection({
             />
           </Card>
 
-          {/* Benchmarked Competitors */}
-          {competitorResults.map((competitor) => (
-            <Card key={competitor.name} className="p-6 border border-border opacity-75">
-              <h3 className="text-lg font-semibold text-foreground mb-2">{competitor.name}</h3>
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-xs text-muted-foreground">
-                  {competitor.error ? (
-                    <span className="text-destructive">Error: {competitor.error}</span>
-                  ) : (
-                    <>
-                      {competitor.throughputMbPerSec.toFixed(1)} MB/s •{" "}
-                      {competitor.latencyMs.toFixed(0)} ms
-                    </>
-                  )}
-                </p>
-              </div>
-              {competitor.outputPreview && (
-                <div className="bg-slate-50 dark:bg-slate-900/30 rounded p-3 mb-4 border border-border/50">
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Sample output from {competitor.name}
+          {/* Benchmarked Competitors: render combined card with code + output preview */}
+          {competitorResults.map((competitor) => {
+            const parserExamples = detectedFormat ? getParsersForFormat(detectedFormat) : [];
+            const matchedExample = parserExamples.find(
+              (p) => normalizeName(p.name) === normalizeName(competitor.name) ||
+                normalizeName(competitor.name).includes(normalizeName(p.name)) ||
+                normalizeName(p.name).includes(normalizeName(competitor.name))
+            );
+
+            const codeSnippet = matchedExample?.code ?? `// Example code for ${competitor.name} not available.`;
+
+            return (
+              <Card key={competitor.name} className="p-6 border border-border opacity-90">
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="text-lg font-semibold text-foreground">{competitor.name}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {competitor.error ? (
+                      <span className="text-destructive">
+                        {normalizeName(competitor.name) === 'fastcsv'
+                          ? 'Only for Node.js envs'
+                          : 'Error'}
+                      </span>
+                    ) : (
+                      <>
+                        {competitor.throughputMbPerSec.toFixed(1)} MB/s • {competitor.latencyMs.toFixed(0)} ms
+                      </>
+                    )}
                   </p>
-                  <pre className="text-xs overflow-auto max-h-40 text-foreground whitespace-pre-wrap break-words">
-                    {competitor.outputPreview}
-                  </pre>
                 </div>
-              )}
-            </Card>
-          ))}
+
+                <ParserDetailsCollapsible
+                  parserName={competitor.name}
+                  codeSnippet={codeSnippet}
+                  outputPreview={
+                    competitor.error
+                      ? (normalizeName(competitor.name) === 'fastcsv' ? 'Only for Node.js envs' : competitor.error)
+                      : (competitor.outputPreview ?? "")
+                  }
+                  outputFormat={outputFormat}
+                />
+              </Card>
+            );
+          })}
 
           {/* Other Parsers - Code examples only */}
           {getParsersForFormat(detectedFormat)
-            .filter(
-              (parser) =>
-                !competitorResults.some((c) => c.name === parser.name)
+            .filter((parser) =>
+              !competitorResults.some((c) => normalizeName(c.name) === normalizeName(parser.name))
             )
             .map((parser) => (
               <Card key={parser.name} className="p-6 border border-border opacity-75">
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  {parser.name}
-                </h3>
-                <p className="text-xs text-muted-foreground mb-4">
-                  {parser.note || "Parser information"}
-                </p>
+                <h3 className="text-lg font-semibold text-foreground mb-2">{parser.name}</h3>
+                <p className="text-xs text-muted-foreground mb-4">{parser.note || "Parser information"}</p>
                 <ParserDetailsCollapsible
                   parserName={parser.name}
                   codeSnippet={parser.code}

@@ -30,12 +30,23 @@ use serde::Deserialize;
 pub fn init(debug_enabled: bool) {
     console_error_panic_hook::set_once();
 
-    if debug_enabled {
-        let _ = console_log::init_with_level(log::Level::Debug);
-        debug!("convert-buddy: debug logging enabled");
-    } else {
-        let _ = console_log::init_with_level(log::Level::Info);
-        info!("convert-buddy: logging initialized");
+    // Only initialize logging on first call
+    static INIT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    
+    if INIT.compare_exchange(
+        false,
+        true,
+        std::sync::atomic::Ordering::Relaxed,
+        std::sync::atomic::Ordering::Relaxed,
+    ).is_ok() {
+        // First call - actually initialize
+        if debug_enabled {
+            let _ = console_log::init_with_level(log::Level::Debug);
+            debug!("convert-buddy: debug logging enabled");
+        } else {
+            let _ = console_log::init_with_level(log::Level::Info);
+            info!("convert-buddy: logging initialized");
+        }
     }
 }
 

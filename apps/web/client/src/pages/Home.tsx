@@ -10,6 +10,17 @@ import BenchmarkSection from "@/components/BenchmarkSection";
 import LiveBenchmarkSection from "@/components/LiveBenchmarkSection";
 import { convert, convertToString, detectCsvFieldsAndDelimiter, detectXmlElements, detectFormat, type Format } from "convert-buddy-js";
 
+// Format bytes into human-readable string using GB / MB / KB as appropriate
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024 * 1024) {
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  }
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+  return `${(bytes / 1024).toFixed(2)} KB`;
+}
+
 /**
  * Design Philosophy: Kinetic Minimalism with Performance Visualization
  * - Swiss design principles with clear information hierarchy
@@ -287,7 +298,7 @@ Inception,Thriller,2010,Leonardo DiCaprio,Cobb,Joseph Gordon-Levitt,Arthur`;
                       {uploadedFile.name}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      {(uploadedFile.size / 1024).toFixed(2)} KB • {uploadedFile.type}
+                      {formatBytes(uploadedFile.size)} • {uploadedFile.type}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-3">

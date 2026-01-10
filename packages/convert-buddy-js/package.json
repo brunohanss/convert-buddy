@@ -1,6 +1,6 @@
 {
   "name": "convert-buddy-js",
-  "version": "0.9.4",
+  "version": "0.9.5",
   "description": "TypeScript wrapper for convert-buddy (Rust/WASM core)",
   "license": "MIT",
   "type": "module",
@@ -14,6 +14,10 @@
     "./node": {
       "types": "./dist/src/node.d.ts",
       "default": "./dist/src/node.js"
+    },
+    "./browser": {
+      "types": "./dist/src/browser.d.ts",
+      "default": "./dist/src/browser.js"
     }
   },
   "files": [

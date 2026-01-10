@@ -2,15 +2,152 @@
 
 A high-performance, streaming-first parser and converter for CSV, XML, NDJSON, and JSON. `convert-buddy-js` is a TypeScript wrapper around a Rust/WASM core, offering fast parsing and multiple usage styles for Node.js and browsers.
 
+## Status & Quality
+
+[![Known Vulnerabilities](https://snyk.io/test/github/brunohanss/convert-buddy/badge.svg)](https://snyk.io/test/github/brunohanss/convert-buddy)
+[![CI/CD Pipeline](https://github.com/brunohanss/convert-buddy/actions/workflows/test.yml/badge.svg)](https://github.com/brunohanss/convert-buddy/actions)
+[![Coverage Status](https://img.shields.io/codecov/c/github/brunohanss/convert-buddy?label=coverage)](https://codecov.io/gh/brunohanss/convert-buddy)
+[![npm version](https://img.shields.io/npm/v/convert-buddy-js.svg)](https://www.npmjs.com/package/convert-buddy-js)
+[![Bundle Size](https://img.shields.io/bundlephobia/minzip/convert-buddy-js.svg)](https://bundlephobia.com/package/convert-buddy-js)
+
 ## Install
 
 ```bash
 npm install convert-buddy-js
 ```
 
+## Quick Start
+
+### Browser - Convert File Input
+
+```ts
+import { convertFileToString } from "convert-buddy-js/browser";
+
+const fileInput = document.querySelector('input[type="file"]');
+fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  const result = await convertFileToString(file, {
+    inputFormat: "auto",
+    outputFormat: "json"
+  });
+  console.log(result);
+});
+```
+
+### Node.js - Convert File
+
+```ts
+import { convertFileToString } from "convert-buddy-js/node";
+
+const result = await convertFileToString("input.csv", {
+  inputFormat: "auto",
+  outputFormat: "json"
+});
+console.log(result);
+```
+
 ## Usage
 
-### Convert a full string or buffer
+### High-Level API (Recommended)
+
+#### Browser Helpers
+
+Simple file conversion without manual buffer handling:
+
+```ts
+import { 
+  convertFileToString,
+  convertFile,
+  convertFileToFile,
+  convertFileStream
+} from "convert-buddy-js/browser";
+
+// Convert to string
+const json = await convertFileToString(file, {
+  inputFormat: "csv",
+  outputFormat: "json"
+});
+
+// Convert and download
+await convertFileToFile(file, "output.json", {
+  inputFormat: "csv",
+  outputFormat: "json"
+});
+
+// Get streaming API
+const stream = await convertFileStream(file, {
+  inputFormat: "csv",
+  outputFormat: "ndjson"
+});
+```
+
+#### Node.js Helpers
+
+Convenient file path and stream conversions:
+
+```ts
+import { 
+  convertFileToString,
+  convertFileToFile,
+  convertBuffer,
+  convertStream
+} from "convert-buddy-js/node";
+
+// File to string
+const json = await convertFileToString("input.csv", {
+  inputFormat: "csv",
+  outputFormat: "json"
+});
+
+// File to file
+await convertFileToFile("input.csv", "output.json", {
+  inputFormat: "csv",
+  outputFormat: "json"
+});
+
+// From stream (HTTP, stdin, etc.)
+const result = await convertStream(inputStream, {
+  inputFormat: "auto",
+  outputFormat: "json"
+});
+```
+
+#### Progress Tracking & Control
+
+Monitor long-running conversions and allow cancellation:
+
+```ts
+const buddy = await ConvertBuddy.create({
+  inputFormat: "csv",
+  outputFormat: "json",
+  onProgress: (stats) => {
+    console.log(`${stats.recordsProcessed} records processed`);
+    console.log(`${stats.throughputMbPerSec.toFixed(2)} MB/s`);
+  },
+  progressIntervalBytes: 1024 * 1024 // Every 1MB
+});
+
+// User cancels
+cancelButton.addEventListener('click', () => buddy.abort());
+```
+
+#### Auto-Detection
+
+Let the library detect format automatically:
+
+```ts
+const result = await convertFileToString(file, {
+  inputFormat: "auto",    // Auto-detect CSV, JSON, NDJSON, XML
+  outputFormat: "json",
+  csvConfig: {            // Optional: still apply config
+    delimiter: ","
+  }
+});
+```
+
+### Low-Level API
+
+#### Convert a full string or buffer
 
 ```ts
 import { convertToString } from "convert-buddy-js";
@@ -25,7 +162,7 @@ const output = await convertToString(csv, {
 console.log(output);
 ```
 
-### Manual streaming (chunked)
+#### Manual streaming (chunked)
 
 ```ts
 import { ConvertBuddy } from "convert-buddy-js";
@@ -42,7 +179,7 @@ const finalOutput = buddy.finish();
 console.log(buddy.stats());
 ```
 
-### Node.js Transform stream
+#### Node.js Transform stream
 
 Use the Node-specific entrypoint so bundlers keep `node:stream` out of the browser bundle.
 
@@ -62,7 +199,7 @@ createReadStream("input.csv")
   .pipe(createWriteStream("output.ndjson"));
 ```
 
-### Web Streams
+#### Web Streams
 
 ```ts
 import { ConvertBuddyTransformStream } from "convert-buddy-js";
@@ -76,7 +213,7 @@ const response = await fetch("/data.csv");
 const outputStream = response.body?.pipeThrough(transform);
 ```
 
-### Detect format and CSV fields/delimiter
+#### Detect format and CSV fields/delimiter
 
 Use streaming inputs to keep detection fast on large files.
 

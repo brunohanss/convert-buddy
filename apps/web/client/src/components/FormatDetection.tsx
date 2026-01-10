@@ -1,4 +1,5 @@
 import { AlertCircle, CheckCircle2 } from "lucide-react";
+import formatBytes from "@/lib/formatBytes";
 
 interface CsvDetectionResult {
   delimiter: string;
@@ -45,7 +46,7 @@ export default function FormatDetection({ file, loading, error, result }: Format
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-1">File Size</p>
-            <p className="font-medium text-foreground">{(file.size / 1024).toFixed(2)} KB</p>
+            <p className="font-medium text-foreground">{formatBytes(file.size)}</p>
           </div>
         </div>
 

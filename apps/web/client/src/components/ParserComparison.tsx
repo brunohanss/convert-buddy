@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import formatBytes from "@/lib/formatBytes";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 interface Parser {
@@ -79,7 +80,7 @@ export default function ParserComparison({ results, mode, loading }: ParserCompa
           </div>
           <div>
             <p className="text-sm text-muted-foreground">File Size</p>
-            <p className="text-lg font-semibold text-foreground">{(results.fileSize / 1024).toFixed(2)} KB</p>
+            <p className="text-lg font-semibold text-foreground">{formatBytes(results.fileSize)}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Fastest Parser</p>
