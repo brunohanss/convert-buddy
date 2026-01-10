@@ -56,7 +56,7 @@ pub fn detect_csv(sample: &[u8]) -> Option<CsvDetection> {
 
     let sample = strip_bom(sample);
     let line = first_non_empty_line(sample)?;
-    let delimiter = detect_delimiter(line);
+    let delimiter = detect_delimiter(sample);
     let fields = split_csv_fields(line, delimiter)
         .into_iter()
         .map(|field| String::from_utf8_lossy(&field).to_string())
@@ -238,7 +238,7 @@ fn looks_like_csv(sample: &[u8]) -> bool {
         None => return false,
     };
 
-    let delimiter = detect_delimiter(line);
+    let delimiter = detect_delimiter(sample);
     let field_count = count_fields(line, delimiter);
     field_count >= 2
 }
@@ -262,17 +262,63 @@ fn trim_line(line: &[u8]) -> &[u8] {
     trim_ascii(line)
 }
 
-fn detect_delimiter(line: &[u8]) -> u8 {
-    let mut best = (b',', 0usize);
-
-    for &candidate in CSV_DELIMITERS {
-        let count = count_delimiters(line, candidate);
-        if count > best.1 {
-            best = (candidate, count);
+fn detect_delimiter(sample: &[u8]) -> u8 {
+    // Analyze multiple lines to detect the most likely delimiter
+    let mut delimiter_scores: std::collections::HashMap<u8, (usize, usize, usize)> = 
+        std::collections::HashMap::new();
+    
+    // Initialize scores for all candidates
+    for &delim in CSV_DELIMITERS {
+        delimiter_scores.insert(delim, (0, 0, 0)); // (total_count, line_count, field_consistency)
+    }
+    
+    // Analyze the first few lines (up to 10)
+    let mut line_count = 0;
+    for line in sample.split(|&b| b == b'\n').take(10) {
+        let line = trim_line(line);
+        if line.is_empty() {
+            continue;
+        }
+        
+        line_count += 1;
+        
+        for &candidate in CSV_DELIMITERS {
+            let count = count_delimiters(line, candidate);
+            if let Some(entry) = delimiter_scores.get_mut(&candidate) {
+                entry.0 += count;
+                if count > 0 {
+                    entry.1 += 1;
+                }
+            }
         }
     }
-
-    if best.1 == 0 {
+    
+    if line_count == 0 {
+        return b',';
+    }
+    
+    // Score each delimiter based on:
+    // 1. Whether it appears in most lines (consistency)
+    // 2. The total count of delimiters
+    let mut best = (b',', 0.0);
+    
+    for &candidate in CSV_DELIMITERS {
+        if let Some((total_count, lines_with_delim, _)) = delimiter_scores.get(&candidate) {
+            if *total_count == 0 {
+                continue;
+            }
+            
+            // Score: appears in many lines AND has high total count
+            let consistency = *lines_with_delim as f64 / line_count as f64;
+            let score = consistency * (*total_count as f64);
+            
+            if score > best.1 {
+                best = (candidate, score);
+            }
+        }
+    }
+    
+    if best.1 == 0.0 {
         b','
     } else {
         best.0
@@ -664,4 +710,55 @@ mod tests {
         let detection = detect_xml(sample).unwrap();
         assert_eq!(detection.record_element, Some("row".to_string()));
     }
-}
+
+    #[test]
+    fn detect_pipe_delimited_with_trailing_commas() {
+        // Pipe-delimited format with trailing empty comma-separated fields
+        // This tests that consistent pipe delimiters are detected correctly
+        let sample = b"col_a|col_b|col_c|col_d|col_e\n001|value1|description1|category1|type1\n002|value2|description2|category2|type2\n,,,,,,,,";
+        let detection = detect_csv(sample).unwrap();
+        assert_eq!(detection.delimiter, b'|');
+        assert_eq!(detection.fields.len(), 5);
+        assert_eq!(detection.fields[0], "col_a");
+        assert_eq!(detection.fields[4], "col_e");
+    }
+
+    #[test]
+    fn detect_pipe_delimited_complex_header() {
+        // Pipe-delimited CSV with multiple columns
+        let sample = b"col_id|col_name|col_desc|col_category|col_type|col_url|col_price|col_discount\n001|product_a|content_a|category_a|type_a|http://example.com|100.00|80.00\n002|product_b|content_b|category_b|type_b|http://example.com|200.00|150.00\n";
+        let detection = detect_csv(sample).unwrap();
+        assert_eq!(detection.delimiter, b'|');
+        assert_eq!(detection.fields.len(), 8);
+        assert_eq!(detection.fields[0], "col_id");
+        assert_eq!(detection.fields[7], "col_discount");
+    }
+
+    #[test]
+    fn detect_pipe_preferred_over_comma_when_close() {
+        // When pipes appear in multiple lines consistently, prefer pipes
+        // even if comma count is higher in a single line
+        let sample = b"a|b|c\n1|2|3\n4|5|6\n7|8|9\n,,,\n";
+        let detection = detect_csv(sample).unwrap();
+        // Pipes should be detected since they're consistent across most lines
+        assert_eq!(detection.delimiter, b'|');
+        assert_eq!(detection.fields.len(), 3);
+    }
+
+    #[test]
+    fn detect_comma_vs_pipe_more_pipes() {
+        // When one delimiter clearly dominates, it should be chosen
+        let sample = b"a|b|c|d|e\n1|2|3|4|5\n";
+        let detection = detect_csv(sample).unwrap();
+        assert_eq!(detection.delimiter, b'|');
+        assert_eq!(detection.fields.len(), 5);
+    }
+
+    #[test]
+    fn detect_comma_vs_pipe_more_commas() {
+        // Commas are still chosen when they're more frequent
+        let sample = b"a,b,c,d,e,f\n1,2,3,4,5,6\n";
+        let detection = detect_csv(sample).unwrap();
+        assert_eq!(detection.delimiter, b',');
+        assert_eq!(detection.fields.len(), 6);
+    }}
