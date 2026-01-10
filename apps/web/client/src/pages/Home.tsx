@@ -18,14 +18,14 @@ import { convert, convertToString, detectCsvFieldsAndDelimiter, detectXmlElement
  * - Poppins (display) + Inter (body) typography
  */
 
-// Maximum file size for non-streaming operations (10 MB)
-const MAX_NON_STREAMING_SIZE = 10 * 1024 * 1024;
+// Maximum file size for non-streaming operations (50 MB)
+const MAX_NON_STREAMING_SIZE = 50 * 1024 * 1024;
 const PREVIEW_BYTES = 5000;
 const OUTPUT_FORMATS: Format[] = ["csv", "ndjson", "json", "xml"];
 
 export default function Home() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [mode, setMode] = useState<"upload" | "check" | "stream">("upload");
+  const [mode, setMode] = useState<"upload" | "check" | "stream" | "benchmark">("upload");
   const [checkResult, setCheckResult] = useState<{
     format: string;
     fileSize: number;
@@ -39,7 +39,6 @@ export default function Home() {
   const [outputFormat, setOutputFormat] = useState<Format>("ndjson");
   const [checkError, setCheckError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [showBenchmark, setShowBenchmark] = useState(false);
   const isBusy = loading || isDownloading;
   const isFileTooLarge = uploadedFile ? uploadedFile.size > MAX_NON_STREAMING_SIZE : false;
 
@@ -158,7 +157,6 @@ Inception,Thriller,2010,Leonardo DiCaprio,Cobb,Joseph Gordon-Levitt,Arthur`;
     }
 
     setIsDownloading(true);
-    setShowBenchmark(true);
     try {
       // Read the file as ArrayBuffer
       const arrayBuffer = await uploadedFile.arrayBuffer();
@@ -375,14 +373,26 @@ Inception,Thriller,2010,Leonardo DiCaprio,Cobb,Joseph Gordon-Levitt,Arthur`;
                     <Flame className="w-4 h-4 mr-2" />
                     Stream Process
                   </Button>
+                  <Button
+                    onClick={() => setMode("benchmark")}
+                    disabled={isBusy}
+                    className={`${
+                      mode === "benchmark" 
+                        ? "bg-orange-500 text-orange-foreground" 
+                        : "bg-secondary text-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    <Flame className="w-4 h-4 mr-2" />
+                    Benchmark
+                  </Button>
                 </div>
                 {isFileTooLarge ? (
                   <p className="mt-4 text-xs text-amber-600 dark:text-amber-500 font-medium">
-                    ⚠️ File is larger than {(MAX_NON_STREAMING_SIZE / (1024 * 1024)).toFixed(0)} MB. We only sample the file for format detection. Use Stream Process for full conversion.
+                    ⚠️ File is larger than {(MAX_NON_STREAMING_SIZE / (1024 * 1024)).toFixed(0)} MB. We only sample the file for format detection. Benchmarking will use streaming mode.
                   </p>
                 ) : (
                   <p className="mt-4 text-xs text-muted-foreground">
-                    Working with large files? Use Stream Process to avoid browser memory limits.
+                    Files up to {(MAX_NON_STREAMING_SIZE / (1024 * 1024)).toFixed(0)} MB use direct processing. Larger files use streaming.
                   </p>
                 )}
               </div>
@@ -490,12 +500,21 @@ Inception,Thriller,2010,Leonardo DiCaprio,Cobb,Joseph Gordon-Levitt,Arthur`;
               )}
 
               {/* Live Benchmark Section */}
-              {mode === "check" && uploadedFile && (
-                <LiveBenchmarkSection
-                  file={uploadedFile}
-                  outputFormat={outputFormat}
-                  isProcessing={isDownloading}
-                />
+              {mode === "benchmark" && uploadedFile && (
+                <div className="space-y-4">
+                  {uploadedFile.size > MAX_NON_STREAMING_SIZE && (
+                    <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <p className="text-sm text-blue-800 dark:text-blue-300">
+                        📊 File size exceeds {(MAX_NON_STREAMING_SIZE / (1024 * 1024)).toFixed(0)} MB - Using <strong>Streaming Benchmark</strong> mode for accurate performance metrics
+                      </p>
+                    </div>
+                  )}
+                  <LiveBenchmarkSection
+                    file={uploadedFile}
+                    outputFormat={outputFormat}
+                    isProcessing={true}
+                  />
+                </div>
               )}
 
               {/* Streaming Processor */}

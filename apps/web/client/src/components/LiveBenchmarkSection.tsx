@@ -3,6 +3,254 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { AlertCircle, Activity, Zap } from "lucide-react";
 import { detectFormat, type Format } from "convert-buddy-js";
+import ParserDetailsCollapsible from "./ParserDetailsCollapsible";
+import StreamingBenchmark from "./StreamingBenchmark";
+
+interface CompetitorBenchmark {
+  name: string;
+  throughputMbPerSec: number;
+  latencyMs: number;
+  outputPreview?: string;
+  error?: string;
+}
+
+// Benchmark csv-parse
+async function benchmarkCsvParse(fileBytes: Uint8Array): Promise<CompetitorBenchmark> {
+  try {
+    // Dynamically import csv-parse
+    const csvParse = await import("csv-parse/sync");
+    const parse = csvParse.parse;
+    
+    const startTime = performance.now();
+    const text = new TextDecoder().decode(fileBytes);
+    const records = parse(text, { columns: true, skip_empty_lines: true });
+    const latencyMs = performance.now() - startTime;
+    const fileSizeMb = fileBytes.length / (1024 * 1024);
+    const throughputMbPerSec = fileSizeMb / (latencyMs / 1000);
+
+    // Generate output preview - show first few records as JSON
+    let outputPreview = "";
+    if (records && records.length > 0) {
+      // Show first 3 records as JSON for preview
+      const previewRecords = records.slice(0, 3);
+      outputPreview = JSON.stringify(previewRecords, null, 2);
+      // Limit to first 500 characters
+      if (outputPreview.length > 500) {
+        outputPreview = outputPreview.substring(0, 500) + "\n...";
+      }
+    }
+
+    return {
+      name: "csv-parse",
+      throughputMbPerSec,
+      latencyMs,
+      outputPreview,
+    };
+  } catch (error) {
+    console.error("csv-parse benchmark error:", error);
+    return {
+      name: "csv-parse",
+      throughputMbPerSec: 0,
+      latencyMs: 0,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+// Benchmark Papa Parse
+async function benchmarkPapaparse(fileBytes: Uint8Array): Promise<CompetitorBenchmark> {
+  try {
+    // Dynamically import Papa Parse
+    const Papa = await import("papaparse");
+    
+    const text = new TextDecoder().decode(fileBytes);
+    const fileSizeMb = fileBytes.length / (1024 * 1024);
+    
+    let records: any[] = [];
+    let latencyMs = 0;
+
+    // Use a promise wrapper to measure Papa Parse performance
+    await new Promise<void>((resolve) => {
+      const startTime = performance.now();
+      
+      Papa.default.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results: any) => {
+          latencyMs = performance.now() - startTime;
+          records = results.data || [];
+          resolve();
+        },
+        error: () => {
+          latencyMs = performance.now() - startTime;
+          resolve();
+        },
+      });
+    });
+
+    const throughputMbPerSec = fileSizeMb / (latencyMs / 1000);
+
+    // Generate output preview - show first few records as JSON
+    let outputPreview = "";
+    if (records && records.length > 0) {
+      // Show first 3 records as JSON for preview
+      const previewRecords = records.slice(0, 3);
+      outputPreview = JSON.stringify(previewRecords, null, 2);
+      // Limit to first 500 characters
+      if (outputPreview.length > 500) {
+        outputPreview = outputPreview.substring(0, 500) + "\n...";
+      }
+    }
+
+    return {
+      name: "Papa Parse",
+      throughputMbPerSec,
+      latencyMs,
+      outputPreview,
+    };
+  } catch (error) {
+    console.error("Papa Parse benchmark error:", error);
+    return {
+      name: "Papa Parse",
+      throughputMbPerSec: 0,
+      latencyMs: 0,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+// Helper function to generate code snippets
+function getConvertBuddyCode(inputFormat: string, outputFormat: string): string {
+  return `import { convert } from 'convert-buddy-js';
+
+// Read file
+const file = new File([...], 'data.${inputFormat}');
+const arrayBuffer = await file.arrayBuffer();
+const bytes = new Uint8Array(arrayBuffer);
+
+// Convert the file
+const result = await convert(bytes, {
+  inputFormat: '${inputFormat}',
+  outputFormat: '${outputFormat}',
+});
+
+// The result is a Uint8Array containing the converted data`;
+}
+
+function getParsersForFormat(
+  format: string
+): Array<{ name: string; code: string; note?: string }> {
+  const parsersMap: Record<string, Array<{ name: string; code: string; note?: string }>> = {
+    csv: [
+      {
+        name: "PapaParse",
+        code: `import Papa from 'papaparse';
+
+const file = new File([...], 'data.csv');
+Papa.parse(file, {
+  header: true,
+  skipEmptyLines: true,
+  complete: (results) => {
+    console.log(results.data);
+  },
+});`,
+        note: "Widely used CSV parser with streaming support"
+      },
+      {
+        name: "csv-parse",
+        code: `import { parse } from 'csv-parse/sync';
+
+const csvText = await file.text();
+const records = parse(csvText, {
+  columns: true,
+  skip_empty_lines: true,
+});
+
+console.log(records);`,
+        note: "Streaming and callback-based CSV parser"
+      },
+      {
+        name: "fast-csv",
+        code: `import { parse } from 'fast-csv';
+
+const stream = fs.createReadStream('data.csv');
+parse({ headers: true })
+  .on('data', (row) => console.log(row))
+  .on('error', (error) => console.error(error))
+  .pipe(stream);`,
+        note: "Fast CSV parser with streaming"
+      },
+    ],
+    xml: [
+      {
+        name: "fast-xml-parser",
+        code: `import { XMLParser } from 'fast-xml-parser';
+
+const xmlText = await file.text();
+const parser = new XMLParser();
+const result = parser.parse(xmlText);
+
+console.log(result);`,
+        note: "Lightweight and fast XML parser"
+      },
+      {
+        name: "xml2js",
+        code: `import { parseString } from 'xml2js';
+
+const xmlText = await file.text();
+parseString(xmlText, (err, result) => {
+  if (!err) {
+    console.log(result);
+  }
+});`,
+        note: "Classic XML parser with callback-based API"
+      },
+    ],
+    json: [
+      {
+        name: "Native JSON",
+        code: `// For streaming NDJSON
+const text = await file.text();
+const lines = text.split('\\n');
+const records = lines
+  .filter(line => line.trim())
+  .map(line => JSON.parse(line));
+
+console.log(records);`,
+        note: "Using native JSON parsing"
+      },
+    ],
+    ndjson: [
+      {
+        name: "ndjson Parser",
+        code: `const text = await file.text();
+const records = text
+  .split('\\n')
+  .filter(line => line.trim())
+  .map(line => JSON.parse(line));
+
+console.log(records);`,
+        note: "Simple line-by-line JSON parsing"
+      },
+    ],
+  };
+
+  return parsersMap[format] || [];
+}
+
+function getOutputPreview(result: Uint8Array, format: string): string {
+  try {
+    const text = new TextDecoder().decode(result.slice(0, 500));
+    
+    // Limit preview to first 500 characters and ensure it's valid
+    if (text.length > 0) {
+      return text.length < 500 ? text : text.substring(0, 500) + "...";
+    }
+    return "[Unable to preview output]";
+  } catch {
+    return "[Unable to preview output]";
+  }
+}
 
 interface BenchmarkMetrics {
   throughputMbps: number;
@@ -20,6 +268,10 @@ interface LiveBenchmarkSectionProps {
   isProcessing: boolean;
 }
 
+// Constants for streaming
+const STREAMING_THRESHOLD = 50 * 1024 * 1024; // 50 MB
+const STREAM_CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB chunks
+
 export default function LiveBenchmarkSection({
   file,
   outputFormat,
@@ -27,17 +279,28 @@ export default function LiveBenchmarkSection({
 }: LiveBenchmarkSectionProps) {
   const [metrics, setMetrics] = useState<BenchmarkMetrics | null>(null);
   const [progress, setProgress] = useState(0);
+  const [detectedFormat, setDetectedFormat] = useState<Format | null>(null);
+  const [conversionResult, setConversionResult] = useState<Uint8Array | null>(null);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [competitorResults, setCompetitorResults] = useState<CompetitorBenchmark[]>([]);
 
   useEffect(() => {
-    if (!isProcessing || !file) {
+    // Auto-start benchmark when component is rendered
+    if (!hasStarted && file) {
+      setHasStarted(true);
+    }
+  }, [file, hasStarted]);
+
+  useEffect(() => {
+    if (!hasStarted || !file) {
       return;
     }
 
     const runBenchmark = async () => {
       try {
         setProgress(0);
-        const startTime = performance.now();
         const initialMemory = (performance as any).memory?.usedJSHeapSize || 0;
+        const isLargeFile = file.size > STREAMING_THRESHOLD;
 
         // Read file
         setProgress(10);
@@ -47,7 +310,8 @@ export default function LiveBenchmarkSection({
 
         // Detect format
         setProgress(30);
-        const detectedFormat = await detectFormat(file.stream());
+        const detectedFmt = await detectFormat(file.stream());
+        setDetectedFormat(detectedFmt as Format);
 
         // Convert to target format
         setProgress(50);
@@ -56,15 +320,43 @@ export default function LiveBenchmarkSection({
         const startConvert = performance.now();
         const convertOptions: any = {
           outputFormat,
-          inputFormat: detectedFormat as Format,
+          inputFormat: detectedFmt as Format,
         };
 
-        const result = await convert(fileBytes, convertOptions);
+        let result: Uint8Array;
+
+        if (isLargeFile) {
+          // Streaming mode for large files
+          const chunks: Uint8Array[] = [];
+          for (let i = 0; i < fileBytes.length; i += STREAM_CHUNK_SIZE) {
+            const chunk = fileBytes.slice(i, i + STREAM_CHUNK_SIZE);
+            const chunkResult = await convert(chunk, convertOptions);
+            chunks.push(chunkResult);
+            
+            // Update progress during streaming
+            const progressPercent = 50 + ((i / fileBytes.length) * 30);
+            setProgress(Math.min(progressPercent, 80));
+          }
+          
+          // Combine chunks
+          const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+          result = new Uint8Array(totalLength);
+          let offset = 0;
+          for (const chunk of chunks) {
+            result.set(chunk, offset);
+            offset += chunk.length;
+          }
+        } else {
+          // Direct mode for small files
+          result = await convert(fileBytes, convertOptions);
+        }
+
         const endConvert = performance.now();
+
+        setConversionResult(result);
 
         setProgress(80);
         const finalMemory = (performance as any).memory?.usedJSHeapSize || 0;
-
         const totalTime = (endConvert - startConvert) / 1000; // seconds
         const throughputMbps = fileSizeMb / totalTime;
         const latencyMs = endConvert - startConvert;
@@ -83,6 +375,19 @@ export default function LiveBenchmarkSection({
           isComplete: true,
         });
 
+        // Benchmark competitors for CSV files
+        if (detectedFmt === "csv") {
+          const [csvParseResult, papaparseResult] = await Promise.all([
+            benchmarkCsvParse(fileBytes),
+            benchmarkPapaparse(fileBytes),
+          ]);
+          // Only include successfully measured results (no errors)
+          const successfulResults = [csvParseResult, papaparseResult].filter(
+            (result) => !result.error && result.throughputMbPerSec > 0
+          );
+          setCompetitorResults(successfulResults);
+        }
+
         setProgress(100);
       } catch (error) {
         console.error("Benchmark error:", error);
@@ -92,18 +397,26 @@ export default function LiveBenchmarkSection({
           error: error instanceof Error ? error.message : "Unknown error",
         } as BenchmarkMetrics));
         setProgress(100);
+      } finally {
+        // Benchmark complete, no need for callbacks
       }
     };
 
     void runBenchmark();
-  }, [isProcessing, file, outputFormat]);
+  }, [hasStarted, file, outputFormat]);
 
-  if (!isProcessing && !metrics) {
+  if (!hasStarted && !metrics) {
     return null;
   }
 
+  // Use streaming benchmark for large files (> 50 MB)
+  const isLargeFile = file.size > STREAMING_THRESHOLD;
+  if (isLargeFile) {
+    return <StreamingBenchmark file={file} outputFormat={outputFormat} isProcessing={hasStarted} />;
+  }
+
   return (
-    <div className="mt-8">
+    <div className="mt-8 space-y-8">
       <Card className="p-6 bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
         <div className="flex items-center gap-3 mb-6">
           <Activity className="w-5 h-5 text-accent animate-pulse" />
@@ -161,9 +474,9 @@ export default function LiveBenchmarkSection({
                 {/* Performance comparison bar */}
                 <div className="pt-4 border-t border-border">
                   <p className="text-sm text-muted-foreground mb-3">
-                    Estimated Performance vs Common Libraries
+                    Performance Comparison
                   </p>
-                  <PerformanceComparison throughput={metrics.throughputMbps} />
+                  <PerformanceComparison throughput={metrics.throughputMbps} competitors={competitorResults} />
                 </div>
 
                 {/* Success message */}
@@ -180,6 +493,74 @@ export default function LiveBenchmarkSection({
           </div>
         )}
       </Card>
+
+      {/* Parser Details Section */}
+      {metrics && !metrics.error && detectedFormat && conversionResult && (
+        <div className="space-y-6">
+          {/* Convert Buddy Parser Details */}
+          <Card className="p-6 border border-border">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Convert Buddy</h3>
+            <ParserDetailsCollapsible
+              parserName="Convert Buddy"
+              codeSnippet={getConvertBuddyCode(detectedFormat, outputFormat)}
+              outputPreview={getOutputPreview(conversionResult, outputFormat)}
+              outputFormat={outputFormat}
+            />
+          </Card>
+
+          {/* Benchmarked Competitors */}
+          {competitorResults.map((competitor) => (
+            <Card key={competitor.name} className="p-6 border border-border opacity-75">
+              <h3 className="text-lg font-semibold text-foreground mb-2">{competitor.name}</h3>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs text-muted-foreground">
+                  {competitor.error ? (
+                    <span className="text-destructive">Error: {competitor.error}</span>
+                  ) : (
+                    <>
+                      {competitor.throughputMbPerSec.toFixed(1)} MB/s •{" "}
+                      {competitor.latencyMs.toFixed(0)} ms
+                    </>
+                  )}
+                </p>
+              </div>
+              {competitor.outputPreview && (
+                <div className="bg-slate-50 dark:bg-slate-900/30 rounded p-3 mb-4 border border-border/50">
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Sample output from {competitor.name}
+                  </p>
+                  <pre className="text-xs overflow-auto max-h-40 text-foreground whitespace-pre-wrap break-words">
+                    {competitor.outputPreview}
+                  </pre>
+                </div>
+              )}
+            </Card>
+          ))}
+
+          {/* Other Parsers - Code examples only */}
+          {getParsersForFormat(detectedFormat)
+            .filter(
+              (parser) =>
+                !competitorResults.some((c) => c.name === parser.name)
+            )
+            .map((parser) => (
+              <Card key={parser.name} className="p-6 border border-border opacity-75">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {parser.name}
+                </h3>
+                <p className="text-xs text-muted-foreground mb-4">
+                  {parser.note || "Parser information"}
+                </p>
+                <ParserDetailsCollapsible
+                  parserName={parser.name}
+                  codeSnippet={parser.code}
+                  outputPreview=""
+                  outputFormat={outputFormat}
+                />
+              </Card>
+            ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -206,18 +587,15 @@ function MetricCard({ label, value, unit, icon }: MetricCardProps) {
 
 interface PerformanceComparisonProps {
   throughput: number;
+  competitors?: CompetitorBenchmark[];
 }
 
-function PerformanceComparison({ throughput }: PerformanceComparisonProps) {
-  // Average throughput of common competitors
-  const competitors = [
-    { name: "PapaParse", avg: 6.8 },
-    { name: "csv-parse", avg: 11.5 },
-    { name: "fast-csv", avg: 8.3 },
-    { name: "fast-xml-parser", avg: 12.2 },
-  ];
-
-  const maxThroughput = Math.max(throughput, ...competitors.map((c) => c.avg));
+function PerformanceComparison({ throughput, competitors = [] }: PerformanceComparisonProps) {
+  // Use real measured competitors or show fallback message
+  const maxThroughput = Math.max(
+    throughput,
+    ...competitors.map((c) => c.throughputMbPerSec)
+  );
 
   return (
     <div className="space-y-2">
@@ -235,23 +613,35 @@ function PerformanceComparison({ throughput }: PerformanceComparisonProps) {
         </div>
       </div>
 
-      {/* Competitors (estimated) */}
-      <div className="space-y-2 mt-4">
-        {competitors.map((competitor) => (
-          <div key={competitor.name} className="space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground text-xs">{competitor.name}</span>
-              <span className="text-muted-foreground text-xs">{competitor.avg.toFixed(1)} MB/s</span>
+      {/* Measured Competitors */}
+      {competitors.length > 0 ? (
+        <div className="space-y-2 mt-4">
+          {competitors.map((competitor) => (
+            <div key={competitor.name} className="space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground text-xs">{competitor.name}</span>
+                <span className="text-muted-foreground text-xs font-medium">
+                  {competitor.error
+                    ? "Error"
+                    : `${competitor.throughputMbPerSec.toFixed(1)} MB/s`}
+                </span>
+              </div>
+              <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-secondary-foreground/40 transition-all duration-500"
+                  style={{
+                    width: `${(competitor.throughputMbPerSec / maxThroughput) * 100}%`,
+                  }}
+                />
+              </div>
             </div>
-            <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
-              <div
-                className="h-full bg-secondary-foreground/40 transition-all duration-500"
-                style={{ width: `${(competitor.avg / maxThroughput) * 100}%` }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground mt-2">
+          Competitor benchmarks available for CSV files
+        </p>
+      )}
     </div>
   );
 }
