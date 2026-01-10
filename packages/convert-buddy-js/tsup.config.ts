@@ -1,7 +1,7 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/index.ts", "src/node.ts", "src/smoke-test.ts", "bench/runner.ts", "bench/runner-with-competitors.ts", "bench/datasets.ts"],
+  entry: ["src/index.ts", "src/node.ts", "src/smoke-test.ts", "bench/runner.ts", "bench/runner-with-competitors.ts", "bench/datasets.ts", "bench/multi-thread.ts", "bench/single-thread.ts", "bench/compare-threads.ts"],
   format: ["esm"],
   dts: true,
   sourcemap: true,

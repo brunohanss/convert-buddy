@@ -1,0 +1,147 @@
+{
+  "timestamp": "2026-01-10T13:05:12.711Z",
+  "singleThreadEnv": {
+    "uvThreadpoolSize": "1",
+    "nodeVersion": "v22.12.0",
+    "platform": "win32",
+    "arch": "x64",
+    "cpuCores": 20
+  },
+  "multiThreadEnv": {
+    "uvThreadpoolSize": "4",
+    "nodeVersion": "v22.12.0",
+    "platform": "win32",
+    "arch": "x64",
+    "cpuCores": 20
+  },
+  "comparisons": [
+    {
+      "name": "CSV→NDJSON (tiny)",
+      "size": "small",
+      "singleThreadThroughput": "0.58",
+      "multiThreadThroughput": "0.39",
+      "speedup": "0.67x",
+      "singleThreadLatency": "9.83",
+      "multiThreadLatency": "14.73",
+      "latencyImprovement": "-49.8%",
+      "memoryChange": "-19680.8%"
+    },
+    {
+      "name": "CSV→NDJSON (small)",
+      "size": "medium",
+      "singleThreadThroughput": "30.67",
+      "multiThreadThroughput": "27.11",
+      "speedup": "0.88x",
+      "singleThreadLatency": "3.79",
+      "multiThreadLatency": "4.29",
+      "latencyImprovement": "-13.2%",
+      "memoryChange": "0.0%"
+    },
+    {
+      "name": "CSV→NDJSON (medium)",
+      "size": "medium",
+      "singleThreadThroughput": "66.80",
+      "multiThreadThroughput": "49.57",
+      "speedup": "0.74x",
+      "singleThreadLatency": "18.81",
+      "multiThreadLatency": "25.35",
+      "latencyImprovement": "-34.8%",
+      "memoryChange": "-1368450.0%"
+    },
+    {
+      "name": "CSV→NDJSON (large)",
+      "size": "large",
+      "singleThreadThroughput": "69.87",
+      "multiThreadThroughput": "93.04",
+      "speedup": "1.33x",
+      "singleThreadLatency": "193.50",
+      "multiThreadLatency": "145.32",
+      "latencyImprovement": "24.9%",
+      "memoryChange": "-98.7%"
+    },
+    {
+      "name": "NDJSON→JSON (tiny)",
+      "size": "small",
+      "singleThreadThroughput": "15.44",
+      "multiThreadThroughput": "14.03",
+      "speedup": "0.91x",
+      "singleThreadLatency": "0.72",
+      "multiThreadLatency": "0.80",
+      "latencyImprovement": "-11.1%",
+      "memoryChange": "+50.0%"
+    },
+    {
+      "name": "NDJSON→JSON (small)",
+      "size": "medium",
+      "singleThreadThroughput": "246.89",
+      "multiThreadThroughput": "215.33",
+      "speedup": "0.87x",
+      "singleThreadLatency": "0.92",
+      "multiThreadLatency": "1.06",
+      "latencyImprovement": "-15.2%",
+      "memoryChange": "-60.0%"
+    },
+    {
+      "name": "NDJSON→JSON (medium)",
+      "size": "medium",
+      "singleThreadThroughput": "546.24",
+      "multiThreadThroughput": "747.35",
+      "speedup": "1.37x",
+      "singleThreadLatency": "4.28",
+      "multiThreadLatency": "3.13",
+      "latencyImprovement": "26.9%",
+      "memoryChange": "-60.0%"
+    },
+    {
+      "name": "NDJSON→JSON (large)",
+      "size": "large",
+      "singleThreadThroughput": "854.83",
+      "multiThreadThroughput": "1060.40",
+      "speedup": "1.24x",
+      "singleThreadLatency": "28.03",
+      "multiThreadLatency": "22.60",
+      "latencyImprovement": "19.4%",
+      "memoryChange": "+54.3%"
+    },
+    {
+      "name": "XML→NDJSON (tiny)",
+      "size": "small",
+      "singleThreadThroughput": "3.25",
+      "multiThreadThroughput": "6.16",
+      "speedup": "1.90x",
+      "singleThreadLatency": "5.90",
+      "multiThreadLatency": "3.11",
+      "latencyImprovement": "47.3%",
+      "memoryChange": "+50.0%"
+    },
+    {
+      "name": "XML→NDJSON (small)",
+      "size": "medium",
+      "singleThreadThroughput": "24.17",
+      "multiThreadThroughput": "41.06",
+      "speedup": "1.70x",
+      "singleThreadLatency": "15.03",
+      "multiThreadLatency": "8.85",
+      "latencyImprovement": "41.1%",
+      "memoryChange": "0.0%"
+    },
+    {
+      "name": "XML→NDJSON (medium)",
+      "size": "medium",
+      "singleThreadThroughput": "40.56",
+      "multiThreadThroughput": "59.83",
+      "speedup": "1.48x",
+      "singleThreadLatency": "92.12",
+      "multiThreadLatency": "62.45",
+      "latencyImprovement": "32.2%",
+      "memoryChange": "0.0%"
+    }
+  ],
+  "summary": {
+    "avgSpeedup": 1.19,
+    "maxSpeedup": 1.9,
+    "minSpeedup": 0.67,
+    "efficiency": 29.75,
+    "theoreticalMaxSpeedup": 4
+  }
+}

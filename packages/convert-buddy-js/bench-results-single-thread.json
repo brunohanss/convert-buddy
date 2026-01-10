@@ -1,0 +1,167 @@
+{
+  "timestamp": "2026-01-10T13:00:55.151Z",
+  "threadMode": "single-thread",
+  "environment": {
+    "uvThreadpoolSize": "1",
+    "nodeVersion": "v22.12.0",
+    "platform": "win32",
+    "arch": "x64",
+    "cpuCores": 20
+  },
+  "results": [
+    {
+      "name": "CSV→NDJSON (tiny)",
+      "threadMode": "single-thread",
+      "dataset": "0.01 MB",
+      "size": "small",
+      "throughputMbps": 0.58,
+      "latencyMs": 9.83,
+      "memoryMb": 0.26,
+      "recordsPerSec": 10172,
+      "cpuTime": 0
+    },
+    {
+      "name": "CSV→NDJSON (small)",
+      "threadMode": "single-thread",
+      "dataset": "0.12 MB",
+      "size": "medium",
+      "throughputMbps": 30.67,
+      "latencyMs": 3.79,
+      "memoryMb": 0.02,
+      "recordsPerSec": 263922,
+      "cpuTime": 47
+    },
+    {
+      "name": "CSV→NDJSON (medium)",
+      "threadMode": "single-thread",
+      "dataset": "1.26 MB",
+      "size": "medium",
+      "throughputMbps": 66.8,
+      "latencyMs": 18.81,
+      "memoryMb": 0.02,
+      "recordsPerSec": 531564,
+      "cpuTime": 15
+    },
+    {
+      "name": "CSV→NDJSON (large)",
+      "threadMode": "single-thread",
+      "dataset": "13.52 MB",
+      "size": "large",
+      "throughputMbps": 69.87,
+      "latencyMs": 193.5,
+      "memoryMb": -59.3,
+      "recordsPerSec": 516799,
+      "cpuTime": 266
+    },
+    {
+      "name": "CSV→NDJSON (streaming)",
+      "threadMode": "single-thread",
+      "dataset": "1.26 MB (streaming, 4KB chunks)",
+      "size": "medium",
+      "throughputMbps": 34.99,
+      "latencyMs": 35.92,
+      "memoryMb": -0.3,
+      "recordsPerSec": 278417,
+      "cpuTime": 31
+    },
+    {
+      "name": "CSV→NDJSON (streaming)",
+      "threadMode": "single-thread",
+      "dataset": "1.26 MB (streaming, 16KB chunks)",
+      "size": "medium",
+      "throughputMbps": 41.82,
+      "latencyMs": 30.05,
+      "memoryMb": -1.25,
+      "recordsPerSec": 332792,
+      "cpuTime": 47
+    },
+    {
+      "name": "NDJSON→JSON (tiny)",
+      "threadMode": "single-thread",
+      "dataset": "0.01 MB",
+      "size": "small",
+      "throughputMbps": 15.44,
+      "latencyMs": 0.72,
+      "memoryMb": 0.02,
+      "recordsPerSec": 0,
+      "cpuTime": 16
+    },
+    {
+      "name": "NDJSON→JSON (small)",
+      "threadMode": "single-thread",
+      "dataset": "0.23 MB",
+      "size": "medium",
+      "throughputMbps": 246.89,
+      "latencyMs": 0.92,
+      "memoryMb": 0.05,
+      "recordsPerSec": 0,
+      "cpuTime": 0
+    },
+    {
+      "name": "NDJSON→JSON (medium)",
+      "threadMode": "single-thread",
+      "dataset": "2.34 MB",
+      "size": "medium",
+      "throughputMbps": 546.24,
+      "latencyMs": 4.28,
+      "memoryMb": 0.05,
+      "recordsPerSec": 0,
+      "cpuTime": 0
+    },
+    {
+      "name": "NDJSON→JSON (large)",
+      "threadMode": "single-thread",
+      "dataset": "23.96 MB",
+      "size": "large",
+      "throughputMbps": 854.83,
+      "latencyMs": 28.03,
+      "memoryMb": -0.7,
+      "recordsPerSec": 0,
+      "cpuTime": 15
+    },
+    {
+      "name": "NDJSON→NDJSON (large)",
+      "threadMode": "single-thread",
+      "dataset": "23.96 MB",
+      "size": "large",
+      "throughputMbps": 89.9,
+      "latencyMs": 266.53,
+      "memoryMb": -0.78,
+      "recordsPerSec": 375199,
+      "cpuTime": 281
+    },
+    {
+      "name": "XML→NDJSON (tiny)",
+      "threadMode": "single-thread",
+      "dataset": "0.02 MB",
+      "size": "small",
+      "throughputMbps": 3.25,
+      "latencyMs": 5.9,
+      "memoryMb": 0.02,
+      "recordsPerSec": 16948,
+      "cpuTime": 0
+    },
+    {
+      "name": "XML→NDJSON (small)",
+      "threadMode": "single-thread",
+      "dataset": "0.36 MB",
+      "size": "medium",
+      "throughputMbps": 24.17,
+      "latencyMs": 15.03,
+      "memoryMb": 0.02,
+      "recordsPerSec": 66534,
+      "cpuTime": 31
+    },
+    {
+      "name": "XML→NDJSON (medium)",
+      "threadMode": "single-thread",
+      "dataset": "3.74 MB",
+      "size": "medium",
+      "throughputMbps": 40.56,
+      "latencyMs": 92.12,
+      "memoryMb": 0.02,
+      "recordsPerSec": 108556,
+      "cpuTime": 94
+    }
+  ]
+}

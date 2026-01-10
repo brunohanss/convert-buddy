@@ -1,6 +1,7 @@
 import { performance } from "node:perf_hooks";
 import { ConvertBuddy, convert } from "../src/index.js";
 import { createNodeTransform } from "../src/node.js";
+import { cpus } from "node:os";
 
 import { generateCsvDataset, generateNdjsonDataset, generateXmlDataset } from "./datasets.js";
 import * as fs from "node:fs";
@@ -190,8 +191,8 @@ async function runBenchmarks() {
   console.log("╚════════════════════════════════════════════════════════╝\n");
 
   // Verify multi-thread configuration
-  const cpuCount = require("os").cpus().length;
-  const threadPoolSize = process.env.UV_THREADPOOL_SIZE || "4";
+  const cpuCount = cpus().length;
+  const threadPoolSize = process.env.UV_THREADPOOL_SIZE || "10";
 
   console.log("Environment Configuration:");
   console.log(`  UV_THREADPOOL_SIZE: ${threadPoolSize}`);
@@ -312,7 +313,7 @@ async function runBenchmarks() {
       inputFormat: "csv",
       outputFormat: "ndjson",
       profile: true,
-    }, 4)
+    }, 10)
   );
 
   // ========== NDJSON Benchmarks ==========

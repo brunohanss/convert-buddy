@@ -1,6 +1,7 @@
 import { performance } from "node:perf_hooks";
 import { ConvertBuddy, convert } from "../src/index.js";
 import { createNodeTransform } from "../src/node.js";
+import { cpus } from "node:os";
 import { generateCsvDataset, generateNdjsonDataset, generateXmlDataset } from "./datasets.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -145,7 +146,7 @@ async function runBenchmarks() {
   console.log(`  Node.js Version: ${process.version}`);
   console.log(`  Platform: ${process.platform}`);
   console.log(`  Architecture: ${process.arch}`);
-  console.log(`  CPU Cores: ${require("os").cpus().length}`);
+  console.log(`  CPU Cores: ${cpus().length}`);
   console.log();
 
   if (process.env.UV_THREADPOOL_SIZE !== "1") {
@@ -332,7 +333,7 @@ async function runBenchmarks() {
           nodeVersion: process.version,
           platform: process.platform,
           arch: process.arch,
-          cpuCores: require("os").cpus().length,
+          cpuCores: cpus().length,
         },
         results,
       },

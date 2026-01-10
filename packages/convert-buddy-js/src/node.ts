@@ -1,8 +1,8 @@
 import type { Transform as NodeTransform } from "node:stream";
 
-import { ConvertBuddy, type ConvertBuddyOptions } from "./index";
+import { ConvertBuddy, type ConvertBuddyOptions } from "./index.js";
 
-export * from "./index";
+export * from "./index.js";
 
 // Node.js Transform Stream adapter
 async function loadNodeTransform(): Promise<typeof import("node:stream").Transform> {

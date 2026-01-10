@@ -6,6 +6,8 @@ import { Upload, Github, Flame, Zap, Download, Loader2 } from "lucide-react";
 import FileUploadZone from "@/components/FileUploadZone";
 import StreamingProcessor from "@/components/StreamingProcessor";
 import Footer from "@/components/Footer";
+import BenchmarkSection from "@/components/BenchmarkSection";
+import LiveBenchmarkSection from "@/components/LiveBenchmarkSection";
 import { convert, convertToString, detectCsvFieldsAndDelimiter, detectXmlElements, detectFormat, type Format } from "convert-buddy-js";
 
 /**
@@ -37,6 +39,7 @@ export default function Home() {
   const [outputFormat, setOutputFormat] = useState<Format>("ndjson");
   const [checkError, setCheckError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showBenchmark, setShowBenchmark] = useState(false);
   const isBusy = loading || isDownloading;
   const isFileTooLarge = uploadedFile ? uploadedFile.size > MAX_NON_STREAMING_SIZE : false;
 
@@ -155,6 +158,7 @@ Inception,Thriller,2010,Leonardo DiCaprio,Cobb,Joseph Gordon-Levitt,Arthur`;
     }
 
     setIsDownloading(true);
+    setShowBenchmark(true);
     try {
       // Read the file as ArrayBuffer
       const arrayBuffer = await uploadedFile.arrayBuffer();
@@ -485,6 +489,15 @@ Inception,Thriller,2010,Leonardo DiCaprio,Cobb,Joseph Gordon-Levitt,Arthur`;
                 </div>
               )}
 
+              {/* Live Benchmark Section */}
+              {mode === "check" && uploadedFile && (
+                <LiveBenchmarkSection
+                  file={uploadedFile}
+                  outputFormat={outputFormat}
+                  isProcessing={isDownloading}
+                />
+              )}
+
               {/* Streaming Processor */}
               {mode === "stream" && (
                 <StreamingProcessor 
@@ -500,6 +513,13 @@ Inception,Thriller,2010,Leonardo DiCaprio,Cobb,Joseph Gordon-Levitt,Arthur`;
               )}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Benchmark Section */}
+      <section className="px-4 py-16">
+        <div className="max-w-5xl mx-auto">
+          <BenchmarkSection />
         </div>
       </section>
 
