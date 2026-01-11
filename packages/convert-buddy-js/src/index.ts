@@ -30,10 +30,19 @@ export type ConvertBuddyOptions = {
   outputFormat?: Format;
   chunkTargetBytes?: number;
   parallelism?: number; // Node only - number of worker threads
+  maxMemoryMB?: number; // Memory limit for conversions (future use)
   csvConfig?: CsvConfig;
   xmlConfig?: XmlConfig;
   onProgress?: ProgressCallback;
   progressIntervalBytes?: number; // Trigger progress callback every N bytes (default: 1MB)
+};
+
+export type ConvertOptions = {
+  inputFormat?: Format | "auto";
+  outputFormat: Format;
+  csvConfig?: CsvConfig;
+  xmlConfig?: XmlConfig;
+  onProgress?: ProgressCallback;
 };
 
 export type CsvConfig = {
@@ -160,17 +169,324 @@ export class ConvertBuddy {
   private onProgress?: ProgressCallback;
   private progressIntervalBytes: number;
   private lastProgressBytes: number = 0;
+  private globalConfig: ConvertBuddyOptions;
+  private initialized: boolean = false;
   public simd: boolean;
 
-  private constructor(converter: any, debug: boolean, profile: boolean, simd: boolean, opts: ConvertBuddyOptions = {}) {
-    this.converter = converter;
-    this.debug = debug;
-    this.profile = profile;
-    this.simd = simd;
+  /**
+   * Create a new ConvertBuddy instance with global configuration.
+   * This is useful when you want to set memory limits, debug mode, or other global settings.
+   * 
+   * @example
+   * const buddy = new ConvertBuddy({ maxMemoryMB: 512, debug: true });
+   * const result = await buddy.convert(input, { outputFormat: "json" });
+   */
+  constructor(opts: ConvertBuddyOptions = {}) {
+    // Initialize basic properties
+    this.debug = !!opts.debug;
+    this.profile = !!opts.profile;
+    this.simd = false; // Will be set on first convert
+    this.globalConfig = opts;
+    this.progressIntervalBytes = opts.progressIntervalBytes || 1024 * 1024;
     this.onProgress = opts.onProgress;
-    this.progressIntervalBytes = opts.progressIntervalBytes || 1024 * 1024; // 1MB default
+    this.converter = null; // Will be initialized lazily
+    this.initialized = false;
   }
 
+  /**
+   * Convert input (string, Buffer, File, URL, etc.) to the desired output format.
+   * This is the main method for the new simplified API.
+   * 
+   * @example
+   * // Auto-detect everything
+   * const buddy = new ConvertBuddy();
+   * const result = await buddy.convert("https://example.com/data.csv", { outputFormat: "json" });
+   * 
+   * @example
+   * // With configuration
+   * const buddy = new ConvertBuddy({ maxMemoryMB: 512 });
+   * const result = await buddy.convert(file, { inputFormat: "csv", outputFormat: "json" });
+   */
+  async convert(
+    input: string | Uint8Array | File | Blob | ReadableStream<Uint8Array>,
+    opts: ConvertOptions
+  ): Promise<Uint8Array> {
+    // Merge global and local options
+    const mergedOpts: ConvertBuddyOptions = {
+      ...this.globalConfig,
+      ...opts,
+      inputFormat: opts.inputFormat || this.globalConfig.inputFormat || "auto",
+    };
+
+    // Detect input type and convert accordingly
+    if (typeof input === "string") {
+      // Could be URL or raw data
+      if (input.startsWith("http://") || input.startsWith("https://")) {
+        // Fetch from URL
+        return this.convertFromUrl(input, mergedOpts);
+      } else {
+        // Treat as raw data
+        return this.convertFromString(input, mergedOpts);
+      }
+    } else if (input instanceof Uint8Array) {
+      return this.convertFromBuffer(input, mergedOpts);
+    } else if (typeof File !== "undefined" && input instanceof File) {
+      return this.convertFromFile(input as File, mergedOpts);
+    } else if (typeof Blob !== "undefined" && input instanceof Blob) {
+      return this.convertFromBlob(input as Blob, mergedOpts);
+    } else if (typeof ReadableStream !== "undefined" && input instanceof ReadableStream) {
+      return this.convertFromStream(input, mergedOpts);
+    } else {
+      throw new Error("Unsupported input type");
+    }
+  }
+
+  private async convertFromUrl(url: string, opts: ConvertBuddyOptions): Promise<Uint8Array> {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
+    }
+    
+    const stream = response.body;
+    if (!stream) {
+      throw new Error("Response body is null");
+    }
+
+    return this.convertFromStream(stream, opts);
+  }
+
+  private async convertFromString(input: string, opts: ConvertBuddyOptions): Promise<Uint8Array> {
+    const inputBytes = new TextEncoder().encode(input);
+    return this.convertFromBuffer(inputBytes, opts);
+  }
+
+  private async convertFromBuffer(input: Uint8Array, opts: ConvertBuddyOptions): Promise<Uint8Array> {
+    // Handle auto-detection
+    let actualOpts = { ...opts };
+    
+    if (opts.inputFormat === "auto") {
+      const detected = await autoDetectConfig(input, { debug: opts.debug });
+      
+      if (detected.format !== "unknown") {
+        actualOpts.inputFormat = detected.format as Format;
+        
+        if (detected.csvConfig) {
+          actualOpts.csvConfig = opts.csvConfig ? { ...detected.csvConfig, ...opts.csvConfig } : detected.csvConfig;
+        }
+        
+        if (detected.xmlConfig) {
+          actualOpts.xmlConfig = opts.xmlConfig ? { ...detected.xmlConfig, ...opts.xmlConfig } : detected.xmlConfig;
+        }
+        
+        if (opts.debug) {
+          console.log("[convert-buddy] Auto-detected format:", detected.format);
+        }
+      } else {
+        throw new Error("Could not auto-detect input format. Please specify inputFormat explicitly.");
+      }
+    }
+
+    const buddy = await ConvertBuddy.create(actualOpts);
+    const output = buddy.push(input);
+    const final = buddy.finish();
+
+    // Combine outputs
+    const result = new Uint8Array(output.length + final.length);
+    result.set(output, 0);
+    result.set(final, output.length);
+
+    if (opts.profile) {
+      const stats = buddy.stats();
+      console.log("[convert-buddy] Performance Stats:", stats);
+    }
+
+    return result;
+  }
+
+  private async convertFromFile(file: File, opts: ConvertBuddyOptions): Promise<Uint8Array> {
+    return this.convertFromBlob(file, opts);
+  }
+
+  private async convertFromBlob(blob: Blob, opts: ConvertBuddyOptions): Promise<Uint8Array> {
+    // Handle auto-detection
+    let actualOpts = { ...opts };
+    
+    if (opts.inputFormat === "auto") {
+      const sampleSize = 256 * 1024; // 256KB
+      const sampleBlob = blob.slice(0, sampleSize);
+      const sampleBuffer = await sampleBlob.arrayBuffer();
+      const sample = new Uint8Array(sampleBuffer as ArrayBuffer);
+      
+      const detected = await autoDetectConfig(sample, { debug: opts.debug });
+      
+      if (detected.format !== "unknown") {
+        actualOpts.inputFormat = detected.format as Format;
+        
+        if (detected.csvConfig) {
+          actualOpts.csvConfig = opts.csvConfig ? { ...detected.csvConfig, ...opts.csvConfig } : detected.csvConfig;
+        }
+        
+        if (detected.xmlConfig) {
+          actualOpts.xmlConfig = opts.xmlConfig ? { ...detected.xmlConfig, ...opts.xmlConfig } : detected.xmlConfig;
+        }
+        
+        if (opts.debug) {
+          console.log("[convert-buddy] Auto-detected format:", detected.format);
+        }
+      } else {
+        throw new Error("Could not auto-detect input format. Please specify inputFormat explicitly.");
+      }
+    }
+
+    const buddy = await ConvertBuddy.create(actualOpts);
+    
+    // Read blob as stream and process
+    const stream = blob.stream();
+    const reader = stream.getReader();
+    
+    const outputs: Uint8Array[] = [];
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const output = buddy.push(value);
+        if (output.length > 0) {
+          outputs.push(output);
+        }
+      }
+      
+      const final = buddy.finish();
+      if (final.length > 0) {
+        outputs.push(final);
+      }
+      
+      // Combine all outputs
+      const totalLength = outputs.reduce((sum, arr) => sum + arr.length, 0);
+      const result = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const output of outputs) {
+        result.set(output, offset);
+        offset += output.length;
+      }
+      
+      if (opts.profile) {
+        const stats = buddy.stats();
+        console.log("[convert-buddy] Performance Stats:", stats);
+      }
+      
+      return result;
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  private async convertFromStream(stream: ReadableStream<Uint8Array>, opts: ConvertBuddyOptions): Promise<Uint8Array> {
+    // Handle auto-detection by reading a sample first
+    let actualOpts = { ...opts };
+    let firstChunks: Uint8Array[] = [];
+    let totalSampleBytes = 0;
+    const maxSampleSize = 256 * 1024; // 256KB
+    
+    if (opts.inputFormat === "auto") {
+      const reader = stream.getReader();
+      
+      try {
+        while (totalSampleBytes < maxSampleSize) {
+          const { done, value } = await reader.read();
+          if (done || !value) break;
+          
+          firstChunks.push(value);
+          totalSampleBytes += value.length;
+        }
+        
+        // Concatenate sample
+        const sample = new Uint8Array(totalSampleBytes);
+        let offset = 0;
+        for (const chunk of firstChunks) {
+          sample.set(chunk, offset);
+          offset += chunk.length;
+        }
+        
+        const detected = await autoDetectConfig(sample, { debug: opts.debug });
+        
+        if (detected.format !== "unknown") {
+          actualOpts.inputFormat = detected.format as Format;
+          
+          if (detected.csvConfig) {
+            actualOpts.csvConfig = opts.csvConfig ? { ...detected.csvConfig, ...opts.csvConfig } : detected.csvConfig;
+          }
+          
+          if (detected.xmlConfig) {
+            actualOpts.xmlConfig = opts.xmlConfig ? { ...detected.xmlConfig, ...opts.xmlConfig } : detected.xmlConfig;
+          }
+          
+          if (opts.debug) {
+            console.log("[convert-buddy] Auto-detected format:", detected.format);
+          }
+        } else {
+          throw new Error("Could not auto-detect input format. Please specify inputFormat explicitly.");
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    }
+
+    const buddy = await ConvertBuddy.create(actualOpts);
+    
+    // Process buffered chunks from auto-detection
+    const outputs: Uint8Array[] = [];
+    for (const chunk of firstChunks) {
+      const output = buddy.push(chunk);
+      if (output.length > 0) {
+        outputs.push(output);
+      }
+    }
+    
+    // Continue with the rest of the stream
+    const reader = stream.getReader();
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const output = buddy.push(value);
+        if (output.length > 0) {
+          outputs.push(output);
+        }
+      }
+      
+      const final = buddy.finish();
+      if (final.length > 0) {
+        outputs.push(final);
+      }
+      
+      // Combine all outputs
+      const totalLength = outputs.reduce((sum, arr) => sum + arr.length, 0);
+      const result = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const output of outputs) {
+        result.set(output, offset);
+        offset += output.length;
+      }
+      
+      if (opts.profile) {
+        const stats = buddy.stats();
+        console.log("[convert-buddy] Performance Stats:", stats);
+      }
+      
+      return result;
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  /**
+   * Legacy create method for backward compatibility.
+   * Prefer using the constructor: new ConvertBuddy(opts)
+   */
   static async create(opts: ConvertBuddyOptions = {}): Promise<ConvertBuddy> {
     const debug = !!opts.debug;
     const profile = !!opts.profile;
@@ -217,7 +533,14 @@ export class ConvertBuddy {
     const simdEnabled = (wasmModule as any).getSimdEnabled?.() ?? false;
 
     if (debug) console.log("[convert-buddy-js] initialized with chunkTargetBytes:", chunkTargetBytes, "simd:", simdEnabled, opts);
-    return new ConvertBuddy(converter, debug, profile, simdEnabled, opts);
+    
+    // Create instance using constructor and set internal properties
+    const instance = new ConvertBuddy(opts);
+    instance.converter = converter;
+    instance.simd = simdEnabled;
+    instance.initialized = true;
+    
+    return instance;
   }
 
   push(chunk: Uint8Array): Uint8Array {
@@ -510,4 +833,127 @@ export async function convertToString(
 ): Promise<string> {
   const result = await convert(input, opts);
   return new TextDecoder().decode(result);
+}
+
+/**
+ * Ultra-simple standalone convert function with auto-detection.
+ * Accepts any input type (URL, File, Buffer, string, stream) and automatically detects format.
+ * 
+ * @example
+ * // From URL
+ * import { convertAny } from "convert-buddy-js";
+ * const result = await convertAny("https://example.com/data.csv", { outputFormat: "json" });
+ * 
+ * @example
+ * // From File (browser)
+ * const file = fileInput.files[0];
+ * const result = await convertAny(file, { outputFormat: "ndjson" });
+ * 
+ * @example
+ * // From string data
+ * const result = await convertAny('{"name":"Ada"}', { outputFormat: "csv" });
+ */
+export async function convertAny(
+  input: string | Uint8Array | File | Blob | ReadableStream<Uint8Array>,
+  opts: ConvertOptions
+): Promise<Uint8Array> {
+  const buddy = new ConvertBuddy();
+  return buddy.convert(input, opts);
+}
+
+/**
+ * Ultra-simple standalone convert function that returns a string.
+ * Same as convertAny but decodes the output to a string.
+ * 
+ * @example
+ * import { convertAnyToString } from "convert-buddy-js";
+ * const json = await convertAnyToString("https://example.com/data.csv", { outputFormat: "json" });
+ * console.log(JSON.parse(json));
+ */
+export async function convertAnyToString(
+  input: string | Uint8Array | File | Blob | ReadableStream<Uint8Array>,
+  opts: ConvertOptions
+): Promise<string> {
+  const result = await convertAny(input, opts);
+  return new TextDecoder().decode(result);
+}
+
+// ===== Helper Functions =====
+// File format utilities for common use cases
+
+/**
+ * Get MIME type for a given format
+ * 
+ * @example
+ * const mimeType = getMimeType("json"); // "application/json"
+ */
+export function getMimeType(format: Format): string {
+  switch (format) {
+    case "json":
+      return "application/json";
+    case "ndjson":
+      return "application/x-ndjson";
+    case "csv":
+      return "text/csv";
+    case "xml":
+      return "application/xml";
+  }
+}
+
+/**
+ * Get file extension for a given format (without the dot)
+ * 
+ * @example
+ * const ext = getExtension("json"); // "json"
+ */
+export function getExtension(format: Format): string {
+  return format;
+}
+
+/**
+ * Get suggested filename for a converted file
+ * 
+ * @param originalName - Original filename
+ * @param outputFormat - Target format
+ * @param includeTimestamp - Whether to include a timestamp (default: false)
+ * 
+ * @example
+ * const name = getSuggestedFilename("data.csv", "json"); // "data.json"
+ * const name = getSuggestedFilename("data.csv", "json", true); // "data_converted_1234567890.json"
+ */
+export function getSuggestedFilename(
+  originalName: string,
+  outputFormat: Format,
+  includeTimestamp = false
+): string {
+  const baseName = originalName.replace(/\.[^/.]+$/, "");
+  const extension = getExtension(outputFormat);
+  
+  if (includeTimestamp) {
+    return `${baseName}_converted_${Date.now()}.${extension}`;
+  }
+  
+  return `${baseName}.${extension}`;
+}
+
+/**
+ * Get File System Access API file type configuration for showSaveFilePicker
+ * 
+ * @example
+ * const types = getFileTypeConfig("json");
+ * const handle = await showSaveFilePicker({ types });
+ */
+export function getFileTypeConfig(format: Format): Array<{
+  description: string;
+  accept: Record<string, string[]>;
+}> {
+  const mimeType = getMimeType(format);
+  const extension = `.${getExtension(format)}`;
+  
+  return [
+    {
+      description: `${format.toUpperCase()} Files`,
+      accept: { [mimeType]: [extension] },
+    },
+  ];
 }

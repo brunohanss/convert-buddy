@@ -1,17 +1,21 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Detect CSV fields and delimiter from a sample of bytes.
+ * Detect XML elements from a sample of bytes.
  */
-export function detectCsvFields(sample: Uint8Array): any;
+export function detectXmlElements(sample: Uint8Array): any;
 /**
  * Detect the input format from a sample of bytes.
  */
 export function detectFormat(sample: Uint8Array): string | undefined;
 /**
- * Detect XML elements from a sample of bytes.
+ * Check if SIMD is enabled in this build.
  */
-export function detectXmlElements(sample: Uint8Array): any;
+export function getSimdEnabled(): boolean;
+/**
+ * Detect CSV fields and delimiter from a sample of bytes.
+ */
+export function detectCsvFields(sample: Uint8Array): any;
 export function init(debug_enabled: boolean): void;
 /**
  * A streaming converter state machine.

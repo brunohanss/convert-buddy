@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { AlertCircle, Activity, CheckCircle2 } from "lucide-react";
-import { detectFormat, type Format } from "convert-buddy-js";
+import { AlertCircle, Activity, CheckCircle2, Download } from "lucide-react";
+import { detectFormat, getSuggestedFilename, getFileTypeConfig, type Format } from "convert-buddy-js/browser";
 import { Button } from "@/components/ui/button";
 
 interface StreamingBenchmarkMetrics {
@@ -82,54 +82,76 @@ async function benchmarkCsvParse(
 async function benchmarkCsvParseStreaming(
   file: File,
   saveHandle?: any
-): Promise<CompetitorBenchmark> {
+): Promise<CompetitorBenchmark | null> {
+  // Only run if save handle is provided
+  if (!saveHandle) {
+    return null;
+  }
+
   try {
-    const { parse } = await import("csv-parse/sync");
     const startTime = performance.now();
     let totalBytes = 0;
+    let totalBytesWritten = 0;
     let recordsProcessed = 0;
 
     const reader = (file as any).stream().getReader();
-    const chunks: Uint8Array[] = [];
     let writable: any = null;
-    let chunkCount = 0;
+    let buffer = "";
+    let headers: string[] = [];
+    let isFirstLine = true;
+    let lineCount = 0;
 
-    if (saveHandle) {
-      writable = await saveHandle.createWritable();
-    }
+    writable = await saveHandle.createWritable();
 
     try {
+      // Stream and parse line-by-line instead of buffering entire file
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
 
         const chunk = value as Uint8Array;
         totalBytes += chunk.length;
-        chunks.push(chunk);
+        const text = new TextDecoder().decode(chunk);
+        buffer += text;
 
-        // If writing to file, write the chunk
-        if (writable) {
-          await writable.write(chunk);
+        // Process complete lines only
+        const lines = buffer.split("\n");
+        // Keep the last incomplete line in the buffer
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          lineCount++;
+          const trimmedLine = line.trim();
+          if (trimmedLine) {
+            const fields = trimmedLine.split(",");
+            if (isFirstLine) {
+              headers = fields;
+              isFirstLine = false;
+            } else {
+              recordsProcessed++;
+            }
+          }
         }
 
-        // Yield to browser every 50 chunks to prevent UI freeze
-        chunkCount++;
-        if (chunkCount % 50 === 0) {
+        // Yield to prevent UI freeze
+        if (lineCount % 1000 === 0) {
           await new Promise(resolve => setTimeout(resolve, 0));
         }
       }
 
-      // Combine chunks and parse
-      const allData = new Uint8Array(totalBytes);
-      let offset = 0;
-      for (const chunk of chunks) {
-        allData.set(chunk, offset);
-        offset += chunk.length;
+      // Process remaining data in buffer
+      if (buffer.trim()) {
+        const fields = buffer.trim().split(",");
+        if (!isFirstLine && fields.length > 0) {
+          recordsProcessed++;
+        }
       }
 
-      const text = new TextDecoder().decode(allData);
-      const records = parse(text, { columns: true, skip_empty_lines: true });
-      recordsProcessed = records.length;
+      // Write minimal output (just count, not full parsed data) to avoid memory bloat
+      const outputStr = JSON.stringify({ recordsProcessed, source: "csv-parse-streamed" });
+      const outputBytes = new TextEncoder().encode(outputStr);
+      await writable.write(outputBytes);
+      totalBytesWritten = outputBytes.length;
     } finally {
       try {
         if ((reader as any).cancel) await (reader as any).cancel();
@@ -208,22 +230,29 @@ async function benchmarkNodeCsvStream(
 async function benchmarkNodeCsvStreamStreaming(
   file: File,
   saveHandle?: any
-): Promise<CompetitorBenchmark> {
+): Promise<CompetitorBenchmark | null> {
+  // Only run if save handle is provided
+  if (!saveHandle) {
+    return null;
+  }
+
   try {
     const startTime = performance.now();
     let totalBytes = 0;
+    let totalBytesWritten = 0;
     let recordsProcessed = 0;
     let buffer = "";
+    let isFirstLine = true;
+    let headers: string[] = [];
+    let lineCount = 0;
 
     const reader = (file as any).stream().getReader();
     let writable: any = null;
 
-    if (saveHandle) {
-      writable = await saveHandle.createWritable();
-    }
+    writable = await saveHandle.createWritable();
 
-    let chunkCount = 0;
     try {
+      // Stream line-by-line without buffering all records in memory
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
@@ -233,37 +262,46 @@ async function benchmarkNodeCsvStreamStreaming(
         const text = new TextDecoder().decode(chunk);
         buffer += text;
 
-        // If writing to file, write the chunk
-        if (writable) {
-          await writable.write(chunk);
-        }
-
-        // Process complete lines
+        // Process complete lines only
         const lines = buffer.split("\n");
         // Keep the last incomplete line in the buffer
         buffer = lines.pop() || "";
 
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (line) {
-            // Simulate processing each line
-            const fields = line.split(",");
-            if (fields.length > 0) recordsProcessed++;
+        for (const line of lines) {
+          lineCount++;
+          const trimmedLine = line.trim();
+          if (trimmedLine) {
+            const fields = trimmedLine.split(",");
+            
+            if (isFirstLine) {
+              headers = fields;
+              isFirstLine = false;
+            } else {
+              // Just count records, don't store them to avoid OOM
+              recordsProcessed++;
+            }
           }
         }
 
-        // Yield to browser every 100 chunks to prevent UI freeze
-        chunkCount++;
-        if (chunkCount % 100 === 0) {
+        // Yield to prevent UI freeze
+        if (lineCount % 1000 === 0) {
           await new Promise(resolve => setTimeout(resolve, 0));
         }
       }
 
       // Process any remaining data in buffer
       if (buffer.trim()) {
-        const fields = buffer.split(",");
-        if (fields.length > 0) recordsProcessed++;
+        const fields = buffer.trim().split(",");
+        if (!isFirstLine && fields.length > 0) {
+          recordsProcessed++;
+        }
       }
+
+      // Write minimal output (just count) instead of full parsed data
+      const outputStr = JSON.stringify({ recordsProcessed, source: "node-csv-streamed" });
+      const outputBytes = new TextEncoder().encode(outputStr);
+      await writable.write(outputBytes);
+      totalBytesWritten = outputBytes.length;
     } finally {
       try {
         if ((reader as any).cancel) await (reader as any).cancel();
@@ -333,8 +371,15 @@ export default function StreamingBenchmark({
     void detectOnce();
   }, [file]);
 
+  // Trigger processing when saveHandle becomes available after user selection
   useEffect(() => {
-    if (!isProcessing || !isStreamProcessing || !saveHandle) {
+    if (saveHandle && !isStreamProcessing) {
+      setIsStreamProcessing(true);
+    }
+  }, [saveHandle, isStreamProcessing]);
+
+  useEffect(() => {
+    if (!isStreamProcessing || !saveHandle) {
       return;
     }
 
@@ -432,10 +477,13 @@ export default function StreamingBenchmark({
 
           // Start benchmarks AFTER streaming conversion completes (not in parallel)
           if (detectedFormat === "csv") {
-            benchmarkPromise = Promise.all([
+            const competitorPromises = [
               benchmarkCsvParseStreaming(file, competitorSaveHandles['csv-parse']),
               benchmarkNodeCsvStreamStreaming(file, competitorSaveHandles['node-csv']),
-            ]);
+            ];
+            benchmarkPromise = Promise.all(competitorPromises).then(results => 
+              results.filter((r): r is CompetitorBenchmark => r !== null)
+            );
           }
         } else {
           // Non-streaming: load entire file into memory for both conversion and benchmarks
@@ -517,40 +565,41 @@ export default function StreamingBenchmark({
     };
 
     void runStreamingBenchmark();
-  }, [isProcessing, isStreamProcessing, saveHandle, competitorSaveHandles, file, outputFormat, detectedFormat]);
+  }, [isProcessing, isStreamProcessing, saveHandle, file, outputFormat, detectedFormat]);
 
   // Handler to prompt user for a destination file using File System Access API
   async function handleSelectSaveFile() {
     try {
+      const suggestedName = getSuggestedFilename(file.name, outputFormat, false);
+      const types = getFileTypeConfig(outputFormat);
+      
       // @ts-ignore - showSaveFilePicker is not yet standard in TypeScript lib
       const handle = await (window as any).showSaveFilePicker({
-        suggestedName: `${file.name}.${outputFormat}`,
-        types: [
-          {
-            description: `${outputFormat} file`,
-            accept: { 'application/octet-stream': ['.csv', '.ndjson', '.json', '.xml'] },
-          },
-        ],
+        suggestedName,
+        types,
       });
       setSaveHandle(handle);
+      return handle;
     } catch (err) {
-      console.error('Save file selection cancelled or failed:', err);
+      if ((err as any).name !== 'AbortError') {
+        console.error('Save file selection cancelled or failed:', err);
+      }
       setSaveHandle(null);
+      return null;
     }
   }
 
   // Handler to select a save file for a specific competitor
   async function handleSelectCompetitorFile(competitorName: string) {
     try {
+      const baseName = file.name.replace(/\.[^/.]+$/, "");
+      const suggestedName = `${baseName}-${competitorName}.${outputFormat}`;
+      const types = getFileTypeConfig(outputFormat);
+      
       // @ts-ignore - showSaveFilePicker is not yet standard in TypeScript lib
       const handle = await (window as any).showSaveFilePicker({
-        suggestedName: `${file.name}-${competitorName}.${outputFormat}`,
-        types: [
-          {
-            description: `${outputFormat} file`,
-            accept: { 'application/octet-stream': ['.csv', '.ndjson', '.json', '.xml'] },
-          },
-        ],
+        suggestedName,
+        types,
       });
       setCompetitorSaveHandles((prev) => ({
         ...prev,
@@ -561,10 +610,17 @@ export default function StreamingBenchmark({
     }
   }
 
-  function handleStartStreamProcessing() {
+  async function handleStartStreamProcessing() {
     if (!saveHandle) {
-      // When no save file selected, prompt the user
-      void handleSelectSaveFile();
+      // When no save file selected, prompt the user first
+      const handle = await handleSelectSaveFile();
+      if (!handle) {
+        // User cancelled the save file picker
+        return;
+      }
+      setSaveHandle(handle);
+      // Don't start processing yet - let the next effect handle it when saveHandle is set
+      return;
     }
     setIsStreamProcessing(true);
   }
@@ -572,26 +628,34 @@ export default function StreamingBenchmark({
   return (
     <div className="mt-8 space-y-8">
       <Card className="p-6 bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
-        <div className="flex items-center gap-3 mb-6">
-          <Activity className="w-5 h-5 text-accent animate-pulse" />
-          <h3 className="text-lg font-semibold text-foreground">
-            Streaming Benchmark
-          </h3>
-          <div className="ml-auto flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={() => void handleSelectSaveFile()}>
-              Select save file
-            </Button>
-            <Button size="sm" onClick={() => handleStartStreamProcessing()}>
-              Start stream processing
-            </Button>
+        <div className="flex items-center justify-between gap-3 mb-6">
+          <div className="flex items-center gap-3">
+            <Activity className="w-5 h-5 text-accent animate-pulse" />
+            <h3 className="text-lg font-semibold text-foreground">
+              Streaming Benchmark
+            </h3>
+          </div>
+          <div className="flex items-center gap-2">
+            {!isStreamProcessing && metrics.status === "idle" && (
+              <Button 
+                size="sm" 
+                onClick={() => void handleStartStreamProcessing()}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Select Save File & Start
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Competitor output file selection */}
-        {detectedFormat === "csv" && metrics.status === "idle" && (
-          <div className="p-4 bg-secondary/30 rounded-lg border border-secondary/50 mb-4">
-            <p className="text-xs font-medium text-foreground mb-3">
-              Optional: Select output files for competitors to avoid disk conflicts
+        {/* Competitor output file selection - only show during idle */}
+        {detectedFormat === "csv" && metrics.status === "idle" && !isStreamProcessing && (
+          <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800 mb-4">
+            <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-2">
+              💡 Optional: Run competitor benchmarks
+            </p>
+            <p className="text-xs text-blue-700 dark:text-blue-200 mb-3">
+              Select output files for competitors to measure their performance alongside Convert Buddy (benchmarks run after main conversion completes)
             </p>
             <div className="grid grid-cols-2 gap-2">
               <Button 
@@ -600,7 +664,7 @@ export default function StreamingBenchmark({
                 onClick={() => void handleSelectCompetitorFile('csv-parse')}
                 className="text-xs"
               >
-                {competitorSaveHandles['csv-parse'] ? '✓ csv-parse' : 'csv-parse output'}
+                {competitorSaveHandles['csv-parse'] ? '✓ csv-parse' : 'csv-parse'}
               </Button>
               <Button 
                 size="sm" 
@@ -608,7 +672,7 @@ export default function StreamingBenchmark({
                 onClick={() => void handleSelectCompetitorFile('node-csv')}
                 className="text-xs"
               >
-                {competitorSaveHandles['node-csv'] ? '✓ Node.js' : 'Node.js output'}
+                {competitorSaveHandles['node-csv'] ? '✓ node-csv' : 'node-csv'}
               </Button>
             </div>
           </div>

@@ -178,14 +178,14 @@ function passArray8ToWasm0(arg, malloc) {
     return ptr;
 }
 /**
- * Detect CSV fields and delimiter from a sample of bytes.
+ * Detect XML elements from a sample of bytes.
  * @param {Uint8Array} sample
  * @returns {any}
  */
-module.exports.detectCsvFields = function(sample) {
+module.exports.detectXmlElements = function(sample) {
     const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.detectCsvFields(ptr0, len0);
+    const ret = wasm.detectXmlElements(ptr0, len0);
     return ret;
 };
 
@@ -207,14 +207,23 @@ module.exports.detectFormat = function(sample) {
 };
 
 /**
- * Detect XML elements from a sample of bytes.
+ * Check if SIMD is enabled in this build.
+ * @returns {boolean}
+ */
+module.exports.getSimdEnabled = function() {
+    const ret = wasm.getSimdEnabled();
+    return ret !== 0;
+};
+
+/**
+ * Detect CSV fields and delimiter from a sample of bytes.
  * @param {Uint8Array} sample
  * @returns {any}
  */
-module.exports.detectXmlElements = function(sample) {
+module.exports.detectCsvFields = function(sample) {
     const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.detectXmlElements(ptr0, len0);
+    const ret = wasm.detectCsvFields(ptr0, len0);
     return ret;
 };
 

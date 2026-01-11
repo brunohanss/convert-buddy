@@ -1,9 +1,58 @@
 import type { Transform as NodeTransform } from "node:stream";
 import type { PathLike } from "node:fs";
 
-import { ConvertBuddy, type ConvertBuddyOptions, type Format, autoDetectConfig } from "./index.js";
+import { ConvertBuddy, type ConvertBuddyOptions, type ConvertOptions, type Format, autoDetectConfig, convertAny as convertAnyCore, convertAnyToString as convertAnyToStringCore } from "./index.js";
 
 export * from "./index.js";
+
+/**
+ * Ultra-simple convert function for Node.js.
+ * Auto-detects input type (file path, URL, Buffer, etc.) and format.
+ * 
+ * @example
+ * // From file path
+ * import { convert } from "convert-buddy-js/node";
+ * const result = await convert("data.csv", { outputFormat: "json" });
+ * 
+ * @example
+ * // From URL
+ * const result = await convert("https://example.com/data.csv", { outputFormat: "json" });
+ * 
+ * @example
+ * // From Buffer
+ * const result = await convert(buffer, { outputFormat: "json" });
+ */
+export async function convert(
+  input: string | Uint8Array | PathLike | ReadableStream<Uint8Array>,
+  opts: ConvertOptions
+): Promise<Uint8Array> {
+  // If input is a file path (string or PathLike but not URL), read it first
+  if (typeof input === "string" && !input.startsWith("http://") && !input.startsWith("https://")) {
+    // It's a file path
+    return convertFileToBuffer(input, { ...opts, inputFormat: opts.inputFormat || "auto" });
+  } else if (typeof input !== "string" && typeof input !== "undefined" && !(input instanceof Uint8Array) && !(input instanceof ReadableStream)) {
+    // PathLike object (Buffer, URL object, etc.)
+    return convertFileToBuffer(input as PathLike, { ...opts, inputFormat: opts.inputFormat || "auto" });
+  }
+  
+  return convertAnyCore(input as string | Uint8Array | ReadableStream<Uint8Array>, opts);
+}
+
+/**
+ * Ultra-simple convert function that returns a string.
+ * 
+ * @example
+ * import { convertToString } from "convert-buddy-js/node";
+ * const json = await convertToString("data.csv", { outputFormat: "json" });
+ * console.log(JSON.parse(json));
+ */
+export async function convertToString(
+  input: string | Uint8Array | PathLike | ReadableStream<Uint8Array>,
+  opts: ConvertOptions
+): Promise<string> {
+  const result = await convert(input, opts);
+  return new TextDecoder().decode(result);
+}
 
 // Node.js Transform Stream adapter
 async function loadNodeTransform(): Promise<typeof import("node:stream").Transform> {

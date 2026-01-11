@@ -1,10 +1,48 @@
-import { ConvertBuddy, type ConvertBuddyOptions, type Format, autoDetectConfig } from "./index.js";
+import { ConvertBuddy, type ConvertBuddyOptions, type ConvertOptions, type Format, autoDetectConfig, detectFormat, getMimeType, getFileTypeConfig, convertAny as convertAnyCore, convertAnyToString as convertAnyToStringCore } from "./index.js";
 
 export * from "./index.js";
 
 export type BrowserConvertOptions = ConvertBuddyOptions & {
   // Additional browser-specific options can go here
 };
+
+/**
+ * Ultra-simple convert function for browser.
+ * Auto-detects input type (File, URL, string, etc.) and format.
+ * 
+ * @example
+ * // From File
+ * const file = fileInput.files[0];
+ * const result = await convert(file, { outputFormat: "json" });
+ * 
+ * @example
+ * // From URL
+ * const result = await convert("https://example.com/data.csv", { outputFormat: "json" });
+ * 
+ * @example
+ * // From string
+ * const result = await convert(csvString, { outputFormat: "json" });
+ */
+export async function convert(
+  input: string | Uint8Array | File | Blob | ReadableStream<Uint8Array>,
+  opts: ConvertOptions
+): Promise<Uint8Array> {
+  return convertAnyCore(input, opts);
+}
+
+/**
+ * Ultra-simple convert function that returns a string.
+ * 
+ * @example
+ * const json = await convertToString(file, { outputFormat: "json" });
+ * console.log(JSON.parse(json));
+ */
+export async function convertToString(
+  input: string | Uint8Array | File | Blob | ReadableStream<Uint8Array>,
+  opts: ConvertOptions
+): Promise<string> {
+  return convertAnyToStringCore(input, opts);
+}
 
 /**
  * Convert a browser File or Blob object to a string.
@@ -269,4 +307,132 @@ export async function convertFileStream(
       }
     },
   });
+}
+/**
+ * Auto-detect format and create a ReadableStream for conversion.
+ * This is a convenience helper that combines format detection with streaming conversion.
+ * 
+ * @example
+ * const file = fileInput.files[0];
+ * const stream = await autoConvertStream(file, { outputFormat: "json" });
+ * 
+ * // Pipe to response
+ * return new Response(stream);
+ */
+export async function autoConvertStream(
+  file: File | Blob,
+  opts: Omit<BrowserConvertOptions, "inputFormat"> & { outputFormat: Format }
+): Promise<ReadableStream<Uint8Array>> {
+  return convertFileStream(file, {
+    ...opts,
+    inputFormat: "auto",
+  });
+}
+
+/**
+ * Stream a file conversion directly to a writable destination.
+ * This is useful for streaming large conversions to disk using File System Access API
+ * or to other writable streams.
+ * 
+ * @example
+ * // Using File System Access API
+ * const fileInput = document.querySelector('input[type="file"]');
+ * const file = fileInput.files[0];
+ * 
+ * const fileHandle = await window.showSaveFilePicker({
+ *   suggestedName: "output.json",
+ *   types: [{ description: "JSON", accept: { "application/json": [".json"] } }]
+ * });
+ * const writable = await fileHandle.createWritable();
+ * 
+ * await convertStreamToWritable(file, writable, {
+ *   inputFormat: "csv",
+ *   outputFormat: "json",
+ *   onProgress: (stats) => console.log(`${stats.bytesIn} bytes processed`)
+ * });
+ * 
+ * @example
+ * // With auto-detection
+ * await convertStreamToWritable(file, writable, {
+ *   inputFormat: "auto",
+ *   outputFormat: "ndjson"
+ * });
+ */
+export async function convertStreamToWritable(
+  file: File | Blob,
+  writable: WritableStream<Uint8Array> | FileSystemWritableFileStream,
+  opts: BrowserConvertOptions = {}
+): Promise<void> {
+  const outputStream = await convertFileStream(file, opts);
+  await outputStream.pipeTo(writable);
+}
+
+/**
+ * Check if File System Access API is supported in the current browser.
+ * Use this to determine if you can use File System Access API features.
+ * 
+ * @example
+ * if (isFileSystemAccessSupported()) {
+ *   // Use File System Access API
+ *   const handle = await window.showSaveFilePicker();
+ * } else {
+ *   // Fall back to download link
+ *   await convertFileToFile(file, "output.json", opts);
+ * }
+ */
+export function isFileSystemAccessSupported(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    "showSaveFilePicker" in window &&
+    "showOpenFilePicker" in window
+  );
+}
+
+/**
+ * Convert a file and save it using File System Access API with a user-selected location.
+ * This provides a better UX than automatic downloads by letting users choose where to save.
+ * Falls back to regular download if File System Access API is not supported.
+ * 
+ * @example
+ * const file = fileInput.files[0];
+ * await convertAndSave(file, {
+ *   inputFormat: "csv",
+ *   outputFormat: "json",
+ *   suggestedName: "output.json"
+ * });
+ */
+export async function convertAndSave(
+  file: File | Blob,
+  opts: BrowserConvertOptions & {
+    suggestedName?: string;
+  } = {}
+): Promise<void> {
+  if (!isFileSystemAccessSupported()) {
+    // Fall back to regular download
+    const filename = opts.suggestedName || "converted";
+    await convertFileToFile(file, filename, opts);
+    return;
+  }
+
+  const outputFormat = opts.outputFormat || "json";
+  const suggestedName = opts.suggestedName || `converted.${outputFormat}`;
+  const types = getFileTypeConfig(outputFormat);
+
+  try {
+    const fileHandle = await (window as any).showSaveFilePicker({
+      suggestedName,
+      types,
+    });
+
+    const writable = await fileHandle.createWritable();
+    await convertStreamToWritable(file, writable, opts);
+  } catch (error: any) {
+    // User cancelled or error occurred
+    if (error?.name === "AbortError") {
+      // User cancelled - this is fine, just return
+      return;
+    }
+    // Re-throw other errors
+    throw error;
+  }
 }

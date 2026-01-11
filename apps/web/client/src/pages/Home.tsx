@@ -8,7 +8,15 @@ import StreamingProcessor from "@/components/StreamingProcessor";
 import Footer from "@/components/Footer";
 import BenchmarkSection from "@/components/BenchmarkSection";
 import LiveBenchmarkSection from "@/components/LiveBenchmarkSection";
-import { convertFile, detectCsvFieldsAndDelimiter, detectXmlElements, detectFormat, type Format, convertToString } from "convert-buddy-js/browser";
+import { 
+  convertFile, 
+  detectCsvFieldsAndDelimiter, 
+  detectXmlElements, 
+  detectFormat, 
+  getMimeType,
+  type Format, 
+  convertToString 
+} from "convert-buddy-js/browser";
 
 // Format bytes into human-readable string using GB / MB / KB as appropriate
 function formatBytes(bytes: number): string {
@@ -201,15 +209,8 @@ Inception,Thriller,2010,Leonardo DiCaprio,Cobb,Joseph Gordon-Levitt,Arthur`;
 
       // Create a blob from Uint8Array - convert to proper type
       const blobPart: BlobPart = new Uint8Array(convertedData) as unknown as BlobPart;
-      const blob = new Blob([blobPart], {
-        type: outputFormat === "json" 
-          ? "application/json" 
-          : outputFormat === "csv"
-          ? "text/csv"
-          : outputFormat === "xml"
-          ? "application/xml"
-          : "application/x-ndjson",
-      });
+      const mimeType = getMimeType(outputFormat);
+      const blob = new Blob([blobPart], { type: mimeType });
 
       // Create download link
       const url = URL.createObjectURL(blob);

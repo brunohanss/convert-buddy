@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Activity, Zap, Download } from "lucide-react";
-import { detectFormat, type Format } from "convert-buddy-js";
+import { detectFormat, getFileTypeConfig, type Format } from "convert-buddy-js/browser";
 import ParserDetailsCollapsible from "./ParserDetailsCollapsible";
 import StreamingBenchmark from "./StreamingBenchmark";
 
@@ -485,18 +485,21 @@ export default function LiveBenchmarkSection({
   // Handler to select save file
   const handleSelectSaveFile = async () => {
     try {
-      const handle = await (window as any).showSaveFilePicker({
-        suggestedName: `converted.${detectedFormat || 'bin'}`,
-        types: [
-          {
+      const suggestedName = `converted.${detectedFormat || 'bin'}`;
+      const types = detectedFormat 
+        ? getFileTypeConfig(detectedFormat as Format)
+        : [{
             description: "Converted File",
             accept: {
               "application/json": [".json", ".ndjson"],
               "text/csv": [".csv"],
               "application/xml": [".xml"],
             },
-          },
-        ],
+          }];
+          
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName,
+        types,
       });
       
       if (handle) {
@@ -654,7 +657,15 @@ export default function LiveBenchmarkSection({
             inputFormat: detectedFmt as Format,
           });
           
+          // Process file in chunks to show progress
+          let processedBytes = 0;
           const output = buddy.push(fileBytes);
+          processedBytes += fileBytes.length;
+          
+          // Update progress during processing
+          const progressPercent = 50 + ((processedBytes / fileBytes.length) * 25);
+          setProgress(Math.min(progressPercent, 75));
+          
           const finalResult = buddy.finish();
           
           // Combine outputs
@@ -744,43 +755,15 @@ export default function LiveBenchmarkSection({
     void runBenchmark();
   }, [hasStarted, file, outputFormat]);
 
-  if (!hasStarted && !metrics) {
-    // For large files, show button to select save file before starting benchmark
-    const isLargeFile = file && file.size > STREAMING_THRESHOLD;
-    
-    if (isLargeFile) {
-      return (
-        <Card className="p-6 bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20 mt-8">
-          <div className="flex items-center gap-3 mb-6">
-            <Activity className="w-5 h-5 text-accent" />
-            <h3 className="text-lg font-semibold text-foreground">Live Performance Benchmark</h3>
-          </div>
-          
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Click the button below to select a save path and start the benchmark. This will measure the performance of converting your file.
-            </p>
-            <Button 
-              onClick={() => void handleSelectSaveFile()}
-              size="lg"
-              className="w-full sm:w-auto"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Select Save File & Start Benchmark
-            </Button>
-          </div>
-        </Card>
-      );
-    }
-    
-    // For small files, don't show anything while preparing
-    return null;
-  }
-
   // Use streaming benchmark for large files (> 50 MB)
   const isLargeFile = file.size > STREAMING_THRESHOLD;
   if (isLargeFile) {
     return <StreamingBenchmark file={file} outputFormat={outputFormat} isProcessing={hasStarted} />;
+  }
+
+  if (!hasStarted && !metrics) {
+    // For small files, don't show anything while preparing
+    return null;
   }
 
   // Helper to normalize names for matching parser examples to measured competitors

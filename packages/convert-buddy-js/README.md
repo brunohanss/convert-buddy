@@ -20,6 +20,51 @@ npm install convert-buddy-js
 
 ## Quick Start
 
+### The Simplest Way - Auto-Detect Everything
+
+```ts
+import { convert, convertToString } from "convert-buddy-js";
+
+// From URL (auto-detects format)
+const result = await convertToString("https://example.com/data.csv", {
+  outputFormat: "json"
+});
+
+// From File (browser)
+const file = fileInput.files[0];
+const json = await convertToString(file, { outputFormat: "json" });
+
+// From string data
+const csv = "name,age\nAda,36";
+const ndjson = await convertToString(csv, { outputFormat: "ndjson" });
+
+// Returns Uint8Array instead of string
+const bytes = await convert(file, { outputFormat: "json" });
+```
+
+### Instance-Based API with Global Config
+
+```ts
+import { ConvertBuddy } from "convert-buddy-js";
+
+// Create a buddy with global settings
+const buddy = new ConvertBuddy({
+  maxMemoryMB: 512,
+  debug: true,
+  onProgress: (stats) => console.log(`${stats.recordsProcessed} records`)
+});
+
+// Convert anything - URL, File, Buffer, string, stream
+const result = await buddy.convert("https://example.com/data.csv", {
+  outputFormat: "json"
+});
+
+const result2 = await buddy.convert(file, {
+  inputFormat: "csv", // optional, auto-detected if omitted
+  outputFormat: "ndjson"
+});
+```
+
 ### Browser - Convert File Input
 
 ```ts
@@ -39,18 +84,98 @@ fileInput.addEventListener('change', async (e) => {
 ### Node.js - Convert File
 
 ```ts
-import { convertFileToString } from "convert-buddy-js/node";
+import { convert } from "convert-buddy-js/node";
 
-const result = await convertFileToString("input.csv", {
-  inputFormat: "auto",
+// From file path (auto-detects format)
+const result = await convert("input.csv", {
   outputFormat: "json"
 });
-console.log(result);
+
+// From URL
+const result2 = await convert("https://api.example.com/data.csv", {
+  outputFormat: "ndjson"
+});
 ```
 
 ## Usage
 
-### High-Level API (Recommended)
+Convert Buddy offers three API styles, from simplest to most powerful:
+
+### 1. Ultra-Simple API (Recommended for Most Use Cases)
+
+The easiest way to convert data. Just pass anything and specify the output format:
+
+```ts
+import { convert, convertToString } from "convert-buddy-js";
+// Or platform-specific: "convert-buddy-js/browser" or "convert-buddy-js/node"
+
+// Auto-detects input type AND format
+const json = await convertToString(input, { outputFormat: "json" });
+
+// Works with:
+// - URLs: "https://example.com/data.csv"
+// - Files: file from <input type="file">
+// - Buffers: Uint8Array or Buffer
+// - Strings: raw CSV, JSON, XML, NDJSON data
+// - Streams: ReadableStream<Uint8Array>
+// - File paths (Node.js): "path/to/data.csv"
+```
+
+**Examples:**
+
+```ts
+// From URL
+const json = await convertToString("https://example.com/data.csv", {
+  outputFormat: "json"
+});
+
+// From file upload (browser)
+const file = document.querySelector('input[type="file"]').files[0];
+const ndjson = await convertToString(file, { outputFormat: "ndjson" });
+
+// From file path (Node.js)
+import { convertToString } from "convert-buddy-js/node";
+const result = await convertToString("./data.csv", { outputFormat: "json" });
+
+// From string data
+const csvString = "name,age\nAda,36\nLinus,54";
+const json = await convertToString(csvString, { outputFormat: "json" });
+```
+
+### 2. Instance-Based API (For Reusable Configuration)
+
+Create a ConvertBuddy instance with global settings, then convert multiple inputs:
+
+```ts
+import { ConvertBuddy } from "convert-buddy-js";
+
+const buddy = new ConvertBuddy({
+  maxMemoryMB: 512,        // Future: memory limits
+  debug: true,             // Enable debug logging
+  profile: true,           // Show performance stats
+  onProgress: (stats) => {
+    console.log(`${stats.recordsProcessed} records processed`);
+    console.log(`${stats.throughputMbPerSec.toFixed(2)} MB/s`);
+  }
+});
+
+// Convert different inputs with the same config
+const result1 = await buddy.convert("https://example.com/data.csv", {
+  outputFormat: "json"
+});
+
+const result2 = await buddy.convert(file, {
+  outputFormat: "ndjson",
+  csvConfig: { delimiter: ";" } // Override per-conversion
+});
+
+// Decode to string
+const jsonString = new TextDecoder().decode(result1);
+```
+
+### 3. High-Level API (Platform-Specific Helpers)
+
+Platform-specific helpers for common use cases:
 
 #### Browser Helpers
 
@@ -61,7 +186,14 @@ import {
   convertFileToString,
   convertFile,
   convertFileToFile,
-  convertFileStream
+  convertFileStream,
+  convertAndSave,
+  convertStreamToWritable,
+  autoConvertStream,
+  isFileSystemAccessSupported,
+  getMimeType,
+  getExtension,
+  getSuggestedFilename
 } from "convert-buddy-js/browser";
 
 // Convert to string
@@ -70,17 +202,50 @@ const json = await convertFileToString(file, {
   outputFormat: "json"
 });
 
-// Convert and download
+// Convert and download (legacy browser support)
 await convertFileToFile(file, "output.json", {
   inputFormat: "csv",
   outputFormat: "json"
 });
+
+// Convert and save with File System Access API (better UX)
+// User chooses save location, no automatic downloads
+await convertAndSave(file, {
+  inputFormat: "csv",
+  outputFormat: "json",
+  suggestedName: "output.json"
+});
+
+// Auto-detect format and convert
+const stream = await autoConvertStream(file, {
+  outputFormat: "json"
+});
+
+// Stream to File System Access API writable
+if (isFileSystemAccessSupported()) {
+  const handle = await window.showSaveFilePicker({
+    suggestedName: "output.json"
+  });
+  const writable = await handle.createWritable();
+  
+  await convertStreamToWritable(file, writable, {
+    inputFormat: "csv",
+    outputFormat: "json",
+    onProgress: (stats) => console.log(`${stats.bytesIn} bytes processed`)
+  });
+}
 
 // Get streaming API
 const stream = await convertFileStream(file, {
   inputFormat: "csv",
   outputFormat: "ndjson"
 });
+
+// Format helpers
+const mimeType = getMimeType("json"); // "application/json"
+const extension = getExtension("csv"); // "csv"
+const filename = getSuggestedFilename("data.csv", "json"); // "data.json"
+
 ```
 
 #### Node.js Helpers
@@ -114,55 +279,9 @@ const result = await convertStream(inputStream, {
 });
 ```
 
-#### Progress Tracking & Control
+### 4. Low-Level API (Advanced Use Cases)
 
-Monitor long-running conversions and allow cancellation:
-
-```ts
-const buddy = await ConvertBuddy.create({
-  inputFormat: "csv",
-  outputFormat: "json",
-  onProgress: (stats) => {
-    console.log(`${stats.recordsProcessed} records processed`);
-    console.log(`${stats.throughputMbPerSec.toFixed(2)} MB/s`);
-  },
-  progressIntervalBytes: 1024 * 1024 // Every 1MB
-});
-
-// User cancels
-cancelButton.addEventListener('click', () => buddy.abort());
-```
-
-#### Auto-Detection
-
-Let the library detect format automatically:
-
-```ts
-const result = await convertFileToString(file, {
-  inputFormat: "auto",    // Auto-detect CSV, JSON, NDJSON, XML
-  outputFormat: "json",
-  csvConfig: {            // Optional: still apply config
-    delimiter: ","
-  }
-});
-```
-
-### Low-Level API
-
-#### Convert a full string or buffer
-
-```ts
-import { convertToString } from "convert-buddy-js";
-
-const csv = `name,age\nAda,36\nLinus,54`;
-
-const output = await convertToString(csv, {
-  inputFormat: "csv",
-  outputFormat: "ndjson",
-});
-
-console.log(output);
-```
+For maximum control over the conversion process:
 
 #### Manual streaming (chunked)
 
@@ -213,6 +332,155 @@ const transform = new ConvertBuddyTransformStream({
 
 const response = await fetch("/data.csv");
 const outputStream = response.body?.pipeThrough(transform);
+```
+
+---
+
+### Additional Features
+
+#### Progress Tracking & Control
+
+Monitor long-running conversions and allow cancellation:
+
+```ts
+import { ConvertBuddy } from "convert-buddy-js";
+
+const buddy = new ConvertBuddy({
+  onProgress: (stats) => {
+    console.log(`${stats.recordsProcessed} records processed`);
+    console.log(`${stats.throughputMbPerSec.toFixed(2)} MB/s`);
+  },
+  progressIntervalBytes: 1024 * 1024 // Every 1MB
+});
+
+const result = await buddy.convert(largeFile, { outputFormat: "json" });
+
+// Or with the low-level API
+const converter = await ConvertBuddy.create({
+  inputFormat: "csv",
+  outputFormat: "json",
+  onProgress: (stats) => {
+    console.log(`${stats.recordsProcessed} records processed`);
+    console.log(`${stats.throughputMbPerSec.toFixed(2)} MB/s`);
+  },
+  progressIntervalBytes: 1024 * 1024
+});
+
+// User cancels
+cancelButton.addEventListener('click', () => converter.abort());
+```
+
+#### Format Utilities
+
+Helper functions for working with file formats, MIME types, and extensions:
+
+```ts
+import { 
+  getMimeType, 
+  getExtension, 
+  getSuggestedFilename,
+  getFileTypeConfig 
+} from "convert-buddy-js";
+
+// Get MIME type for a format
+const mimeType = getMimeType("json"); // "application/json"
+
+// Get file extension
+const ext = getExtension("ndjson"); // "ndjson"
+
+// Generate output filename
+const filename = getSuggestedFilename("data.csv", "json"); 
+// "data.json"
+
+const timestamped = getSuggestedFilename("data.csv", "json", true);
+// "data_converted_1234567890.json"
+
+// Get File System Access API config
+const types = getFileTypeConfig("json");
+// [{ description: "JSON Files", accept: { "application/json": [".json"] } }]
+
+const handle = await window.showSaveFilePicker({
+  suggestedName: "output.json",
+  types
+});
+```
+
+#### Advanced Browser Streaming
+
+For maximum efficiency with large files, use streaming APIs to avoid loading entire files into memory:
+
+```ts
+import { 
+  convertStreamToWritable,
+  autoConvertStream,
+  isFileSystemAccessSupported 
+} from "convert-buddy-js/browser";
+
+// Auto-detect and stream conversion
+const outputStream = await autoConvertStream(file, {
+  outputFormat: "json",
+  onProgress: (stats) => {
+    console.log(`Progress: ${stats.bytesIn} bytes in, ${stats.bytesOut} bytes out`);
+    console.log(`Throughput: ${stats.throughputMbPerSec.toFixed(2)} MB/s`);
+  }
+});
+
+// Stream directly to File System Access API writable
+if (isFileSystemAccessSupported()) {
+  const fileHandle = await window.showSaveFilePicker({
+    suggestedName: "output.json",
+    types: [{ 
+      description: "JSON Files", 
+      accept: { "application/json": [".json"] } 
+    }]
+  });
+  
+  const writable = await fileHandle.createWritable();
+  
+  await convertStreamToWritable(file, writable, {
+    inputFormat: "csv",
+    outputFormat: "json"
+  });
+  
+  console.log("Conversion complete!");
+}
+
+// Or pipe to any WritableStream
+const customWritable = new WritableStream({
+  write(chunk) {
+    // Process each output chunk
+    console.log("Received chunk:", chunk);
+  }
+});
+
+await convertStreamToWritable(file, customWritable, {
+  inputFormat: "auto",
+  outputFormat: "ndjson"
+});
+```
+
+#### Auto-Detection
+
+Auto-detection is enabled by default with the new API. You can also use it explicitly:
+
+```ts
+import { convert } from "convert-buddy-js";
+
+// Automatic (default)
+const result = await convert(input, { outputFormat: "json" });
+
+// Explicit auto-detection
+const result2 = await convert(input, {
+  inputFormat: "auto",
+  outputFormat: "json",
+  csvConfig: { delimiter: "," } // Optional: still apply config
+});
+
+// Or specify the format
+const result3 = await convert(input, {
+  inputFormat: "csv",
+  outputFormat: "json"
+});
 ```
 
 #### Detect format and CSV fields/delimiter

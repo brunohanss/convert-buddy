@@ -6,9 +6,18 @@
  * 2. Processing each chunk with convert-buddy WASM parser
  * 3. Writing output chunks to disk using File System Access API
  * 4. Tracking real-time performance metrics
+ * 
+ * Note: Most of this functionality is now available in convert-buddy-js/browser
+ * via convertStreamToWritable, autoConvertStream, and related helpers.
  */
 
-import { ConvertBuddy, detectFormat, type Format } from 'convert-buddy-js';
+import { 
+  ConvertBuddy, 
+  detectFormat, 
+  getSuggestedFilename,
+  getFileTypeConfig,
+  type Format 
+} from 'convert-buddy-js/browser';
 
 export interface StreamingProgress {
   bytesRead: number;
@@ -72,15 +81,12 @@ export async function streamProcessFile(
 
     // Request write permission using File System Access API
     const baseName = file.name.replace(/\.[^/.]+$/, "");
-    const fileName = `${baseName}_converted_${Date.now()}.${outputFormat}`;
+    const fileName = getSuggestedFilename(file.name, outputFormat, true);
+    const types = getFileTypeConfig(outputFormat);
+    
     fileHandle = await (window as any).showSaveFilePicker({
       suggestedName: fileName,
-      types: [
-        {
-          description: 'Converted Files',
-          accept: { 'text/*': [`.${outputFormat}`] },
-        },
-      ],
+      types,
     });
 
     if (!fileHandle) {

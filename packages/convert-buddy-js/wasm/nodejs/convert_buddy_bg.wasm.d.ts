@@ -11,6 +11,7 @@ export const converter_withConfig: (a: number, b: number, c: number, d: number, 
 export const detectCsvFields: (a: number, b: number) => any;
 export const detectFormat: (a: number, b: number) => [number, number];
 export const detectXmlElements: (a: number, b: number) => any;
+export const getSimdEnabled: () => number;
 export const init: (a: number) => void;
 export const stats_bytes_in: (a: number) => number;
 export const stats_bytes_out: (a: number) => number;
