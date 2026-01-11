@@ -139,4 +139,26 @@ mod tests {
         assert!(!parser.quick_validate(b""));
         assert!(!parser.quick_validate(b"   "));
     }
+
+    #[test]
+    fn test_parse_and_minify_and_prettify() {
+        let parser = JsonParser::new();
+        let data = br#" { "a": 1, "b": [true, false] } "#;
+
+        let minified = parser.parse_and_minify(data).unwrap();
+        assert_eq!(String::from_utf8_lossy(&minified), r#"{"a":1,"b":[true,false]}"#);
+
+        let pretty = parser.parse_and_prettify(data).unwrap();
+        let pretty_str = String::from_utf8_lossy(&pretty);
+        assert!(pretty_str.contains("\n"));
+        assert!(pretty_str.contains("\"a\""));
+    }
+
+    #[test]
+    fn test_parse_and_validate_errors() {
+        let parser = JsonParser::new();
+        let invalid = br#"{ "a": "#;
+        let result = parser.parse_and_validate(invalid);
+        assert!(result.is_err());
+    }
 }

@@ -84,3 +84,45 @@ impl ConverterConfig {
         self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn format_string_round_trip() {
+        assert_eq!(Format::from_string("csv"), Some(Format::Csv));
+        assert_eq!(Format::from_string("ndjson"), Some(Format::Ndjson));
+        assert_eq!(Format::from_string("jsonl"), Some(Format::Ndjson));
+        assert_eq!(Format::from_string("json"), Some(Format::Json));
+        assert_eq!(Format::from_string("xml"), Some(Format::Xml));
+        assert_eq!(Format::from_string("unknown"), None);
+
+        assert_eq!(Format::Csv.to_string_js(), "csv");
+        assert_eq!(Format::Ndjson.to_string_js(), "ndjson");
+        assert_eq!(Format::Json.to_string_js(), "json");
+        assert_eq!(Format::Xml.to_string_js(), "xml");
+    }
+
+    #[test]
+    fn converter_config_builders() {
+        let csv_config = CsvConfig::default();
+        let xml_config = XmlConfig::default();
+
+        let config = ConverterConfig::new(Format::Json, Format::Csv)
+            .with_chunk_size(4096)
+            .with_stats(true)
+            .with_csv_config(csv_config.clone())
+            .with_xml_config(xml_config.clone());
+
+        assert_eq!(config.input_format, Format::Json);
+        assert_eq!(config.output_format, Format::Csv);
+        assert_eq!(config.chunk_target_bytes, 4096);
+        assert!(config.enable_stats);
+        let config_csv = config.csv_config.expect("csv config");
+        let config_xml = config.xml_config.expect("xml config");
+        assert_eq!(config_csv.delimiter, csv_config.delimiter);
+        assert_eq!(config_csv.quote, csv_config.quote);
+        assert_eq!(config_xml.record_element, xml_config.record_element);
+    }
+}

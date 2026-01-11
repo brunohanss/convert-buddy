@@ -30,6 +30,45 @@ pub type Result<T> = std::result::Result<T, ConvertError>;
 // Implement conversion to JsValue for WASM
 impl From<ConvertError> for JsValue {
     fn from(error: ConvertError) -> Self {
-        JsValue::from_str(&error.to_string())
+        #[cfg(target_arch = "wasm32")]
+        {
+            JsValue::from_str(&error.to_string())
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let _ = error;
+            JsValue::NULL
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn converts_errors_to_js_value_string() {
+        let error = ConvertError::JsonParse("bad json".to_string());
+        let _js_value: JsValue = error.into();
+        #[cfg(target_arch = "wasm32")]
+        {
+            assert!(_js_value.as_string().unwrap().contains("bad json"));
+        }
+    }
+
+    #[test]
+    fn error_messages_render() {
+        let errors = vec![
+            ConvertError::CsvParse("bad csv".to_string()),
+            ConvertError::XmlParse("bad xml".to_string()),
+            ConvertError::InvalidConfig("invalid".to_string()),
+            ConvertError::BufferOverflow("overflow".to_string()),
+            ConvertError::Io("io".to_string()),
+        ];
+
+        for error in errors {
+            let message = error.to_string();
+            assert!(!message.is_empty());
+        }
     }
 }

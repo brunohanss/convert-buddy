@@ -141,3 +141,39 @@ impl CsvWriter {
         Ok(Vec::new())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn writes_headers_and_rows_with_escaping() {
+        let mut writer = CsvWriter::new();
+        let json_line = r#"{"name":"Alice","note":"Hello, \"world\"","value":1}"#;
+        let output = writer.process_json_line(json_line).unwrap();
+        let output_str = String::from_utf8_lossy(&output);
+
+        assert!(output_str.contains("name"));
+        assert!(output_str.contains("\"Hello, \"\"world\"\"\""));
+        assert!(writer.headers_written);
+    }
+
+    #[test]
+    fn flattens_nested_objects_and_arrays() {
+        let mut writer = CsvWriter::new();
+        let json_line = r#"{"parent":{"child":"value"},"items":[{"id":1},{"id":2}],"tags":["a","b"]}"#;
+        let output = writer.process_json_line(json_line).unwrap();
+        let output_str = String::from_utf8_lossy(&output);
+
+        assert!(output_str.contains("parent.child"));
+        assert!(output_str.contains("items.0.id"));
+        assert!(output_str.contains("tags.1"));
+    }
+
+    #[test]
+    fn finish_returns_empty() {
+        let mut writer = CsvWriter::new();
+        let output = writer.finish().unwrap();
+        assert!(output.is_empty());
+    }
+}
