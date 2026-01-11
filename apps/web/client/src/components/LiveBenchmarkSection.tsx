@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { AlertCircle, Activity, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, Activity, Zap, Download } from "lucide-react";
 import { detectFormat, type Format } from "convert-buddy-js";
 import ParserDetailsCollapsible from "./ParserDetailsCollapsible";
 import StreamingBenchmark from "./StreamingBenchmark";
@@ -459,6 +460,7 @@ interface LiveBenchmarkSectionProps {
   file: File;
   outputFormat: Format;
   isProcessing: boolean;
+  hasSelectedSavePath?: boolean;
 }
 
 // Constants for streaming
@@ -469,6 +471,7 @@ export default function LiveBenchmarkSection({
   file,
   outputFormat,
   isProcessing,
+  hasSelectedSavePath = false,
 }: LiveBenchmarkSectionProps) {
   const [metrics, setMetrics] = useState<BenchmarkMetrics | null>(null);
   const [progress, setProgress] = useState(0);
@@ -476,13 +479,50 @@ export default function LiveBenchmarkSection({
   const [conversionResult, setConversionResult] = useState<Uint8Array | null>(null);
   const [hasStarted, setHasStarted] = useState(false);
   const [competitorResults, setCompetitorResults] = useState<CompetitorBenchmark[]>([]);
+  const [savePathSelected, setSavePathSelected] = useState(false);
+  const [saveFileHandle, setSaveFileHandle] = useState<any | null>(null);
+
+  // Handler to select save file
+  const handleSelectSaveFile = async () => {
+    try {
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName: `converted.${detectedFormat || 'bin'}`,
+        types: [
+          {
+            description: "Converted File",
+            accept: {
+              "application/json": [".json", ".ndjson"],
+              "text/csv": [".csv"],
+              "application/xml": [".xml"],
+            },
+          },
+        ],
+      });
+      
+      if (handle) {
+        setSaveFileHandle(handle);
+        setSavePathSelected(true);
+      }
+    } catch (err) {
+      if ((err as any).name !== 'AbortError') {
+        console.error('Save file selection error:', err);
+      }
+    }
+  };
 
   useEffect(() => {
     // Auto-start benchmark when component is rendered
+    // For large files, require explicit save file selection first
+    // For small files, auto-start immediately
     if (!hasStarted && file) {
-      setHasStarted(true);
+      const isLargeFile = file.size > STREAMING_THRESHOLD;
+      const canStart = isLargeFile ? (hasSelectedSavePath || savePathSelected) : true;
+      
+      if (canStart) {
+        setHasStarted(true);
+      }
     }
-  }, [file, hasStarted]);
+  }, [file, hasStarted, hasSelectedSavePath, savePathSelected]);
 
   useEffect(() => {
     if (!hasStarted || !file) {
@@ -492,7 +532,6 @@ export default function LiveBenchmarkSection({
     const runBenchmark = async () => {
       try {
         setProgress(0);
-        const initialMemory = (performance as any).memory?.usedJSHeapSize || 0;
         const isLargeFile = file.size > STREAMING_THRESHOLD;
 
         // Detect format first (doesn't require loading entire file)
@@ -517,55 +556,104 @@ export default function LiveBenchmarkSection({
         setProgress(50);
         const { ConvertBuddy } = await import("convert-buddy-js");
 
+        // Capture memory RIGHT before conversion
+        const initialMemory = (performance as any).memory?.usedJSHeapSize || 0;
         const startConvert = performance.now();
         
-        // Create a single ConvertBuddy instance for all chunks
-        const buddy = await ConvertBuddy.create({
-          outputFormat,
-          inputFormat: detectedFmt as Format,
-        });
-
+        // For benchmarking: use JSON output for fair comparison with competitor parsers
+        // which all convert to JSON (arrays of objects)
+        const benchmarkOutputFormat = detectedFmt === "csv" ? "json" : outputFormat;
+        
         let result: Uint8Array;
 
-        if (isLargeFile) {
-          // Streaming mode for large files - use File.stream() for better compatibility
-          const blobParts: BlobPart[] = [];
+        if (isLargeFile && saveFileHandle) {
+          // Streaming mode for large files - write directly to file
+          console.log(`[Streaming Benchmark] Starting streaming conversion for ${fileSizeMb.toFixed(2)}MB file`);
+          
+          const { ConvertBuddy } = await import("convert-buddy-js");
+          console.log(`[Streaming Benchmark] Creating ConvertBuddy instance (${benchmarkOutputFormat})`);
+          
+          const buddy = await ConvertBuddy.create({
+            outputFormat: benchmarkOutputFormat,
+            inputFormat: detectedFmt as Format,
+          });
+          
+          console.log(`[Streaming Benchmark] ConvertBuddy instance ready, starting to stream chunks`);
+
+          let writable: any = null;
           let totalProcessedBytes = 0;
+          let chunkCount = 0;
           
-          const reader = (file as any).stream().getReader();
           try {
-            while (true) {
-              const { value, done } = await reader.read();
-              if (done) break;
-
-              const chunk = value as Uint8Array;
-              const chunkResult = buddy.push(chunk);
-              if (chunkResult.length > 0) {
-                blobParts.push(chunkResult as BlobPart);
-              }
-              totalProcessedBytes += chunk.length;
-              
-              // Update progress during streaming
-              const progressPercent = 50 + ((totalProcessedBytes / file.size) * 30);
-              setProgress(Math.min(progressPercent, 80));
-            }
-          } finally {
+            writable = await saveFileHandle.createWritable();
+            const reader = (file as any).stream().getReader();
             try {
-              if ((reader as any).cancel) await (reader as any).cancel();
-            } catch {}
-          }
+              while (true) {
+                const { value, done } = await reader.read();
+                if (done) {
+                  console.log(`[Streaming Benchmark] Finished reading all chunks (${chunkCount} total)`);
+                  break;
+                }
 
-          // Finish the conversion to get any remaining output
-          const finalResult = buddy.finish();
-          if (finalResult.length > 0) {
-            blobParts.push(finalResult as BlobPart);
+                chunkCount++;
+                const chunk = value as Uint8Array;
+                const chunkResult = buddy.push(chunk);
+                if (chunkResult.length > 0) {
+                  await writable.write(chunkResult);
+                }
+                totalProcessedBytes += chunk.length;
+                
+                // Update progress during streaming
+                const progressPercent = 50 + ((totalProcessedBytes / file.size) * 30);
+                setProgress(Math.min(progressPercent, 80));
+                
+                // Log every 10 chunks to track progress
+                if (chunkCount % 10 === 0) {
+                  console.log(`[Streaming Benchmark] Chunk ${chunkCount}: ${(totalProcessedBytes / 1024 / 1024).toFixed(2)}MB processed`);
+                }
+                
+                // Yield to allow UI updates
+                await new Promise(resolve => setTimeout(resolve, 0));
+              }
+            } finally {
+              try {
+                if ((reader as any).cancel) await (reader as any).cancel();
+              } catch {}
+            }
+
+            // Finish the conversion to get any remaining output
+            const finalResult = buddy.finish();
+            if (finalResult.length > 0) {
+              await writable.write(finalResult);
+            }
+
+            if (writable) {
+              await writable.close();
+            }
+
+            console.log(`[Streaming Benchmark] Streaming complete: ${chunkCount} chunks, ${totalProcessedBytes} bytes processed`);
+
+            // Return empty result - data was written to file
+            result = new Uint8Array(0);
+          } catch (streamError) {
+            if (writable) {
+              try {
+                await writable.abort();
+              } catch {}
+            }
+            throw streamError;
           }
-          
-          // Combine chunks using Blob to avoid massive Uint8Array allocation
-          const resultBlob = new Blob(blobParts);
-          result = new Uint8Array(await resultBlob.arrayBuffer());
+        } else if (isLargeFile) {
+          // Large file without save handle - shouldn't reach here
+          result = new Uint8Array(0);
         } else {
           // Direct mode for small files
+          const { ConvertBuddy } = await import("convert-buddy-js");
+          const buddy = await ConvertBuddy.create({
+            outputFormat: benchmarkOutputFormat,
+            inputFormat: detectedFmt as Format,
+          });
+          
           const output = buddy.push(fileBytes);
           const finalResult = buddy.finish();
           
@@ -577,14 +665,17 @@ export default function LiveBenchmarkSection({
 
         const endConvert = performance.now();
 
-        setConversionResult(result);
-
-        setProgress(80);
+        // Capture memory BEFORE storing result (to exclude result object itself)
         const finalMemory = (performance as any).memory?.usedJSHeapSize || 0;
         const totalTime = (endConvert - startConvert) / 1000; // seconds
         const throughputMbps = fileSizeMb / totalTime;
         const latencyMs = endConvert - startConvert;
         const memoryEstimateMb = (finalMemory - initialMemory) / (1024 * 1024);
+
+        // Store result after measurement
+        setConversionResult(result);
+
+        setProgress(80);
 
         // Estimate records processed based on file size and common record size
         const estimatedRecordSize = Math.max(100, fileSizeMb * 1024 / 100); // rough estimate
@@ -601,34 +692,39 @@ export default function LiveBenchmarkSection({
 
         // Benchmark competitors for CSV files - only on small files where we have fileBytes
         if (detectedFmt === "csv" && !isLargeFile && fileBytes.length > 0) {
-          const competitorsToRun: Array<() => Promise<CompetitorBenchmark>> = [
-            () => benchmarkCsvParse(fileBytes),
-            () => benchmarkPapaparse(fileBytes),
-            () => benchmarkFastCsv(fileBytes),
-          ];
+          try {
+            const competitorsToRun: Array<() => Promise<CompetitorBenchmark>> = [
+              () => benchmarkCsvParse(fileBytes),
+              () => benchmarkPapaparse(fileBytes),
+              () => benchmarkFastCsv(fileBytes),
+            ];
 
-          const results: CompetitorBenchmark[] = [];
-          for (const run of competitorsToRun) {
-            try {
-              // Each benchmark implementation handles its own try/catch and
-              // returns an object with error populated on failure.
-              const res = await run();
-              results.push(res);
-            } catch (err) {
-              // Fallback if the function itself throws (shouldn't happen)
-              console.error('Competitor benchmark threw:', err);
-              results.push({
-                name: 'unknown',
-                throughputMbPerSec: 0,
-                latencyMs: 0,
-                error: err instanceof Error ? err.message : String(err),
-              });
+            const results: CompetitorBenchmark[] = [];
+            for (const run of competitorsToRun) {
+              try {
+                // Each benchmark implementation handles its own try/catch and
+                // returns an object with error populated on failure.
+                const res = await run();
+                results.push(res);
+              } catch (err) {
+                // Fallback if the function itself throws (shouldn't happen)
+                console.error('Competitor benchmark threw:', err);
+                results.push({
+                  name: 'unknown',
+                  throughputMbPerSec: 0,
+                  latencyMs: 0,
+                  error: err instanceof Error ? err.message : String(err),
+                });
+              }
             }
-          }
 
-          // Only include measured results (throughput > 0) or errors to show why
-          // a competitor couldn't be run in the current environment.
-          setCompetitorResults(results);
+            // Only include measured results (throughput > 0) or errors to show why
+            // a competitor couldn't be run in the current environment.
+            setCompetitorResults(results);
+          } catch (err) {
+            console.error('Competitor benchmarking block error:', err);
+            // Continue without competitor results
+          }
         }
 
         setProgress(100);
@@ -649,6 +745,35 @@ export default function LiveBenchmarkSection({
   }, [hasStarted, file, outputFormat]);
 
   if (!hasStarted && !metrics) {
+    // For large files, show button to select save file before starting benchmark
+    const isLargeFile = file && file.size > STREAMING_THRESHOLD;
+    
+    if (isLargeFile) {
+      return (
+        <Card className="p-6 bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20 mt-8">
+          <div className="flex items-center gap-3 mb-6">
+            <Activity className="w-5 h-5 text-accent" />
+            <h3 className="text-lg font-semibold text-foreground">Live Performance Benchmark</h3>
+          </div>
+          
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Click the button below to select a save path and start the benchmark. This will measure the performance of converting your file.
+            </p>
+            <Button 
+              onClick={() => void handleSelectSaveFile()}
+              size="lg"
+              className="w-full sm:w-auto"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Select Save File & Start Benchmark
+            </Button>
+          </div>
+        </Card>
+      );
+    }
+    
+    // For small files, don't show anything while preparing
     return null;
   }
 
@@ -748,9 +873,9 @@ export default function LiveBenchmarkSection({
             <h3 className="text-lg font-semibold text-foreground mb-4">Convert Buddy</h3>
             <ParserDetailsCollapsible
               parserName="Convert Buddy"
-              codeSnippet={getConvertBuddyCode(detectedFormat, outputFormat)}
-              outputPreview={getOutputPreview(conversionResult, outputFormat)}
-              outputFormat={outputFormat}
+              codeSnippet={getConvertBuddyCode(detectedFormat, detectedFormat === "csv" ? "json" : outputFormat)}
+              outputPreview={getOutputPreview(conversionResult, detectedFormat === "csv" ? "json" : outputFormat)}
+              outputFormat={detectedFormat === "csv" ? "json" : outputFormat}
             />
           </Card>
 

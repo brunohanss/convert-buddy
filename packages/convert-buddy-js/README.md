@@ -1,3 +1,5 @@
+> ⚠️ **In Development** - This project is currently under active development and subject to breaking changes. Experimental state, could change heavily.
+
 # convert-buddy-js
 
 A high-performance, streaming-first parser and converter for CSV, XML, NDJSON, and JSON. `convert-buddy-js` is a TypeScript wrapper around a Rust/WASM core, offering fast parsing and multiple usage styles for Node.js and browsers.

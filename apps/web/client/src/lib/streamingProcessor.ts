@@ -35,7 +35,7 @@ export interface StreamingResult {
   error?: string;
 }
 
-const CHUNK_SIZE = 1024 * 1024; // 1MB chunks for optimal processing
+const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB chunks for optimal WASM processing (was 1MB)
 
 /**
  * Process a large file using streaming with convert-buddy WASM

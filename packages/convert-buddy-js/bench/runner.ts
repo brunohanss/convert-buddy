@@ -108,38 +108,38 @@ async function runBenchmarks() {
   const csvMedium = generateCsvDataset(100000, 20); // 100K rows, 20 cols
   const csvLarge = generateCsvDataset(1000000, 10); // 1M rows, 10 cols
 
-  console.log("\nBenchmarking CSV -> NDJSON (small)...");
+  console.log("\nBenchmarking CSV -> JSON (small)...");
   results.push(
-    await benchmarkConversion("CSV->NDJSON (small)", csvSmall, {
+    await benchmarkConversion("CSV->JSON (small)", csvSmall, {
       inputFormat: "csv",
-      outputFormat: "ndjson",
+      outputFormat: "json",
       profile: true,
     })
   );
 
-  console.log("Benchmarking CSV -> NDJSON (medium)...");
+  console.log("Benchmarking CSV -> JSON (medium)...");
   results.push(
-    await benchmarkConversion("CSV->NDJSON (medium)", csvMedium, {
+    await benchmarkConversion("CSV->JSON (medium)", csvMedium, {
       inputFormat: "csv",
-      outputFormat: "ndjson",
+      outputFormat: "json",
       profile: true,
     })
   );
 
-  console.log("Benchmarking CSV -> NDJSON (large)...");
+  console.log("Benchmarking CSV -> JSON (large)...");
   results.push(
-    await benchmarkConversion("CSV->NDJSON (large)", csvLarge, {
+    await benchmarkConversion("CSV->JSON (large)", csvLarge, {
       inputFormat: "csv",
-      outputFormat: "ndjson",
+      outputFormat: "json",
       profile: true,
     })
   );
 
-  console.log("Benchmarking CSV -> NDJSON (streaming)...");
+  console.log("Benchmarking CSV -> JSON (streaming)...");
   results.push(
-    await benchmarkStreaming("CSV->NDJSON (streaming)", csvMedium, {
+    await benchmarkStreaming("CSV->JSON (streaming)", csvMedium, {
       inputFormat: "csv",
-      outputFormat: "ndjson",
+      outputFormat: "json",
       profile: true,
     })
   );

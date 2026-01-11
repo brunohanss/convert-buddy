@@ -12,6 +12,9 @@ mod format;
 mod timing;
 mod detect;
 
+#[cfg(test)]
+mod detect_tests;
+
 pub use error::{ConvertError, Result};
 pub use stats::Stats;
 pub use format::{Format, ConverterConfig};
@@ -48,6 +51,12 @@ pub fn init(debug_enabled: bool) {
             info!("convert-buddy: logging initialized");
         }
     }
+}
+
+/// Check if SIMD is enabled in this build.
+#[wasm_bindgen(js_name = getSimdEnabled)]
+pub fn get_simd_enabled() -> bool {
+    cfg!(feature = "simd")
 }
 
 /// Detect the input format from a sample of bytes.

@@ -266,61 +266,61 @@ async function runBenchmarks() {
 
   // ========== CSV -> NDJSON Benchmarks ==========
   console.log("╔════════════════════════════════════════╗");
-  console.log("║  CSV → NDJSON Benchmarks               ║");
+  console.log("║  CSV → JSON Benchmarks               ║");
   console.log("╚════════════════════════════════════════╝\n");
 
   // Small
-  console.log("Benchmarking CSV → NDJSON (small)...");
+  console.log("Benchmarking CSV → JSON (small)...");
   results.push(
-    await benchmarkConversion("convert-buddy", "CSV→NDJSON", "small", csvSmall, {
+    await benchmarkConversion("convert-buddy", "CSV→JSON", "small", csvSmall, {
       inputFormat: "csv",
-      outputFormat: "ndjson",
+      outputFormat: "json",
     })
   );
 
-  const papaSmall = await benchmarkPapaParse("CSV→NDJSON", "small", csvSmallStr);
+  const papaSmall = await benchmarkPapaParse("CSV→JSON", "small", csvSmallStr);
   if (papaSmall) results.push(papaSmall);
 
-  const csvParseSmall = await benchmarkCsvParse("CSV→NDJSON", "small", csvSmallStr);
+  const csvParseSmall = await benchmarkCsvParse("CSV→JSON", "small", csvSmallStr);
   if (csvParseSmall) results.push(csvParseSmall);
 
-  const fastCsvSmall = await benchmarkFastCsv("CSV→NDJSON", "small", csvSmallStr);
+  const fastCsvSmall = await benchmarkFastCsv("CSV→JSON", "small", csvSmallStr);
   if (fastCsvSmall) results.push(fastCsvSmall);
 
   // Medium
-  console.log("Benchmarking CSV → NDJSON (medium)...");
+  console.log("Benchmarking CSV → JSON (medium)...");
   results.push(
-    await benchmarkConversion("convert-buddy", "CSV→NDJSON", "medium", csvMedium, {
+    await benchmarkConversion("convert-buddy", "CSV→JSON", "medium", csvMedium, {
       inputFormat: "csv",
-      outputFormat: "ndjson",
+      outputFormat: "json",
     })
   );
 
-  const papaMedium = await benchmarkPapaParse("CSV→NDJSON", "medium", csvMediumStr);
+  const papaMedium = await benchmarkPapaParse("CSV→JSON", "medium", csvMediumStr);
   if (papaMedium) results.push(papaMedium);
 
-  const csvParseMedium = await benchmarkCsvParse("CSV→NDJSON", "medium", csvMediumStr);
+  const csvParseMedium = await benchmarkCsvParse("CSV→JSON", "medium", csvMediumStr);
   if (csvParseMedium) results.push(csvParseMedium);
 
-  const fastCsvMedium = await benchmarkFastCsv("CSV→NDJSON", "medium", csvMediumStr);
+  const fastCsvMedium = await benchmarkFastCsv("CSV→JSON", "medium", csvMediumStr);
   if (fastCsvMedium) results.push(fastCsvMedium);
 
   // Large
-  console.log("Benchmarking CSV → NDJSON (large)...");
+  console.log("Benchmarking CSV → JSON (large)...");
   results.push(
-    await benchmarkConversion("convert-buddy", "CSV→NDJSON", "large", csvLarge, {
+    await benchmarkConversion("convert-buddy", "CSV→JSON", "large", csvLarge, {
       inputFormat: "csv",
-      outputFormat: "ndjson",
+      outputFormat: "json",
     })
   );
 
-  const papaLarge = await benchmarkPapaParse("CSV→NDJSON", "large", csvLargeStr);
+  const papaLarge = await benchmarkPapaParse("CSV→JSON", "large", csvLargeStr);
   if (papaLarge) results.push(papaLarge);
 
-  const csvParseLarge = await benchmarkCsvParse("CSV→NDJSON", "large", csvLargeStr);
+  const csvParseLarge = await benchmarkCsvParse("CSV→JSON", "large", csvLargeStr);
   if (csvParseLarge) results.push(csvParseLarge);
 
-  const fastCsvLarge = await benchmarkFastCsv("CSV→NDJSON", "large", csvLargeStr);
+  const fastCsvLarge = await benchmarkFastCsv("CSV→JSON", "large", csvLargeStr);
   if (fastCsvLarge) results.push(fastCsvLarge);
 
   // ========== NDJSON Benchmarks ==========

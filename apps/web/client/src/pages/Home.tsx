@@ -8,7 +8,7 @@ import StreamingProcessor from "@/components/StreamingProcessor";
 import Footer from "@/components/Footer";
 import BenchmarkSection from "@/components/BenchmarkSection";
 import LiveBenchmarkSection from "@/components/LiveBenchmarkSection";
-import { convert, convertToString, detectCsvFieldsAndDelimiter, detectXmlElements, detectFormat, type Format } from "convert-buddy-js";
+import { convertFile, detectCsvFieldsAndDelimiter, detectXmlElements, detectFormat, type Format, convertToString } from "convert-buddy-js/browser";
 
 // Format bytes into human-readable string using GB / MB / KB as appropriate
 function formatBytes(bytes: number): string {
@@ -169,13 +169,11 @@ Inception,Thriller,2010,Leonardo DiCaprio,Cobb,Joseph Gordon-Levitt,Arthur`;
 
     setIsDownloading(true);
     try {
-      // Read the file as ArrayBuffer
-      const arrayBuffer = await uploadedFile.arrayBuffer();
-      
       // Build conversion options - the library will auto-detect configs if not provided
-      const convertOptions: Parameters<typeof convert>[1] = {
+      const convertOptions: Parameters<typeof convertFile>[1] = {
         outputFormat,
         inputFormat: checkResult.format as Format,
+        profile: true, // Enable performance profiling
       };
 
       // Optionally pass detected configs for better performance (skips re-detection)
@@ -193,9 +191,13 @@ Inception,Thriller,2010,Leonardo DiCaprio,Cobb,Joseph Gordon-Levitt,Arthur`;
       }
 
       console.log("Conversion options:", convertOptions);
+      console.time("Conversion");
       
-      // Convert using the WASM library
-      const convertedData = await convert(new Uint8Array(arrayBuffer), convertOptions);
+      // PERFORMANCE OPTIMIZATION: Use streaming convertFile instead of loading entire file into memory
+      // This uses the browser's native ReadableStream API for chunk-by-chunk processing
+      const convertedData = await convertFile(uploadedFile, convertOptions);
+      
+      console.timeEnd("Conversion");
 
       // Create a blob from Uint8Array - convert to proper type
       const blobPart: BlobPart = new Uint8Array(convertedData) as unknown as BlobPart;
@@ -468,6 +470,15 @@ Inception,Thriller,2010,Leonardo DiCaprio,Cobb,Joseph Gordon-Levitt,Arthur`;
                             </p>
                           </div>
                         </div>
+
+                        {/* Format Override Option */}
+                        {checkResult.fields.length === 0 && (
+                          <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 p-4">
+                            <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                              ⚠️ Format detection returned no fields. Conversion may not work correctly.
+                            </p>
+                          </div>
+                        )}
 
                         <div className="rounded-lg border border-border bg-secondary/40 p-4">
                           <p className="text-xs text-muted-foreground mb-3">

@@ -1,11 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Detect CSV fields and delimiter from a sample of bytes.
- */
-export function detectCsvFields(sample: Uint8Array): any;
-export function init(debug_enabled: boolean): void;
-/**
  * Detect XML elements from a sample of bytes.
  */
 export function detectXmlElements(sample: Uint8Array): any;
@@ -13,6 +8,15 @@ export function detectXmlElements(sample: Uint8Array): any;
  * Detect the input format from a sample of bytes.
  */
 export function detectFormat(sample: Uint8Array): string | undefined;
+/**
+ * Check if SIMD is enabled in this build.
+ */
+export function getSimdEnabled(): boolean;
+/**
+ * Detect CSV fields and delimiter from a sample of bytes.
+ */
+export function detectCsvFields(sample: Uint8Array): any;
+export function init(debug_enabled: boolean): void;
 /**
  * A streaming converter state machine.
  * Converts between CSV, NDJSON, JSON, and XML formats with high performance.
@@ -69,6 +73,7 @@ export interface InitOutput {
   readonly detectCsvFields: (a: number, b: number) => any;
   readonly detectFormat: (a: number, b: number) => [number, number];
   readonly detectXmlElements: (a: number, b: number) => any;
+  readonly getSimdEnabled: () => number;
   readonly init: (a: number) => void;
   readonly stats_bytes_in: (a: number) => number;
   readonly stats_bytes_out: (a: number) => number;

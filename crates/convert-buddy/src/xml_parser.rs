@@ -125,7 +125,7 @@ impl XmlParser {
                         element_stack.clear();
                     } else if in_record && !element_stack.is_empty() {
                         // Pop the current element
-                        if let Some((elem_name, mut elem_obj)) = element_stack.pop() {
+                        if let Some((elem_name, elem_obj)) = element_stack.pop() {
                             // If we have text content and no children, store it as a string
                             if !current_text.is_empty() && elem_obj.is_empty() {
                                 // This is a leaf element with text

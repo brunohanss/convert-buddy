@@ -74,6 +74,7 @@ type WasmModule = {
   detectFormat?: (sample: Uint8Array) => string | null | undefined;
   detectCsvFields?: (sample: Uint8Array) => CsvDetection | null | undefined;
   detectXmlElements?: (sample: Uint8Array) => XmlDetection | null | undefined;
+  getSimdEnabled?: () => boolean;
   __wbg_set_wasm?: (wasm: unknown) => void;
 };
 
@@ -159,11 +160,13 @@ export class ConvertBuddy {
   private onProgress?: ProgressCallback;
   private progressIntervalBytes: number;
   private lastProgressBytes: number = 0;
+  public simd: boolean;
 
-  private constructor(converter: any, debug: boolean, profile: boolean, opts: ConvertBuddyOptions = {}) {
+  private constructor(converter: any, debug: boolean, profile: boolean, simd: boolean, opts: ConvertBuddyOptions = {}) {
     this.converter = converter;
     this.debug = debug;
     this.profile = profile;
+    this.simd = simd;
     this.onProgress = opts.onProgress;
     this.progressIntervalBytes = opts.progressIntervalBytes || 1024 * 1024; // 1MB default
   }
@@ -188,6 +191,11 @@ export class ConvertBuddy {
       inputFormat = undefined;
     }
 
+    // Optimize chunk size for better WASM performance
+    // Larger chunks reduce boundary crossing overhead
+    // Default: 512KB (was 1MB), but can be customized
+    const chunkTargetBytes = opts.chunkTargetBytes || (512 * 1024);
+
     let converter;
     if (inputFormat && opts.outputFormat) {
       // Use withConfig for custom formats
@@ -196,7 +204,7 @@ export class ConvertBuddy {
         debug,
         inputFormat,
         opts.outputFormat,
-        opts.chunkTargetBytes || 1024 * 1024,
+        chunkTargetBytes,
         profile,
         csvConfig || null,
         opts.xmlConfig || null
@@ -205,8 +213,11 @@ export class ConvertBuddy {
       converter = new wasmModule.Converter(debug);
     }
 
-    if (debug) console.log("[convert-buddy-js] initialized", opts);
-    return new ConvertBuddy(converter, debug, profile, opts);
+    // Check if SIMD is enabled
+    const simdEnabled = (wasmModule as any).getSimdEnabled?.() ?? false;
+
+    if (debug) console.log("[convert-buddy-js] initialized with chunkTargetBytes:", chunkTargetBytes, "simd:", simdEnabled, opts);
+    return new ConvertBuddy(converter, debug, profile, simdEnabled, opts);
   }
 
   push(chunk: Uint8Array): Uint8Array {
@@ -291,7 +302,7 @@ async function readSample(
   }
 
   if (input instanceof ArrayBuffer) {
-    const bytes = new Uint8Array(input);
+    const bytes = new Uint8Array(input as ArrayBuffer);
     return bytes.length > maxBytes ? bytes.slice(0, maxBytes) : bytes;
   }
 

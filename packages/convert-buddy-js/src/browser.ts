@@ -60,7 +60,7 @@ export async function convertFile(
     const sampleSize = 256 * 1024; // 256KB
     const sampleBlob = file.slice(0, sampleSize);
     const sampleBuffer = await sampleBlob.arrayBuffer();
-    const sample = new Uint8Array(sampleBuffer);
+    const sample = new Uint8Array(sampleBuffer as ArrayBuffer);
     
     const detected = await autoDetectConfig(sample, { debug: opts.debug });
     
@@ -80,6 +80,22 @@ export async function convertFile(
       }
     } else {
       throw new Error("Could not auto-detect input format. Please specify inputFormat explicitly.");
+    }
+  }
+  
+  // Adaptive chunk sizing based on file size
+  // Tuned to balance WASM boundary crossing reduction with memory efficiency
+  if (!actualOpts.chunkTargetBytes) {
+    const fileSize = file.size;
+    actualOpts.chunkTargetBytes = Math.max(
+      512 * 1024,      // minimum: 512KB
+      Math.min(
+        1 * 1024 * 1024,   // maximum: 1MB (conservative for memory)
+        Math.floor(fileSize / 16)  // 1/16 of file size
+      )
+    );
+    if (opts.debug) {
+      console.log(`[convert-buddy] Adaptive chunk sizing: ${fileSize} bytes → ${actualOpts.chunkTargetBytes} byte chunks`);
     }
   }
   

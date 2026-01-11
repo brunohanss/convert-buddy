@@ -4,15 +4,15 @@
  * Detect CSV fields and delimiter from a sample of bytes.
  */
 export function detectCsvFields(sample: Uint8Array): any;
-export function init(debug_enabled: boolean): void;
-/**
- * Detect XML elements from a sample of bytes.
- */
-export function detectXmlElements(sample: Uint8Array): any;
 /**
  * Detect the input format from a sample of bytes.
  */
 export function detectFormat(sample: Uint8Array): string | undefined;
+/**
+ * Detect XML elements from a sample of bytes.
+ */
+export function detectXmlElements(sample: Uint8Array): any;
+export function init(debug_enabled: boolean): void;
 /**
  * A streaming converter state machine.
  * Converts between CSV, NDJSON, JSON, and XML formats with high performance.

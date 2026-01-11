@@ -33,16 +33,29 @@ pub fn detect_format(sample: &[u8]) -> Option<Format> {
     }
 
     let parser = JsonParser::new();
+    
+    // If it starts with { or [, it's likely JSON/NDJSON, not CSV
+    if first == b'{' || first == b'[' {
+        if looks_like_ndjson(sample, &parser) {
+            return Some(Format::Ndjson);
+        }
+        if parser.quick_validate(sample) {
+            return Some(Format::Json);
+        }
+    }
+    
+    // Check for CSV (important for quoted fields with delimiters like: "field1"|"field2")
+    if looks_like_csv(sample) {
+        return Some(Format::Csv);
+    }
+    
+    // For other starting characters, check NDJSON and JSON
     if looks_like_ndjson(sample, &parser) {
         return Some(Format::Ndjson);
     }
 
     if parser.quick_validate(sample) {
         return Some(Format::Json);
-    }
-
-    if looks_like_csv(sample) {
-        return Some(Format::Csv);
     }
 
     None
@@ -217,6 +230,11 @@ fn looks_like_ndjson(sample: &[u8], parser: &JsonParser) -> bool {
         let line = trim_line(line);
         if line.is_empty() {
             continue;
+        }
+
+        // NDJSON lines must be JSON objects or arrays, not plain strings or numbers
+        if line.is_empty() || (line[0] != b'{' && line[0] != b'[') {
+            return false;
         }
 
         if !parser.quick_validate(line) {

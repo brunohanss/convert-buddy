@@ -309,19 +309,19 @@ async function runBenchmarks() {
   const csvLargeStr = new TextDecoder().decode(csvLarge);
 
   results.push(
-    await benchmarkConvertBuddy("favorable-large", "CSV→NDJSON", "large", csvLarge, {
+    await benchmarkConvertBuddy("favorable-large", "CSV→JSON", "large", csvLarge, {
       inputFormat: "csv",
-      outputFormat: "ndjson",
+      outputFormat: "json",
     })
   );
 
-  const papaLarge = await benchmarkPapaParse("favorable-large", "CSV→NDJSON", "large", csvLargeStr);
+  const papaLarge = await benchmarkPapaParse("favorable-large", "CSV→JSON", "large", csvLargeStr);
   if (papaLarge) results.push(papaLarge);
 
-  const csvParseLarge = await benchmarkCsvParse("favorable-large", "CSV→NDJSON", "large", csvLargeStr);
+  const csvParseLarge = await benchmarkCsvParse("favorable-large", "CSV→JSON", "large", csvLargeStr);
   if (csvParseLarge) results.push(csvParseLarge);
 
-  const fastCsvLarge = await benchmarkFastCsv("favorable-large", "CSV→NDJSON", "large", csvLargeStr);
+  const fastCsvLarge = await benchmarkFastCsv("favorable-large", "CSV→JSON", "large", csvLargeStr);
   if (fastCsvLarge) results.push(fastCsvLarge);
 
   // NDJSON passthrough (convert-buddy's strength)
@@ -341,13 +341,13 @@ async function runBenchmarks() {
   const csvSimpleStr = new TextDecoder().decode(csvSimple);
 
   results.push(
-    await benchmarkConvertBuddy("favorable-simple", "CSV→NDJSON", "medium", csvSimple, {
+    await benchmarkConvertBuddy("favorable-simple", "CSV→JSON", "medium", csvSimple, {
       inputFormat: "csv",
-      outputFormat: "ndjson",
+      outputFormat: "json",
     })
   );
 
-  const papaSimple = await benchmarkPapaParse("favorable-simple", "CSV→NDJSON", "medium", csvSimpleStr);
+  const papaSimple = await benchmarkPapaParse("favorable-simple", "CSV→JSON", "medium", csvSimpleStr);
   if (papaSimple) results.push(papaSimple);
 
   // ========== NEUTRAL CASES (balanced comparison) ==========
@@ -361,19 +361,19 @@ async function runBenchmarks() {
   const csvMediumStr = new TextDecoder().decode(csvMedium);
 
   results.push(
-    await benchmarkConvertBuddy("neutral-medium", "CSV→NDJSON", "medium", csvMedium, {
+    await benchmarkConvertBuddy("neutral-medium", "CSV→JSON", "medium", csvMedium, {
       inputFormat: "csv",
-      outputFormat: "ndjson",
+      outputFormat: "json",
     })
   );
 
-  const papaMedium = await benchmarkPapaParse("neutral-medium", "CSV→NDJSON", "medium", csvMediumStr);
+  const papaMedium = await benchmarkPapaParse("neutral-medium", "CSV→JSON", "medium", csvMediumStr);
   if (papaMedium) results.push(papaMedium);
 
-  const csvParseMedium = await benchmarkCsvParse("neutral-medium", "CSV→NDJSON", "medium", csvMediumStr);
+  const csvParseMedium = await benchmarkCsvParse("neutral-medium", "CSV→JSON", "medium", csvMediumStr);
   if (csvParseMedium) results.push(csvParseMedium);
 
-  const fastCsvMedium = await benchmarkFastCsv("neutral-medium", "CSV→NDJSON", "medium", csvMediumStr);
+  const fastCsvMedium = await benchmarkFastCsv("neutral-medium", "CSV→JSON", "medium", csvMediumStr);
   if (fastCsvMedium) results.push(fastCsvMedium);
 
   // NDJSON to JSON (medium)
@@ -397,13 +397,13 @@ async function runBenchmarks() {
   const csvRealisticStr = new TextDecoder().decode(csvRealistic);
 
   results.push(
-    await benchmarkConvertBuddy("neutral-realistic", "CSV→NDJSON", "medium", csvRealistic, {
+    await benchmarkConvertBuddy("neutral-realistic", "CSV→JSON", "medium", csvRealistic, {
       inputFormat: "csv",
-      outputFormat: "ndjson",
+      outputFormat: "json",
     })
   );
 
-  const papaRealistic = await benchmarkPapaParse("neutral-realistic", "CSV→NDJSON", "medium", csvRealisticStr);
+  const papaRealistic = await benchmarkPapaParse("neutral-realistic", "CSV→JSON", "medium", csvRealisticStr);
   if (papaRealistic) results.push(papaRealistic);
 
   // ========== UNFAVORABLE CASES (competitors may outperform) ==========
@@ -418,19 +418,19 @@ async function runBenchmarks() {
   const csvTinyStr = new TextDecoder().decode(csvTiny);
 
   results.push(
-    await benchmarkConvertBuddy("unfavorable-tiny", "CSV→NDJSON", "tiny", csvTiny, {
+    await benchmarkConvertBuddy("unfavorable-tiny", "CSV→JSON", "tiny", csvTiny, {
       inputFormat: "csv",
-      outputFormat: "ndjson",
+      outputFormat: "json",
     })
   );
 
-  const papaTiny = await benchmarkPapaParse("unfavorable-tiny", "CSV→NDJSON", "tiny", csvTinyStr);
+  const papaTiny = await benchmarkPapaParse("unfavorable-tiny", "CSV→JSON", "tiny", csvTinyStr);
   if (papaTiny) results.push(papaTiny);
 
-  const csvParseTiny = await benchmarkCsvParse("unfavorable-tiny", "CSV→NDJSON", "tiny", csvTinyStr);
+  const csvParseTiny = await benchmarkCsvParse("unfavorable-tiny", "CSV→JSON", "tiny", csvTinyStr);
   if (csvParseTiny) results.push(csvParseTiny);
 
-  const fastCsvTiny = await benchmarkFastCsv("unfavorable-tiny", "CSV→NDJSON", "tiny", csvTinyStr);
+  const fastCsvTiny = await benchmarkFastCsv("unfavorable-tiny", "CSV→JSON", "tiny", csvTinyStr);
   if (fastCsvTiny) results.push(fastCsvTiny);
 
   // Single record (worst case for WASM)
@@ -439,13 +439,13 @@ async function runBenchmarks() {
   const csvSingleStr = new TextDecoder().decode(csvSingle);
 
   results.push(
-    await benchmarkConvertBuddy("unfavorable-single", "CSV→NDJSON", "tiny", csvSingle, {
+    await benchmarkConvertBuddy("unfavorable-single", "CSV→JSON", "tiny", csvSingle, {
       inputFormat: "csv",
-      outputFormat: "ndjson",
+      outputFormat: "json",
     })
   );
 
-  const papaSingle = await benchmarkPapaParse("unfavorable-single", "CSV→NDJSON", "tiny", csvSingleStr);
+  const papaSingle = await benchmarkPapaParse("unfavorable-single", "CSV→JSON", "tiny", csvSingleStr);
   if (papaSingle) results.push(papaSingle);
 
   // Very small NDJSON to JSON (overhead dominates)
@@ -469,13 +469,13 @@ async function runBenchmarks() {
   const csvWideStr = new TextDecoder().decode(csvWide);
 
   results.push(
-    await benchmarkConvertBuddy("unfavorable-wide", "CSV→NDJSON", "medium", csvWide, {
+    await benchmarkConvertBuddy("unfavorable-wide", "CSV→JSON", "medium", csvWide, {
       inputFormat: "csv",
-      outputFormat: "ndjson",
+      outputFormat: "json",
     })
   );
 
-  const papaWide = await benchmarkPapaParse("unfavorable-wide", "CSV→NDJSON", "medium", csvWideStr);
+  const papaWide = await benchmarkPapaParse("unfavorable-wide", "CSV→JSON", "medium", csvWideStr);
   if (papaWide) results.push(papaWide);
 
   // Large nested objects (JSON parsing complexity)
@@ -499,13 +499,13 @@ async function runBenchmarks() {
   const csvComplexQuotesStr = new TextDecoder().decode(csvComplexQuotes);
 
   results.push(
-    await benchmarkConvertBuddy("unfavorable-complex", "CSV→NDJSON", "small", csvComplexQuotes, {
+    await benchmarkConvertBuddy("unfavorable-complex", "CSV→JSON", "small", csvComplexQuotes, {
       inputFormat: "csv",
-      outputFormat: "ndjson",
+      outputFormat: "json",
     })
   );
 
-  const papaComplexQuotes = await benchmarkPapaParse("unfavorable-complex", "CSV→NDJSON", "small", csvComplexQuotesStr);
+  const papaComplexQuotes = await benchmarkPapaParse("unfavorable-complex", "CSV→JSON", "small", csvComplexQuotesStr);
   if (papaComplexQuotes) results.push(papaComplexQuotes);
 
   // ========== RESULTS ==========

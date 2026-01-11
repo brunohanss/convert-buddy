@@ -174,25 +174,6 @@ function passArray8ToWasm0(arg, malloc) {
     return ptr;
 }
 /**
- * Detect CSV fields and delimiter from a sample of bytes.
- * @param {Uint8Array} sample
- * @returns {any}
- */
-export function detectCsvFields(sample) {
-    const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.detectCsvFields(ptr0, len0);
-    return ret;
-}
-
-/**
- * @param {boolean} debug_enabled
- */
-export function init(debug_enabled) {
-    wasm.init(debug_enabled);
-}
-
-/**
  * Detect XML elements from a sample of bytes.
  * @param {Uint8Array} sample
  * @returns {any}
@@ -219,6 +200,34 @@ export function detectFormat(sample) {
         wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     }
     return v2;
+}
+
+/**
+ * Check if SIMD is enabled in this build.
+ * @returns {boolean}
+ */
+export function getSimdEnabled() {
+    const ret = wasm.getSimdEnabled();
+    return ret !== 0;
+}
+
+/**
+ * Detect CSV fields and delimiter from a sample of bytes.
+ * @param {Uint8Array} sample
+ * @returns {any}
+ */
+export function detectCsvFields(sample) {
+    const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.detectCsvFields(ptr0, len0);
+    return ret;
+}
+
+/**
+ * @param {boolean} debug_enabled
+ */
+export function init(debug_enabled) {
+    wasm.init(debug_enabled);
 }
 
 function takeFromExternrefTable0(idx) {

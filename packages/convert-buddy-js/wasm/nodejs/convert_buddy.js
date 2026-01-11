@@ -190,10 +190,20 @@ module.exports.detectCsvFields = function(sample) {
 };
 
 /**
- * @param {boolean} debug_enabled
+ * Detect the input format from a sample of bytes.
+ * @param {Uint8Array} sample
+ * @returns {string | undefined}
  */
-module.exports.init = function(debug_enabled) {
-    wasm.init(debug_enabled);
+module.exports.detectFormat = function(sample) {
+    const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.detectFormat(ptr0, len0);
+    let v2;
+    if (ret[0] !== 0) {
+        v2 = getStringFromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    }
+    return v2;
 };
 
 /**
@@ -209,20 +219,10 @@ module.exports.detectXmlElements = function(sample) {
 };
 
 /**
- * Detect the input format from a sample of bytes.
- * @param {Uint8Array} sample
- * @returns {string | undefined}
+ * @param {boolean} debug_enabled
  */
-module.exports.detectFormat = function(sample) {
-    const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.detectFormat(ptr0, len0);
-    let v2;
-    if (ret[0] !== 0) {
-        v2 = getStringFromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-    }
-    return v2;
+module.exports.init = function(debug_enabled) {
+    wasm.init(debug_enabled);
 };
 
 function takeFromExternrefTable0(idx) {

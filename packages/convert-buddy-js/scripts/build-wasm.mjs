@@ -10,7 +10,7 @@ mkdirSync(outDir, { recursive: true });
 
 // Controls
 const debug = process.env.CONVERT_BUDDY_DEBUG === "1";
-const enableSimd = process.env.CONVERT_BUDDY_SIMD === "1";
+const enableSimd = process.env.CONVERT_BUDDY_SIMD !== "0"; // Enabled by default
 const enableThreads = process.env.CONVERT_BUDDY_THREADS === "1";
  // "web" | "nodejs"
 

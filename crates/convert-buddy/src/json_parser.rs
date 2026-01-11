@@ -40,10 +40,11 @@ impl JsonParser {
     /// Parse JSON and convert to minified bytes (removes whitespace)
     #[cfg(feature = "simd")]
     pub fn parse_and_minify(&self, data: &mut [u8]) -> Result<Vec<u8>> {
+        let capacity = data.len();
         let value = simd_json::to_borrowed_value(data)
             .map_err(|e| ConvertError::JsonParse(e.to_string()))?;
         
-        let mut output = Vec::with_capacity(data.len());
+        let mut output = Vec::with_capacity(capacity);
         simd_json::to_writer(&mut output, &value)
             .map_err(|e| ConvertError::JsonParse(e.to_string()))?;
         
@@ -65,10 +66,11 @@ impl JsonParser {
     /// Parse JSON and convert to pretty-printed bytes
     #[cfg(feature = "simd")]
     pub fn parse_and_prettify(&self, data: &mut [u8]) -> Result<Vec<u8>> {
+        let capacity = data.len() * 2;
         let value = simd_json::to_borrowed_value(data)
             .map_err(|e| ConvertError::JsonParse(e.to_string()))?;
         
-        let mut output = Vec::with_capacity(data.len() * 2);
+        let mut output = Vec::with_capacity(capacity);
         simd_json::to_writer_pretty(&mut output, &value)
             .map_err(|e| ConvertError::JsonParse(e.to_string()))?;
         
