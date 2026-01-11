@@ -26,7 +26,9 @@ use csv_parser::CsvParser;
 use xml_parser::XmlParser;
 use json_parser::JsonParser;
 use js_sys::{Array, Object, Reflect};
+#[cfg(target_arch = "wasm32")]
 use serde::de::DeserializeOwned;
+#[cfg(target_arch = "wasm32")]
 use serde::Deserialize;
 
 #[wasm_bindgen]
@@ -136,6 +138,7 @@ pub struct Converter {
     stats: Stats,
 }
 
+#[cfg(target_arch = "wasm32")]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct CsvConfigInput {
@@ -145,6 +148,7 @@ struct CsvConfigInput {
     trim_whitespace: Option<bool>,
 }
 
+#[cfg(target_arch = "wasm32")]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct XmlConfigInput {
@@ -184,6 +188,30 @@ impl Converter {
         csv_config: JsValue,
         xml_config: JsValue,
     ) -> std::result::Result<Converter, JsValue> {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let _ = (csv_config, xml_config);
+            let input = Format::from_string(input_format)
+                .ok_or_else(|| ConvertError::InvalidConfig(format!("Invalid input format: {}", input_format)))?;
+            let output = Format::from_string(output_format)
+                .ok_or_else(|| ConvertError::InvalidConfig(format!("Invalid output format: {}", output_format)))?;
+
+            let config = ConverterConfig::new(input, output)
+                .with_chunk_size(chunk_target_bytes)
+                .with_stats(enable_stats);
+
+            let state = Self::create_state(&config);
+
+            return Ok(Converter {
+                debug,
+                config,
+                state: Some(state),
+                stats: Stats::default(),
+            });
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        {
         let input = Format::from_string(input_format)
             .ok_or_else(|| ConvertError::InvalidConfig(format!("Invalid input format: {}", input_format)))?;
         
@@ -239,6 +267,7 @@ impl Converter {
             state: Some(state),
             stats: Stats::default(),
         })
+        }
     }
 
     /// Push a chunk of bytes. Returns converted output bytes for that chunk.
@@ -828,6 +857,7 @@ impl Converter {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
 fn parse_csv_config(value: JsValue) -> Option<CsvConfig> {
     let input: CsvConfigInput = deserialize_optional(value)?;
     let mut config = CsvConfig::default();
@@ -856,6 +886,7 @@ fn parse_csv_config(value: JsValue) -> Option<CsvConfig> {
     Some(config)
 }
 
+#[cfg(target_arch = "wasm32")]
 fn parse_xml_config(value: JsValue) -> Option<XmlConfig> {
     let input: XmlConfigInput = deserialize_optional(value)?;
     let mut config = XmlConfig::default();
@@ -881,6 +912,7 @@ fn parse_xml_config(value: JsValue) -> Option<XmlConfig> {
     Some(config)
 }
 
+#[cfg(target_arch = "wasm32")]
 fn deserialize_optional<T: DeserializeOwned>(value: JsValue) -> Option<T> {
     if value.is_null() || value.is_undefined() {
         return None;
@@ -894,6 +926,8 @@ fn deserialize_optional<T: DeserializeOwned>(value: JsValue) -> Option<T> {
 #[cfg(test)]
 mod integration_tests {
     use super::*;
+    #[cfg(target_arch = "wasm32")]
+    use js_sys::{Object, Reflect};
 
     /// Helper to create a converter without WASM bindings for testing
     fn create_test_converter(input_format: Format, output_format: Format) -> Result<Converter> {
@@ -1161,5 +1195,266 @@ mod integration_tests {
         assert!(result_str.contains(r#""b":2"#));
         
         Ok(())
+    }
+
+    fn build_csv_config(delimiter: Option<&str>, quote: Option<&str>) -> JsValue {
+        #[cfg(target_arch = "wasm32")]
+        {
+            if delimiter.is_none() && quote.is_none() {
+                return JsValue::NULL;
+            }
+            let config = Object::new();
+            if let Some(delimiter) = delimiter {
+                let _ = Reflect::set(&config, &JsValue::from("delimiter"), &JsValue::from(delimiter));
+            }
+            if let Some(quote) = quote {
+                let _ = Reflect::set(&config, &JsValue::from("quote"), &JsValue::from(quote));
+            }
+            return config.into();
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let _ = (delimiter, quote);
+            JsValue::NULL
+        }
+    }
+
+    fn build_xml_config(record_element: Option<&str>) -> JsValue {
+        #[cfg(target_arch = "wasm32")]
+        {
+            if let Some(record_element) = record_element {
+                let config = Object::new();
+                let _ = Reflect::set(&config, &JsValue::from("recordElement"), &JsValue::from(record_element));
+                return config.into();
+            }
+            return JsValue::NULL;
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let _ = record_element;
+            JsValue::NULL
+        }
+    }
+
+    fn build_converter(
+        input_format: &str,
+        output_format: &str,
+        enable_stats: bool,
+        csv_config: JsValue,
+        xml_config: JsValue,
+    ) -> Converter {
+        Converter::with_config(
+            false,
+            input_format,
+            output_format,
+            1024,
+            enable_stats,
+            csv_config,
+            xml_config,
+        )
+        .expect("converter should build")
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    #[test]
+    fn test_parse_configs_and_deserialize_optional() {
+        let csv_config = build_csv_config(Some(";"), Some("'"));
+        let parsed_csv = parse_csv_config(csv_config).unwrap();
+        assert_eq!(parsed_csv.delimiter, b';');
+        assert_eq!(parsed_csv.quote, b'\'');
+        assert_eq!(parsed_csv.escape, Some(b'\''));
+
+        let xml_config = build_xml_config(Some("item"));
+        let parsed_xml = parse_xml_config(xml_config).unwrap();
+        assert_eq!(parsed_xml.record_element, "item");
+
+        let none_csv: Option<CsvConfigInput> = deserialize_optional(JsValue::NULL);
+        assert!(none_csv.is_none());
+    }
+
+    #[test]
+    fn test_converter_invalid_format_errors() {
+        let result = Converter::with_config(
+            false,
+            "bad",
+            "json",
+            1024,
+            false,
+            JsValue::NULL,
+            JsValue::NULL,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_converter_detection_waits_for_more_data() -> Result<()> {
+        let mut converter = create_test_converter(Format::Csv, Format::Json)?;
+        let output = converter.push(b"name,age\nAli").map_err(|_| ConvertError::InvalidConfig("push failed".to_string()))?;
+        assert!(output.is_empty());
+
+        let big_chunk = vec![b'a'; 300];
+        let _ = converter.push(&big_chunk).map_err(|_| ConvertError::InvalidConfig("push failed".to_string()))?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_converter_states_csv_and_ndjson() {
+        let mut csv_to_ndjson = build_converter(
+            "csv",
+            "ndjson",
+            true,
+            build_csv_config(Some(","), None),
+            build_xml_config(Some("row")),
+        );
+        let output = csv_to_ndjson.push(b"name,age\nAlice,30\n").unwrap();
+        assert!(String::from_utf8_lossy(&output).contains("Alice"));
+
+        let mut csv_to_json = build_converter(
+            "csv",
+            "json",
+            false,
+            build_csv_config(Some(","), None),
+            build_xml_config(Some("row")),
+        );
+        let output = csv_to_json.push(b"name,age\nAlice,30\n").unwrap();
+        let final_output = csv_to_json.finish().unwrap();
+        let combined_bytes = [output, final_output].concat();
+        let combined = String::from_utf8_lossy(&combined_bytes);
+        assert!(combined.starts_with('['));
+
+        let mut csv_to_xml = build_converter(
+            "csv",
+            "xml",
+            false,
+            build_csv_config(Some(","), None),
+            build_xml_config(Some("row")),
+        );
+        let output = csv_to_xml.push(b"name,age\nAlice,30\n").unwrap();
+        let final_output = csv_to_xml.finish().unwrap();
+        let combined_bytes = [output, final_output].concat();
+        let combined = String::from_utf8_lossy(&combined_bytes);
+        assert!(combined.contains("<root>"));
+
+        let mut ndjson_passthrough = build_converter("ndjson", "ndjson", false, JsValue::NULL, JsValue::NULL);
+        let output = ndjson_passthrough.push(b"{\"a\":1}\n").unwrap();
+        assert!(String::from_utf8_lossy(&output).contains("\"a\""));
+    }
+
+    #[test]
+    fn test_converter_states_ndjson_targets() {
+        let mut ndjson_to_json = build_converter("ndjson", "json", false, JsValue::NULL, JsValue::NULL);
+        let output = ndjson_to_json.push(b"{\"a\":1}\n").unwrap();
+        let final_output = ndjson_to_json.finish().unwrap();
+        let combined_bytes = [output, final_output].concat();
+        let combined = String::from_utf8_lossy(&combined_bytes);
+        assert!(combined.starts_with('['));
+        assert!(combined.ends_with(']'));
+
+        let mut ndjson_to_csv = build_converter("ndjson", "csv", false, JsValue::NULL, JsValue::NULL);
+        let output = ndjson_to_csv.push(b"{\"name\":\"Ada\"}\n").unwrap();
+        let final_output = ndjson_to_csv.finish().unwrap();
+        let combined_bytes = [output, final_output].concat();
+        let combined = String::from_utf8_lossy(&combined_bytes);
+        assert!(combined.contains("name"));
+
+        let mut ndjson_to_xml = build_converter("ndjson", "xml", false, JsValue::NULL, JsValue::NULL);
+        let output = ndjson_to_xml.push(b"{\"name\":\"Ada\"}\n").unwrap();
+        let final_output = ndjson_to_xml.finish().unwrap();
+        let combined_bytes = [output, final_output].concat();
+        let combined = String::from_utf8_lossy(&combined_bytes);
+        assert!(combined.contains("<root>"));
+    }
+
+    #[test]
+    fn test_converter_states_xml_targets() {
+        let mut xml_to_ndjson = build_converter("xml", "ndjson", false, JsValue::NULL, JsValue::NULL);
+        let output = xml_to_ndjson.push(b"<root><row><name>Ada</name></row></root>").unwrap();
+        assert!(String::from_utf8_lossy(&output).contains("Ada"));
+
+        let mut xml_to_json = build_converter("xml", "json", false, JsValue::NULL, JsValue::NULL);
+        let output = xml_to_json.push(b"<root><row><name>Ada</name></row></root>").unwrap();
+        let final_output = xml_to_json.finish().unwrap();
+        let combined_bytes = [output, final_output].concat();
+        let combined = String::from_utf8_lossy(&combined_bytes);
+        assert!(combined.starts_with('['));
+
+        let mut xml_to_csv = build_converter("xml", "csv", false, JsValue::NULL, JsValue::NULL);
+        let output = xml_to_csv.push(b"<root><row><name>Ada</name></row></root>").unwrap();
+        let final_output = xml_to_csv.finish().unwrap();
+        let combined_bytes = [output, final_output].concat();
+        let combined = String::from_utf8_lossy(&combined_bytes);
+        assert!(combined.contains("name"));
+
+        let mut xml_passthrough = build_converter("xml", "xml", false, JsValue::NULL, JsValue::NULL);
+        let output = xml_passthrough.push(b"<root><row><name>Ada</name></row></root>").unwrap();
+        assert!(String::from_utf8_lossy(&output).contains("Ada"));
+    }
+
+    #[test]
+    fn test_converter_states_json_targets() {
+        let mut json_passthrough = build_converter("json", "json", false, JsValue::NULL, JsValue::NULL);
+        let output = json_passthrough.push(br#"{"a":1}"#).unwrap();
+        assert_eq!(output, br#"{"a":1}"#.to_vec());
+        let finished = json_passthrough.finish().unwrap();
+        assert!(finished.is_empty());
+
+        let mut json_to_ndjson = build_converter("json", "ndjson", false, JsValue::NULL, JsValue::NULL);
+        let output = json_to_ndjson.push(br#"[{"a":1},{"b":2}]"#).unwrap();
+        assert!(String::from_utf8_lossy(&output).contains('\n'));
+
+        let mut json_to_ndjson_single = build_converter("json", "ndjson", false, JsValue::NULL, JsValue::NULL);
+        let output = json_to_ndjson_single.push(br#"{"a":1}"#).unwrap();
+        assert!(String::from_utf8_lossy(&output).contains('\n'));
+
+        let mut json_to_csv = build_converter("json", "csv", false, JsValue::NULL, JsValue::NULL);
+        let output = json_to_csv.push(br#"[{"name":"Ada"}]"#).unwrap();
+        let final_output = json_to_csv.finish().unwrap();
+        let combined_bytes = [output, final_output].concat();
+        let combined = String::from_utf8_lossy(&combined_bytes);
+        assert!(combined.contains("name"));
+
+        let mut json_to_xml = build_converter("json", "xml", false, JsValue::NULL, JsValue::NULL);
+        let output = json_to_xml.push(br#"[{"name":"Ada"}]"#).unwrap();
+        let final_output = json_to_xml.finish().unwrap();
+        let combined_bytes = [output, final_output].concat();
+        let combined = String::from_utf8_lossy(&combined_bytes);
+        assert!(combined.contains("<root>"));
+    }
+
+    #[test]
+    fn test_stats_and_finish_errors() {
+        let mut converter = build_converter("ndjson", "json", true, JsValue::NULL, JsValue::NULL);
+        let _ = converter.push(b"{\"a\":1}\n").unwrap();
+        let _ = converter.finish().unwrap();
+        let stats = converter.get_stats();
+        assert!(stats.bytes_in() > 0.0);
+
+        let error = converter.finish();
+        assert!(error.is_err());
+    }
+
+    #[test]
+    fn test_push_after_finish_errors() {
+        let mut converter = build_converter("json", "json", false, JsValue::NULL, JsValue::NULL);
+        let _ = converter.finish().unwrap();
+        let result = converter.push(br#"{"a":1}"#);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_detect_helpers_and_simd_flag() {
+        assert!(!get_simd_enabled());
+
+        let format = detect_format(br#"{"a":1}"#);
+        assert_eq!(format, Some("json".to_string()));
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            let csv_result = detect_csv_fields(b"a,b\n1,2\n");
+            assert!(!csv_result.is_null());
+
+            let xml_result = detect_xml_elements(b"<root><row><a>1</a></row></root>");
+            assert!(!xml_result.is_null());
+        }
     }
 }

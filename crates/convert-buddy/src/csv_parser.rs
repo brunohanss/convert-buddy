@@ -335,4 +335,47 @@ mod tests {
         assert_eq!(fields[1], b"30");
         assert_eq!(fields[2], b"Engineer");
     }
+
+    #[test]
+    fn test_trim_whitespace_and_missing_headers() {
+        let mut config = CsvConfig::default();
+        config.has_headers = false;
+        config.trim_whitespace = true;
+        let mut parser = CsvParser::new(config, 1024);
+
+        let input = b" Alice , 30 \n";
+        let result = parser.push_to_ndjson(input).unwrap();
+        let output = String::from_utf8_lossy(&result);
+
+        assert!(output.contains("\"field_0\":\"Alice\""));
+        assert!(output.contains("\"field_1\":\"30\""));
+    }
+
+    #[test]
+    fn test_quoted_fields_with_escapes_and_newlines() {
+        let config = CsvConfig::default();
+        let mut parser = CsvParser::new(config, 1024);
+
+        let input = b"name,quote\r\n\"Alice\",\"She said \"\"Hi\"\"\"\r\n";
+        let result = parser.push_to_ndjson(input).unwrap();
+        let output = String::from_utf8_lossy(&result);
+
+        assert!(output.contains("She said \\\"Hi\\\""));
+        assert!(parser.partial_size() == 0);
+    }
+
+    #[test]
+    fn test_partial_line_and_finish() {
+        let config = CsvConfig::default();
+        let mut parser = CsvParser::new(config, 1024);
+
+        let chunk = b"name,age\nAlice,30";
+        let result = parser.push_to_ndjson(chunk).unwrap();
+        assert!(result.is_empty());
+        assert!(parser.partial_size() > 0);
+
+        let remaining = parser.finish().unwrap();
+        let output = String::from_utf8_lossy(&remaining);
+        assert!(output.contains("Alice"));
+    }
 }

@@ -197,7 +197,7 @@ mod tests {
         
         // First chunk with incomplete line
         let chunk1 = b"{\"name\":\"Ali";
-        let result1 = parser.push(chunk1).unwrap();
+        let _result1 = parser.push(chunk1).unwrap();
         
         // Second chunk completes the line
         let chunk2 = b"ce\"}\n";
@@ -215,5 +215,33 @@ mod tests {
         
         let expected = b"[{\"name\":\"Alice\"},{\"name\":\"Bob\"}]";
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_skip_invalid_and_whitespace_lines() {
+        let mut parser = NdjsonParser::new(1024);
+        let input = b"\n   \noops\n{\"valid\":true}\n";
+        let result = parser.push(input).unwrap();
+        let output = String::from_utf8_lossy(&result);
+        assert!(output.contains("{\"valid\":true}"));
+        assert!(!output.contains("oops"));
+    }
+
+    #[test]
+    fn test_to_json_array_partial_last() {
+        let mut parser = NdjsonParser::new(1024);
+        let input = b"{\"name\":\"Alice\"}\n{\"name\":\"Bob\"}";
+        let result = parser.to_json_array(input, true, false).unwrap();
+        let output = String::from_utf8_lossy(&result);
+        assert!(output.starts_with('['));
+        assert!(!output.ends_with(']'));
+    }
+
+    #[test]
+    fn test_finish_flushes_output_buffer() {
+        let mut parser = NdjsonParser::new(1024);
+        parser.output_buffer.extend_from_slice(b"buffered");
+        let output = parser.finish().unwrap();
+        assert_eq!(output, b"buffered");
     }
 }

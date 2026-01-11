@@ -305,6 +305,42 @@ mod tests {
 
         assert!(result.contains(&b'{'));
     }
+
+    #[test]
+    fn test_xml_repeated_elements_as_array() {
+        let config = XmlConfig {
+            record_element: "row".to_string(),
+            include_attributes: false,
+            ..Default::default()
+        };
+        let mut parser = XmlParser::new(config, 1024);
+
+        let input = b"<root><row><tag>one</tag><tag>two</tag></row></root>";
+        let result = parser.push_to_ndjson(input).unwrap();
+        let output = String::from_utf8_lossy(&result);
+
+        assert!(output.contains("["));
+        assert!(output.contains("one"));
+        assert!(output.contains("two"));
+    }
+
+    #[test]
+    fn test_xml_finish_with_partial_buffer() {
+        let config = XmlConfig {
+            record_element: "row".to_string(),
+            ..Default::default()
+        };
+        let mut parser = XmlParser::new(config, 1024);
+
+        let input = b"<root><row><name>Alice</name></row></root>";
+        let output = parser.push_to_ndjson(input).unwrap();
+        let output_str = String::from_utf8_lossy(&output);
+        assert!(output_str.contains("Alice"));
+
+        let remaining = parser.finish().unwrap();
+        assert!(remaining.is_empty());
+        assert!(parser.partial_size() == 0);
+    }
 }
 /// XML writer that converts JSON objects to XML format
 pub struct XmlWriter {
@@ -383,4 +419,42 @@ impl XmlWriter {
     }
 }
 
-use std::fmt::Write as FmtWrite;
+#[cfg(test)]
+mod writer_tests {
+    use super::*;
+
+    #[test]
+    fn xml_writer_emits_header_and_records() {
+        let mut writer = XmlWriter::new().with_elements("items".to_string(), "item".to_string());
+        let output = writer
+            .process_json_line(r#"{"name":"Widget","price":19.99,"active":true}"#)
+            .unwrap();
+
+        let output_str = String::from_utf8_lossy(&output);
+        assert!(output_str.contains("<items>"));
+        assert!(output_str.contains("<item>"));
+        assert!(output_str.contains("<name>Widget</name>"));
+        assert!(output_str.contains("<price>19.99</price>"));
+        assert!(output_str.contains("<active>true</active>"));
+    }
+
+    #[test]
+    fn xml_writer_escapes_special_characters() {
+        let mut writer = XmlWriter::new();
+        let output = writer
+            .process_json_line(r#"{"note":"fish & chips <tasty> \"yes\""}"#)
+            .unwrap();
+
+        let output_str = String::from_utf8_lossy(&output);
+        assert!(output_str.contains("&amp;"));
+        assert!(output_str.contains("&lt;tasty&gt;"));
+        assert!(output_str.contains("&quot;yes&quot;"));
+    }
+
+    #[test]
+    fn xml_writer_finish_without_header_is_empty() {
+        let writer = XmlWriter::new();
+        let output = writer.finish().unwrap();
+        assert!(output.is_empty());
+    }
+}
