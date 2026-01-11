@@ -4,8 +4,8 @@
     "conversion": "CSV→JSON",
     "size": "small",
     "dataset": "0.12 MB",
-    "throughputMbps": 11.27,
-    "latencyMs": 10.32,
+    "throughputMbps": 6.73,
+    "latencyMs": 17.26,
     "memoryMb": 0.28,
     "recordsPerSec": 0
   },
@@ -14,39 +14,39 @@
     "conversion": "CSV→JSON",
     "size": "small",
     "dataset": "0.12 MB",
-    "throughputMbps": 6.54,
-    "latencyMs": 17.78,
-    "memoryMb": 1.8,
-    "recordsPerSec": 56315
+    "throughputMbps": 7.62,
+    "latencyMs": 15.26,
+    "memoryMb": 8.18,
+    "recordsPerSec": 65592
   },
   {
     "tool": "csv-parse",
     "conversion": "CSV→JSON",
     "size": "small",
     "dataset": "0.12 MB",
-    "throughputMbps": 6.28,
-    "latencyMs": 18.5,
+    "throughputMbps": 5.67,
+    "latencyMs": 20.51,
     "memoryMb": 2.59,
-    "recordsPerSec": 54058
+    "recordsPerSec": 48759
   },
   {
     "tool": "fast-csv",
     "conversion": "CSV→JSON",
     "size": "small",
     "dataset": "0.12 MB",
-    "throughputMbps": 5.63,
-    "latencyMs": 20.64,
-    "memoryMb": 4.23,
-    "recordsPerSec": 48454
+    "throughputMbps": 5.68,
+    "latencyMs": 20.46,
+    "memoryMb": -7.86,
+    "recordsPerSec": 48870
   },
   {
     "tool": "convert-buddy",
     "conversion": "CSV→JSON",
     "size": "medium",
     "dataset": "1.26 MB",
-    "throughputMbps": 81.97,
-    "latencyMs": 15.33,
-    "memoryMb": -286.14,
+    "throughputMbps": 105.3,
+    "latencyMs": 11.93,
+    "memoryMb": 0.01,
     "recordsPerSec": 0
   },
   {
@@ -54,39 +54,39 @@
     "conversion": "CSV→JSON",
     "size": "medium",
     "dataset": "1.26 MB",
-    "throughputMbps": 18.31,
-    "latencyMs": 68.62,
-    "memoryMb": 41.7,
-    "recordsPerSec": 145752
+    "throughputMbps": 18.22,
+    "latencyMs": 68.97,
+    "memoryMb": 38.34,
+    "recordsPerSec": 145011
   },
   {
     "tool": "csv-parse",
     "conversion": "CSV→JSON",
     "size": "medium",
     "dataset": "1.26 MB",
-    "throughputMbps": 23.47,
-    "latencyMs": 53.55,
-    "memoryMb": 3.77,
-    "recordsPerSec": 186749
+    "throughputMbps": 21.74,
+    "latencyMs": 57.8,
+    "memoryMb": 3.65,
+    "recordsPerSec": 173015
   },
   {
     "tool": "fast-csv",
     "conversion": "CSV→JSON",
     "size": "medium",
     "dataset": "1.26 MB",
-    "throughputMbps": 16.39,
-    "latencyMs": 76.68,
-    "memoryMb": 11.19,
-    "recordsPerSec": 130416
+    "throughputMbps": 15.71,
+    "latencyMs": 79.97,
+    "memoryMb": 11.37,
+    "recordsPerSec": 125047
   },
   {
     "tool": "convert-buddy",
     "conversion": "CSV→JSON",
     "size": "large",
     "dataset": "13.52 MB",
-    "throughputMbps": 105.07,
-    "latencyMs": 128.68,
-    "memoryMb": -53.91,
+    "throughputMbps": 104.87,
+    "latencyMs": 128.92,
+    "memoryMb": -53.9,
     "recordsPerSec": 0
   },
   {
@@ -94,38 +94,38 @@
     "conversion": "CSV→JSON",
     "size": "large",
     "dataset": "13.52 MB",
-    "throughputMbps": 17.41,
-    "latencyMs": 776.68,
-    "memoryMb": 449.44,
-    "recordsPerSec": 128754
+    "throughputMbps": 17.77,
+    "latencyMs": 760.61,
+    "memoryMb": 449.35,
+    "recordsPerSec": 131474
   },
   {
     "tool": "csv-parse",
     "conversion": "CSV→JSON",
     "size": "large",
     "dataset": "13.52 MB",
-    "throughputMbps": 27.85,
-    "latencyMs": 485.45,
-    "memoryMb": 70.95,
-    "recordsPerSec": 205994
+    "throughputMbps": 27.4,
+    "latencyMs": 493.39,
+    "memoryMb": 70.97,
+    "recordsPerSec": 202678
   },
   {
     "tool": "fast-csv",
     "conversion": "CSV→JSON",
     "size": "large",
     "dataset": "13.52 MB",
-    "throughputMbps": 19.03,
-    "latencyMs": 710.37,
-    "memoryMb": -406.6,
-    "recordsPerSec": 140771
+    "throughputMbps": 18.54,
+    "latencyMs": 729.16,
+    "memoryMb": -406.54,
+    "recordsPerSec": 137144
   },
   {
     "tool": "convert-buddy",
     "conversion": "NDJSON→JSON",
     "size": "small",
     "dataset": "0.23 MB",
-    "throughputMbps": 816.39,
-    "latencyMs": 0.28,
+    "throughputMbps": 925.68,
+    "latencyMs": 0.25,
     "memoryMb": 0.01,
     "recordsPerSec": 0
   },
@@ -134,8 +134,8 @@
     "conversion": "NDJSON→JSON",
     "size": "medium",
     "dataset": "2.34 MB",
-    "throughputMbps": 1540.02,
-    "latencyMs": 1.52,
+    "throughputMbps": 1687.09,
+    "latencyMs": 1.39,
     "memoryMb": 0,
     "recordsPerSec": 0
   },
@@ -144,8 +144,8 @@
     "conversion": "NDJSON→JSON",
     "size": "large",
     "dataset": "23.96 MB",
-    "throughputMbps": 1537.65,
-    "latencyMs": 15.58,
+    "throughputMbps": 1663.74,
+    "latencyMs": 14.4,
     "memoryMb": 0,
     "recordsPerSec": 0
   },
@@ -154,69 +154,69 @@
     "conversion": "NDJSON→NDJSON",
     "size": "large",
     "dataset": "23.96 MB",
-    "throughputMbps": 236.72,
-    "latencyMs": 101.23,
-    "memoryMb": -27.82,
-    "recordsPerSec": 987883
+    "throughputMbps": 242.44,
+    "latencyMs": 98.84,
+    "memoryMb": -27.75,
+    "recordsPerSec": 1011770
   },
   {
     "tool": "convert-buddy",
     "conversion": "XML→NDJSON",
     "size": "small",
     "dataset": "0.36 MB",
-    "throughputMbps": 32.02,
-    "latencyMs": 11.34,
+    "throughputMbps": 34.49,
+    "latencyMs": 10.53,
     "memoryMb": 0.01,
-    "recordsPerSec": 88171
+    "recordsPerSec": 94955
   },
   {
     "tool": "fast-xml-parser",
     "conversion": "XML→NDJSON",
     "size": "small",
     "dataset": "0.36 MB",
-    "throughputMbps": 10.49,
-    "latencyMs": 34.63,
-    "memoryMb": 6.58,
-    "recordsPerSec": 28873
+    "throughputMbps": 10.87,
+    "latencyMs": 33.41,
+    "memoryMb": 6.61,
+    "recordsPerSec": 29927
   },
   {
     "tool": "convert-buddy",
     "conversion": "XML→NDJSON",
     "size": "medium",
     "dataset": "3.74 MB",
-    "throughputMbps": 87.77,
-    "latencyMs": 42.57,
-    "memoryMb": 0.08,
-    "recordsPerSec": 234900
+    "throughputMbps": 74.33,
+    "latencyMs": 50.27,
+    "memoryMb": 0.06,
+    "recordsPerSec": 198934
   },
   {
     "tool": "fast-xml-parser",
     "conversion": "XML→NDJSON",
     "size": "medium",
     "dataset": "3.74 MB",
-    "throughputMbps": 21.32,
-    "latencyMs": 175.24,
-    "memoryMb": 37.29,
-    "recordsPerSec": 57063
+    "throughputMbps": 19.58,
+    "latencyMs": 190.85,
+    "memoryMb": 37.63,
+    "recordsPerSec": 52398
   },
   {
     "tool": "convert-buddy",
     "conversion": "XML→NDJSON",
     "size": "large",
     "dataset": "38.41 MB",
-    "throughputMbps": 88.23,
-    "latencyMs": 435.38,
+    "throughputMbps": 84.68,
+    "latencyMs": 453.64,
     "memoryMb": 0.01,
-    "recordsPerSec": 229682
+    "recordsPerSec": 220441
   },
   {
     "tool": "fast-xml-parser",
     "conversion": "XML→NDJSON",
     "size": "large",
     "dataset": "38.41 MB",
-    "throughputMbps": 21.71,
-    "latencyMs": 1769.3,
-    "memoryMb": 328.28,
-    "recordsPerSec": 56520
+    "throughputMbps": 20.79,
+    "latencyMs": 1847.88,
+    "memoryMb": 327.67,
+    "recordsPerSec": 54116
   }
 ]

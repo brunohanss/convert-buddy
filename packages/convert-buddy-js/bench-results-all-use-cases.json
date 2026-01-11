@@ -1,0 +1,89 @@
+{
+  "timestamp": "2026-01-11T14:23:22.462Z",
+  "totalDuration": 15476.7904,
+  "summaries": [
+    {
+      "useCaseName": "CSV → JSON",
+      "toolResults": [
+        {
+          "tool": "convert-buddy",
+          "avgThroughput": 81.392,
+          "avgLatency": 32.896,
+          "avgMemory": 0.06600000000000002,
+          "count": 5
+        },
+        {
+          "tool": "PapaParse",
+          "avgThroughput": 23.448,
+          "avgLatency": 192.828,
+          "avgMemory": 29.458,
+          "count": 5
+        },
+        {
+          "tool": "csv-parse",
+          "avgThroughput": 21.18,
+          "avgLatency": 160.45,
+          "avgMemory": 26.896666666666665,
+          "count": 3
+        },
+        {
+          "tool": "fast-csv",
+          "avgThroughput": 14.540000000000001,
+          "avgLatency": 241.10666666666665,
+          "avgMemory": 39.03333333333333,
+          "count": 3
+        }
+      ]
+    },
+    {
+      "useCaseName": "NDJSON Conversions",
+      "toolResults": [
+        {
+          "tool": "convert-buddy",
+          "avgThroughput": 804.9316666666667,
+          "avgLatency": 32.45666666666667,
+          "avgMemory": 0.011666666666666667,
+          "count": 6
+        },
+        {
+          "tool": "Native JSON",
+          "avgThroughput": 130.47333333333333,
+          "avgLatency": 68.53,
+          "avgMemory": 22.083333333333332,
+          "count": 3
+        }
+      ]
+    },
+    {
+      "useCaseName": "JSON Conversions",
+      "toolResults": [
+        {
+          "tool": "convert-buddy",
+          "avgThroughput": 59.09499999999999,
+          "avgLatency": 890.495,
+          "avgMemory": -0.0012499999999999987,
+          "count": 8
+        }
+      ]
+    },
+    {
+      "useCaseName": "XML Conversions",
+      "toolResults": [
+        {
+          "tool": "convert-buddy",
+          "avgThroughput": 59.672000000000004,
+          "avgLatency": 136.86599999999999,
+          "avgMemory": 0.01,
+          "count": 5
+        },
+        {
+          "tool": "fast-xml-parser",
+          "avgThroughput": 18.246666666666666,
+          "avgLatency": 651.56,
+          "avgMemory": 148.71666666666667,
+          "count": 3
+        }
+      ]
+    }
+  ]
+}

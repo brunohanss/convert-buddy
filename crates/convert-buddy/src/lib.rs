@@ -110,12 +110,19 @@ pub fn detect_xml_elements(sample: &[u8]) -> JsValue {
 enum ConverterState {
     CsvToNdjson(CsvParser),
     CsvToJson(CsvParser, NdjsonParser, bool), // (csv_parser, ndjson_parser, is_first_chunk)
+    CsvToXml(CsvParser, xml_parser::XmlWriter),
     NdjsonPassthrough(NdjsonParser),
     NdjsonToJson(NdjsonParser, bool), // (parser, is_first_chunk)
+    NdjsonToCsv(NdjsonParser, csv_writer::CsvWriter),
+    NdjsonToXml(NdjsonParser, xml_parser::XmlWriter),
     XmlToNdjson(XmlParser),
     XmlToJson(XmlParser, NdjsonParser, bool), // (xml_parser, ndjson_parser, is_first_chunk)
     XmlToCsv(XmlParser, csv_writer::CsvWriter),
+    XmlPassthrough(XmlParser),
     JsonPassthrough(JsonParser),
+    JsonToNdjson(JsonParser), // JSON array to NDJSON
+    JsonToCsv(JsonParser, csv_writer::CsvWriter),
+    JsonToXml(JsonParser, xml_parser::XmlWriter),
     NeedsDetection(Vec<u8>), // Buffered first chunk for auto-detection
 }
 
@@ -286,6 +293,21 @@ impl Converter {
                 *is_first = false;
                 ndjson_parser.to_json_array(&ndjson_chunk, is_first_chunk, false)?
             }
+            Some(ConverterState::CsvToXml(csv_parser, xml_writer)) => {
+                // First convert CSV to NDJSON
+                let ndjson_chunk = csv_parser.push_to_ndjson(chunk)?;
+                // Then convert NDJSON to XML
+                let ndjson_str = std::str::from_utf8(&ndjson_chunk)
+                    .map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let mut output = Vec::new();
+                for line in ndjson_str.lines() {
+                    let trimmed: &str = line.trim();
+                    if !trimmed.is_empty() {
+                        output.extend(xml_writer.process_json_line(line)?);
+                    }
+                }
+                output
+            }
             Some(ConverterState::NdjsonPassthrough(parser)) => {
                 parser.push(chunk)?
             }
@@ -293,6 +315,34 @@ impl Converter {
                 let is_first_chunk = *is_first;
                 *is_first = false;
                 parser.to_json_array(chunk, is_first_chunk, false)?
+            }
+            Some(ConverterState::NdjsonToCsv(ndjson_parser, csv_writer)) => {
+                // First convert NDJSON to individual lines
+                let ndjson_chunk = ndjson_parser.push(chunk)?;
+                let ndjson_str = std::str::from_utf8(&ndjson_chunk)
+                    .map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let mut output = Vec::new();
+                for line in ndjson_str.lines() {
+                    let trimmed: &str = line.trim();
+                    if !trimmed.is_empty() {
+                        output.extend(csv_writer.process_json_line(line)?);
+                    }
+                }
+                output
+            }
+            Some(ConverterState::NdjsonToXml(ndjson_parser, xml_writer)) => {
+                // Convert NDJSON to XML
+                let ndjson_chunk = ndjson_parser.push(chunk)?;
+                let ndjson_str = std::str::from_utf8(&ndjson_chunk)
+                    .map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let mut output = Vec::new();
+                for line in ndjson_str.lines() {
+                    let trimmed: &str = line.trim();
+                    if !trimmed.is_empty() {
+                        output.extend(xml_writer.process_json_line(line)?);
+                    }
+                }
+                output
             }
             Some(ConverterState::XmlToNdjson(parser)) => {
                 parser.push_to_ndjson(chunk)?
@@ -320,9 +370,79 @@ impl Converter {
                 }
                 output
             }
+            Some(ConverterState::XmlPassthrough(parser)) => {
+                // For XML passthrough, we just validate and pass through
+                parser.push_to_ndjson(chunk)? // XML -> NDJSON is our standard format
+            }
             Some(ConverterState::JsonPassthrough(_parser)) => {
                 // For JSON passthrough, we just validate
                 chunk.to_vec()
+            }
+            Some(ConverterState::JsonToNdjson(_json_parser)) => {
+                // Convert JSON array to NDJSON (extract items from array and emit as lines)
+                let mut output = Vec::new();
+                
+                // Parse JSON - always use serde_json for owned values to avoid lifetime issues
+                if let Ok(value) = serde_json::from_slice::<serde_json::Value>(chunk) {
+                    if let Some(array) = value.as_array() {
+                        for item in array {
+                            if let Ok(json_bytes) = serde_json::to_vec(item) {
+                                output.extend_from_slice(&json_bytes);
+                                output.push(b'\n');
+                            }
+                        }
+                    } else if let Some(_obj) = value.as_object() {
+                        // Single object, treat as one line
+                        if let Ok(json_bytes) = serde_json::to_vec(&value) {
+                            output.extend_from_slice(&json_bytes);
+                            output.push(b'\n');
+                        }
+                    }
+                }
+                
+                output
+            }
+            Some(ConverterState::JsonToCsv(_json_parser, csv_writer)) => {
+                // Convert JSON to NDJSON first, then to CSV
+                let mut output = Vec::new();
+                
+                // Use serde_json to avoid simd lifetime issues
+                if let Ok(value) = serde_json::from_slice::<serde_json::Value>(chunk) {
+                    if let Some(array) = value.as_array() {
+                        for item in array {
+                            let json_str = serde_json::to_string(item)
+                                .unwrap_or_default();
+                            output.extend(csv_writer.process_json_line(&json_str)?);
+                        }
+                    } else if let Some(_obj) = value.as_object() {
+                        let json_str = serde_json::to_string(&value)
+                            .unwrap_or_default();
+                        output.extend(csv_writer.process_json_line(&json_str)?);
+                    }
+                }
+                
+                output
+            }
+            Some(ConverterState::JsonToXml(_json_parser, xml_writer)) => {
+                // Convert JSON to NDJSON first, then to XML
+                let mut output = Vec::new();
+                
+                // Use serde_json to avoid simd lifetime issues
+                if let Ok(value) = serde_json::from_slice::<serde_json::Value>(chunk) {
+                    if let Some(array) = value.as_array() {
+                        for item in array {
+                            let json_str = serde_json::to_string(item)
+                                .unwrap_or_default();
+                            output.extend(xml_writer.process_json_line(&json_str)?);
+                        }
+                    } else if let Some(_obj) = value.as_object() {
+                        let json_str = serde_json::to_string(&value)
+                            .unwrap_or_default();
+                        output.extend(xml_writer.process_json_line(&json_str)?);
+                    }
+                }
+                
+                output
             }
             Some(ConverterState::NeedsDetection(_)) => {
                 // Should not reach here as it's handled above
@@ -344,13 +464,20 @@ impl Converter {
                 Some(ConverterState::CsvToJson(csv_p, ndjson_p, _)) => {
                     csv_p.partial_size() + ndjson_p.partial_size()
                 }
+                Some(ConverterState::CsvToXml(csv_p, _)) => csv_p.partial_size(),
                 Some(ConverterState::NdjsonPassthrough(p)) => p.partial_size(),
                 Some(ConverterState::NdjsonToJson(p, _)) => p.partial_size(),
+                Some(ConverterState::NdjsonToCsv(ndjson_p, _)) => ndjson_p.partial_size(),
+                Some(ConverterState::NdjsonToXml(ndjson_p, _)) => ndjson_p.partial_size(),
                 Some(ConverterState::XmlToNdjson(p)) => p.partial_size(),
                 Some(ConverterState::XmlToJson(xml_p, ndjson_p, _)) => {
                     xml_p.partial_size() + ndjson_p.partial_size()
                 }
                 Some(ConverterState::XmlToCsv(xml_p, _)) => xml_p.partial_size(),
+                Some(ConverterState::XmlPassthrough(p)) => p.partial_size(),
+                Some(ConverterState::JsonToNdjson(_)) => 0,
+                Some(ConverterState::JsonToCsv(_, _)) => 0,
+                Some(ConverterState::JsonToXml(_, _)) => 0,
                 Some(ConverterState::NeedsDetection(buffer)) => buffer.len(),
                 _ => 0,
             };
@@ -408,6 +535,27 @@ impl Converter {
                 
                 output
             }
+            Some(ConverterState::CsvToXml(mut csv_parser, mut xml_writer)) => {
+                // Finish CSV parsing
+                let ndjson_chunk = csv_parser.finish()?;
+                
+                // Process remaining NDJSON through XML writer
+                let ndjson_str = std::str::from_utf8(&ndjson_chunk)
+                    .map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let mut output = Vec::new();
+                for line in ndjson_str.lines() {
+                    let trimmed: &str = line.trim();
+                    if !trimmed.is_empty() {
+                        output.extend(xml_writer.process_json_line(line)?);
+                    }
+                }
+                
+                // Finalize XML writer
+                let final_output = xml_writer.finish()?;
+                output.extend_from_slice(&final_output);
+                
+                output
+            }
             Some(ConverterState::NdjsonPassthrough(mut parser)) => {
                 parser.finish()?
             }
@@ -420,6 +568,48 @@ impl Converter {
                 if !remaining.is_empty() {
                     output.extend_from_slice(&remaining);
                 }
+                output
+            }
+            Some(ConverterState::NdjsonToCsv(mut ndjson_parser, mut csv_writer)) => {
+                // Finish NDJSON parsing
+                let ndjson_chunk = ndjson_parser.finish()?;
+                
+                // Process remaining NDJSON through CSV writer
+                let ndjson_str = std::str::from_utf8(&ndjson_chunk)
+                    .map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let mut output = Vec::new();
+                for line in ndjson_str.lines() {
+                    let trimmed: &str = line.trim();
+                    if !trimmed.is_empty() {
+                        output.extend(csv_writer.process_json_line(line)?);
+                    }
+                }
+                
+                // Finalize CSV writer
+                let final_output = csv_writer.finish()?;
+                output.extend_from_slice(&final_output);
+                
+                output
+            }
+            Some(ConverterState::NdjsonToXml(mut ndjson_parser, mut xml_writer)) => {
+                // Finish NDJSON parsing
+                let ndjson_chunk = ndjson_parser.finish()?;
+                
+                // Process remaining NDJSON through XML writer
+                let ndjson_str = std::str::from_utf8(&ndjson_chunk)
+                    .map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let mut output = Vec::new();
+                for line in ndjson_str.lines() {
+                    let trimmed: &str = line.trim();
+                    if !trimmed.is_empty() {
+                        output.extend(xml_writer.process_json_line(line)?);
+                    }
+                }
+                
+                // Finalize XML writer
+                let final_output = xml_writer.finish()?;
+                output.extend_from_slice(&final_output);
+                
                 output
             }
             Some(ConverterState::XmlToNdjson(mut parser)) => {
@@ -465,8 +655,23 @@ impl Converter {
                 
                 output
             }
+            Some(ConverterState::XmlPassthrough(mut parser)) => {
+                // Finish XML parsing (passthrough)
+                parser.finish()?
+            }
             Some(ConverterState::JsonPassthrough(_)) => {
                 Vec::new()
+            }
+            Some(ConverterState::JsonToNdjson(_)) => {
+                Vec::new()
+            }
+            Some(ConverterState::JsonToCsv(_, mut csv_writer)) => {
+                // Finalize CSV writer
+                csv_writer.finish()?
+            }
+            Some(ConverterState::JsonToXml(_, xml_writer)) => {
+                // Finalize XML writer
+                xml_writer.finish()?
             }
             Some(ConverterState::NeedsDetection(_)) => {
                 // Already handled above, should not reach here
@@ -554,11 +759,33 @@ impl Converter {
                 let ndjson_parser = NdjsonParser::new(config.chunk_target_bytes);
                 ConverterState::CsvToJson(csv_parser, ndjson_parser, true)
             }
+            (Format::Csv, Format::Csv) => {
+                // CSV passthrough
+                let csv_config = config.csv_config.clone().unwrap_or_default();
+                ConverterState::CsvToNdjson(CsvParser::new(csv_config, config.chunk_target_bytes))
+            }
+            (Format::Csv, Format::Xml) => {
+                // CSV -> NDJSON -> XML pipeline
+                let csv_config = config.csv_config.clone().unwrap_or_default();
+                let csv_parser = CsvParser::new(csv_config, config.chunk_target_bytes);
+                let xml_writer = xml_parser::XmlWriter::new();
+                ConverterState::CsvToXml(csv_parser, xml_writer)
+            }
             (Format::Ndjson, Format::Ndjson) => {
                 ConverterState::NdjsonPassthrough(NdjsonParser::new(config.chunk_target_bytes))
             }
             (Format::Ndjson, Format::Json) => {
                 ConverterState::NdjsonToJson(NdjsonParser::new(config.chunk_target_bytes), true)
+            }
+            (Format::Ndjson, Format::Csv) => {
+                let ndjson_parser = NdjsonParser::new(config.chunk_target_bytes);
+                let csv_writer = csv_writer::CsvWriter::new();
+                ConverterState::NdjsonToCsv(ndjson_parser, csv_writer)
+            }
+            (Format::Ndjson, Format::Xml) => {
+                let ndjson_parser = NdjsonParser::new(config.chunk_target_bytes);
+                let xml_writer = xml_parser::XmlWriter::new();
+                ConverterState::NdjsonToXml(ndjson_parser, xml_writer)
             }
             (Format::Xml, Format::Ndjson) => {
                 let xml_config = config.xml_config.clone().unwrap_or_default();
@@ -576,19 +803,26 @@ impl Converter {
                 let csv_writer = csv_writer::CsvWriter::new();
                 ConverterState::XmlToCsv(xml_parser, csv_writer)
             }
+            (Format::Xml, Format::Xml) => {
+                // XML passthrough
+                let xml_config = config.xml_config.clone().unwrap_or_default();
+                ConverterState::XmlPassthrough(XmlParser::new(xml_config, config.chunk_target_bytes))
+            }
             (Format::Json, Format::Json) => {
                 ConverterState::JsonPassthrough(JsonParser::new())
             }
-            (Format::Csv, Format::Csv) => {
-                // CSV passthrough
-                let csv_config = config.csv_config.clone().unwrap_or_default();
-                ConverterState::CsvToNdjson(CsvParser::new(csv_config, config.chunk_target_bytes))
+            (Format::Json, Format::Ndjson) => {
+                ConverterState::JsonToNdjson(JsonParser::new())
             }
-            _ => {
-                // Default to passthrough for unsupported conversions
-                info!("Unsupported conversion: {:?} -> {:?}, using passthrough", 
-                      config.input_format, config.output_format);
-                ConverterState::JsonPassthrough(JsonParser::new())
+            (Format::Json, Format::Csv) => {
+                let json_parser = JsonParser::new();
+                let csv_writer = csv_writer::CsvWriter::new();
+                ConverterState::JsonToCsv(json_parser, csv_writer)
+            }
+            (Format::Json, Format::Xml) => {
+                let json_parser = JsonParser::new();
+                let xml_writer = xml_parser::XmlWriter::new();
+                ConverterState::JsonToXml(json_parser, xml_writer)
             }
         }
     }

@@ -3,6 +3,7 @@ use log::debug;
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use std::collections::HashMap;
+use std::io::Write as IoWrite;
 
 #[derive(Debug, Clone, PartialEq)]
 enum JsonValue {
@@ -305,3 +306,81 @@ mod tests {
         assert!(result.contains(&b'{'));
     }
 }
+/// XML writer that converts JSON objects to XML format
+pub struct XmlWriter {
+    root_element: String,
+    record_element: String,
+    header_written: bool,
+}
+
+impl XmlWriter {
+    pub fn new() -> Self {
+        Self {
+            root_element: "root".to_string(),
+            record_element: "record".to_string(),
+            header_written: false,
+        }
+    }
+
+    pub fn with_elements(mut self, root: String, record: String) -> Self {
+        self.root_element = root;
+        self.record_element = record;
+        self
+    }
+
+    /// Process a JSON line (NDJSON format) and convert to XML
+    pub fn process_json_line(&mut self, json_line: &str) -> Result<Vec<u8>> {
+        let mut output = Vec::new();
+
+        // Write header on first call
+        if !self.header_written {
+            write!(output, "<{}>\n", self.root_element).ok();
+            self.header_written = true;
+        }
+
+        // Parse the JSON to extract fields
+        if let Ok(value) = serde_json::from_str::<serde_json::Value>(json_line) {
+            if let Some(obj) = value.as_object() {
+                write!(output, "  <{}>\n", self.record_element).ok();
+                
+                for (key, val) in obj {
+                    let xml_key = key.to_string();
+                    let xml_value = match val {
+                        serde_json::Value::String(s) => s.clone(),
+                        serde_json::Value::Number(n) => n.to_string(),
+                        serde_json::Value::Bool(b) => b.to_string(),
+                        serde_json::Value::Null => String::new(),
+                        _ => serde_json::to_string(val).unwrap_or_default(),
+                    };
+                    
+                    // Escape XML special characters
+                    let escaped = xml_key.replace("&", "&amp;")
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;")
+                        .replace("\"", "&quot;");
+                    let escaped_value = xml_value.replace("&", "&amp;")
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;")
+                        .replace("\"", "&quot;");
+                    
+                    write!(output, "    <{}>{}</{}>\n", escaped, escaped_value, escaped).ok();
+                }
+                
+                write!(output, "  </{}>\n", self.record_element).ok();
+            }
+        }
+
+        Ok(output)
+    }
+
+    /// Finish and close the root element
+    pub fn finish(&self) -> Result<Vec<u8>> {
+        let mut output = Vec::new();
+        if self.header_written {
+            write!(output, "</{}>\n", self.root_element).ok();
+        }
+        Ok(output)
+    }
+}
+
+use std::fmt::Write as FmtWrite;
