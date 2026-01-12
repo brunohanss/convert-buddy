@@ -101,7 +101,7 @@ export class NodejsThreadPool {
 
     try {
       for (let i = 0; i < this.config.maxWorkers; i++) {
-        const worker = new Worker(workerPath, { type: 'module' });
+        const worker = new Worker(workerPath, { type: 'module' } as any);
         
         worker.on('message', (response: WorkerResult) => {
           this.handleWorkerMessage(response);
