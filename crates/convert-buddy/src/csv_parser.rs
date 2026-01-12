@@ -71,7 +71,7 @@ impl CsvParser {
             ((self.partial_line.len() + chunk.len()) as f64 * 1.3) as usize
         };
         
-        let mut output = BUFFER_POOL.with(|pool| pool.acquire_with_capacity(estimated_size));
+        let mut output = BUFFER_POOL.with(|pool: &BufferPool| pool.acquire_with_capacity(estimated_size));
 
         // Handle partial line by creating a temporary buffer
         let mut temp_buffer = Vec::new();

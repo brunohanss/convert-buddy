@@ -145,10 +145,12 @@ mod tests {
         let parser = JsonParser::new();
         let data = br#" { "a": 1, "b": [true, false] } "#;
 
-        let minified = parser.parse_and_minify(data).unwrap();
+        let mut data_vec = data.to_vec();
+        let minified = parser.parse_and_minify(&mut data_vec).unwrap();
         assert_eq!(String::from_utf8_lossy(&minified), r#"{"a":1,"b":[true,false]}"#);
 
-        let pretty = parser.parse_and_prettify(data).unwrap();
+        let mut data_vec2 = data.to_vec();
+        let pretty = parser.parse_and_prettify(&mut data_vec2).unwrap();
         let pretty_str = String::from_utf8_lossy(&pretty);
         assert!(pretty_str.contains("\n"));
         assert!(pretty_str.contains("\"a\""));
@@ -158,7 +160,8 @@ mod tests {
     fn test_parse_and_validate_errors() {
         let parser = JsonParser::new();
         let invalid = br#"{ "a": "#;
-        let result = parser.parse_and_validate(invalid);
+        let mut invalid_vec = invalid.to_vec();
+        let result = parser.parse_and_validate(&mut invalid_vec);
         assert!(result.is_err());
     }
 }

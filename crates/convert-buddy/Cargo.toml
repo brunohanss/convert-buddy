@@ -10,7 +10,7 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 # Feature gates for performance / platform capability
-default = ["simd", "threads"]  # Enable SIMD + WASM threading for optimal performance
+default = ["threads"]  # Enable WASM/native threading by default (no simd)
 simd = ["simd-json"]
 threads = ["rayon", "num_cpus"]  # Base threading support
 threads-nodejs = ["threads", "wasm-bindgen-rayon"]  # Node.js WASM threading
@@ -39,6 +39,12 @@ memchr = "2.7"
 
 # XML parsing
 quick-xml = "0.36"
+
+# Arena allocator used by XML parser
+bumpalo = "3"
+
+# Fast byte counting used in parallel CSV processing
+bytecount = "0.6"
 
 # Utilities
 thiserror = "1.0"

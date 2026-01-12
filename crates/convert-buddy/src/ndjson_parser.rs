@@ -232,7 +232,7 @@ impl NdjsonParser {
     pub fn to_json_array(&mut self, chunk: &[u8], is_first: bool, is_last: bool) -> Result<Vec<u8>> {
         // Use pooled buffer for output
         let output_capacity = if is_first { chunk.len() + 2 } else { chunk.len() + 1 };
-        let mut output = BUFFER_POOL.with(|pool| pool.acquire_with_capacity(output_capacity));
+        let mut output = BUFFER_POOL.with(|pool: &BufferPool| pool.acquire_with_capacity(output_capacity));
 
         if is_first {
             output.push(b'[');

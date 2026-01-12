@@ -6,6 +6,7 @@ mod stats;
 mod json_parser;
 mod ndjson_parser;
 mod csv_parser;
+mod buffer_pool;
 mod csv_writer;
 mod xml_parser;
 mod format;

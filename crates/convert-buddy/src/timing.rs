@@ -60,7 +60,8 @@ impl<'a> ScopedTimer<'a> {
 
 impl<'a> Drop for ScopedTimer<'a> {
     fn drop(&mut self) {
-        *self.target += self.timer.elapsed().as_nanos() as u64;
+        let nanos = self.timer.elapsed().as_nanos() as u64;
+        *self.target += if nanos == 0 { 1 } else { nanos };
     }
 }
 

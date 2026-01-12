@@ -170,6 +170,14 @@ function debugString(val) {
 function isLikeNone(x) {
     return x === undefined || x === null;
 }
+/**
+ * Check if threading is enabled in this build.
+ * @returns {boolean}
+ */
+module.exports.getThreadingEnabled = function() {
+    const ret = wasm.getSimdEnabled();
+    return ret !== 0;
+};
 
 function passArray8ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 1, 1) >>> 0;
@@ -190,6 +198,42 @@ module.exports.detectXmlElements = function(sample) {
 };
 
 /**
+ * Detect CSV fields and delimiter from a sample of bytes.
+ * @param {Uint8Array} sample
+ * @returns {any}
+ */
+module.exports.detectCsvFields = function(sample) {
+    const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.detectCsvFields(ptr0, len0);
+    return ret;
+};
+
+/**
+ * @param {boolean} debug_enabled
+ */
+module.exports.init = function(debug_enabled) {
+    wasm.init(debug_enabled);
+};
+
+/**
+ * Check if SIMD is enabled in this build.
+ * @returns {boolean}
+ */
+module.exports.getSimdEnabled = function() {
+    const ret = wasm.getSimdEnabled();
+    return ret !== 0;
+};
+
+/**
+ * @returns {any}
+ */
+module.exports.get_threading_support_info = function() {
+    const ret = wasm.get_threading_support_info();
+    return ret;
+};
+
+/**
  * Detect the input format from a sample of bytes.
  * @param {Uint8Array} sample
  * @returns {string | undefined}
@@ -204,51 +248,6 @@ module.exports.detectFormat = function(sample) {
         wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     }
     return v2;
-};
-
-/**
- * Check if threading is enabled in this build.
- * @returns {boolean}
- */
-module.exports.getThreadingEnabled = function() {
-    const ret = wasm.getSimdEnabled();
-    return ret !== 0;
-};
-
-/**
- * @returns {any}
- */
-module.exports.get_threading_support_info = function() {
-    const ret = wasm.get_threading_support_info();
-    return ret;
-};
-
-/**
- * @param {boolean} debug_enabled
- */
-module.exports.init = function(debug_enabled) {
-    wasm.init(debug_enabled);
-};
-
-/**
- * Detect CSV fields and delimiter from a sample of bytes.
- * @param {Uint8Array} sample
- * @returns {any}
- */
-module.exports.detectCsvFields = function(sample) {
-    const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.detectCsvFields(ptr0, len0);
-    return ret;
-};
-
-/**
- * Check if SIMD is enabled in this build.
- * @returns {boolean}
- */
-module.exports.getSimdEnabled = function() {
-    const ret = wasm.getSimdEnabled();
-    return ret !== 0;
 };
 
 function takeFromExternrefTable0(idx) {
