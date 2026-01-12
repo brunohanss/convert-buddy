@@ -89,6 +89,24 @@ type WasmModule = {
 
 let wasmModuleInstance: WasmModule | null = null;
 let wasmModuleLoadPromise: Promise<WasmModule> | null = null;
+let wasmThreadingSupported = false;
+let threadPool: any = null; // Custom WASM thread pool (browser)
+let nodejsThreadPool: any = null; // Node.js specific thread pool
+
+// Detect SharedArrayBuffer support for WASM threading
+function detectWasmThreadingSupport(): boolean {
+  if (typeof SharedArrayBuffer === 'undefined') {
+    return false;
+  }
+  
+  // Test if we can actually create a SharedArrayBuffer
+  try {
+    new SharedArrayBuffer(1);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 async function loadWasmModule(): Promise<WasmModule> {
   // Return cached instance if already loaded
@@ -107,6 +125,9 @@ async function loadWasmModule(): Promise<WasmModule> {
       typeof process !== "undefined" &&
       !!(process as any).versions?.node;
 
+    // Detect threading support
+    wasmThreadingSupported = detectWasmThreadingSupport();
+    
     if (isNode) {
       const { createRequire } = await import("node:module");
       const require = createRequire(import.meta.url);
@@ -116,6 +137,19 @@ async function loadWasmModule(): Promise<WasmModule> {
 
     const wasmUrl = new URL("../wasm/web/convert_buddy.js", import.meta.url);
     const mod = (await import(wasmUrl.href)) as unknown as WasmModule;
+    
+    // Initialize threading if supported
+    if (wasmThreadingSupported && (mod as any).initThreadPool) {
+      try {
+        const numThreads = Math.min(navigator.hardwareConcurrency || 4, 8);
+        await (mod as any).initThreadPool(numThreads);
+        console.log(`[convert-buddy] WASM threading initialized with ${numThreads} threads`);
+      } catch (e) {
+        console.warn('[convert-buddy] WASM threading initialization failed, using single-thread:', e);
+        wasmThreadingSupported = false;
+      }
+    }
+    
     return mod;
   })();
 
@@ -150,6 +184,10 @@ async function initWasm(debug: boolean): Promise<void> {
     }
 
     wasmModule.init(debug);
+    
+    // Note: Node.js enhanced threading is handled at the JavaScript level
+    // No WASM thread pool initialization needed
+    
     wasmInitialized = true;
   })();
 
@@ -261,6 +299,21 @@ export class ConvertBuddy {
   }
 
   private async convertFromBuffer(input: Uint8Array, opts: ConvertBuddyOptions): Promise<Uint8Array> {
+    // Use WASM threading for large inputs when available
+    const useWasmThreading = wasmThreadingSupported && input.length > 256 * 1024; // 256KB threshold
+    
+    if (useWasmThreading && opts.debug) {
+      console.log('[convert-buddy] Using WASM threading for parallel processing');
+    }
+    
+    // Check if we should use JavaScript-level parallelism as fallback
+    if (!useWasmThreading && opts.parallelism && opts.parallelism > 1 && input.length > 512 * 1024) {
+      if (opts.debug) {
+        console.log('[convert-buddy] WASM threading not available, using JavaScript parallelism');
+      }
+      return this.convertFromBufferParallel(input, opts);
+    }
+
     // Handle auto-detection
     let actualOpts = { ...opts };
     
@@ -301,6 +354,244 @@ export class ConvertBuddy {
     }
 
     return result;
+  }
+
+  private async convertFromBufferParallel(input: Uint8Array, opts: ConvertBuddyOptions): Promise<Uint8Array> {
+    // Only use parallel processing for large inputs and supported conversions
+    const parallelThreshold = 512 * 1024; // 512KB (lowered threshold for better parallelism)
+    const maxConcurrency = Math.min(navigator?.hardwareConcurrency || 
+                                  (typeof process !== 'undefined' ? require('os').cpus().length : 4), 8);
+    
+    if (input.length < parallelThreshold || !opts.parallelism || opts.parallelism < 2) {
+      return this.convertFromBuffer(input, { ...opts, parallelism: 1 });
+    }
+
+    // Extended support for parallel processing
+    const supportedConversions = [
+      { input: "csv", output: "ndjson" },
+      { input: "csv", output: "json" },
+      { input: "ndjson", output: "json" },
+      { input: "ndjson", output: "csv" },
+      { input: "ndjson", output: "ndjson" }, // passthrough optimization
+      { input: "json", output: "ndjson" },
+      { input: "json", output: "csv" },
+    ];
+
+    const isSupported = supportedConversions.some(
+      conv => conv.input === opts.inputFormat && conv.output === opts.outputFormat
+    );
+
+    if (!isSupported) {
+      if (opts.debug) {
+        console.log(`[convert-buddy] Parallel processing not supported for ${opts.inputFormat} → ${opts.outputFormat}, using sequential`);
+      }
+      return this.convertFromBuffer(input, { ...opts, parallelism: 1 });
+    }
+
+    try {
+      const actualThreads = Math.min(maxConcurrency, opts.parallelism || maxConcurrency);
+      const isNodejs = typeof process !== 'undefined';
+      
+      if (opts.debug) {
+        const threadingType = isNodejs ? 'Node.js WASM threading' : 'Browser custom threading';
+        console.log(`[convert-buddy] Using ${threadingType} with ${actualThreads} threads`);
+      }
+
+      if (isNodejs) {
+        // Try enhanced Node.js threading first
+        if (!nodejsThreadPool) {
+          try {
+            const { NodejsThreadPool } = await import('./nodejs-thread-pool');
+            nodejsThreadPool = new NodejsThreadPool({
+              maxWorkers: actualThreads,
+              wasmPath: '../../wasm-node.cjs'
+            });
+            await nodejsThreadPool.initialize();
+          } catch (error) {
+            if (opts.debug) {
+              console.log('[convert-buddy] Node.js thread pool creation failed, using JS parallelism:', error);
+            }
+          }
+        }
+
+        if (nodejsThreadPool) {
+          return this.convertUsingNodejsThreadPool(input, opts, actualThreads);
+        } else {
+          return this.convertUsingJsParallelism(input, opts, actualThreads);
+        }
+      } else {
+        // Browser: Create custom thread pool for WASM-level parallelism
+        if (!threadPool) {
+          const { WasmThreadPool } = await import('./thread-pool');
+          threadPool = new WasmThreadPool({
+            maxWorkers: actualThreads,
+            wasmPath: '../wasm/web/convert_buddy.js'
+          });
+          await threadPool.initialize();
+        }
+
+        return this.convertUsingWasmThreadPool(input, opts, actualThreads);
+      }
+      
+    } catch (error) {
+      if (opts.debug) {
+        console.warn(`[convert-buddy] Parallel processing failed, falling back to sequential:`, error);
+      }
+      return this.convertFromBuffer(input, { ...opts, parallelism: 1 });
+    }
+  }
+
+  private async convertUsingNodejsThreadPool(input: Uint8Array, opts: ConvertBuddyOptions, numThreads: number): Promise<Uint8Array> {
+    const { chunkDataNodejs, mergeResultsNodejs } = await import('./nodejs-thread-pool');
+    
+    if (opts.debug) {
+      console.log(`[convert-buddy] Processing with enhanced Node.js threading (${numThreads} workers)`);
+    }
+
+    // Use optimized chunking for Node.js
+    const chunks = chunkDataNodejs(input, numThreads);
+    
+    // Process chunks using Node.js worker threads
+    const results = await nodejsThreadPool!.processChunks('convert', chunks, {
+      outputFormat: opts.outputFormat,
+      inputFormat: opts.inputFormat,
+      csvConfig: opts.csvConfig,
+      xmlConfig: opts.xmlConfig,
+      debug: false // Disable debug in workers to reduce noise
+    });
+
+    // Merge results intelligently based on output format
+    const merged = mergeResultsNodejs(results, opts.outputFormat!);
+    
+    if (opts.debug) {
+      console.log(`[convert-buddy] Node.js threading completed: ${chunks.length} chunks, ${merged.length} bytes`);
+    }
+
+    return merged;
+  }
+
+  private async convertUsingWasmThreadPool(input: Uint8Array, opts: ConvertBuddyOptions, numThreads: number): Promise<Uint8Array> {
+    const inputStr = new TextDecoder().decode(input);
+    
+    // Import chunking utilities
+    const { chunkData, mergeResults } = await import('./thread-pool');
+    const chunks = chunkData(inputStr, numThreads);
+    
+    if (opts.debug) {
+      console.log(`[convert-buddy] Processing ${chunks.length} chunks with WASM thread pool`);
+    }
+
+    // Determine method based on conversion type
+    let method: string;
+    const conversion = `${opts.inputFormat}_to_${opts.outputFormat}`;
+    switch (conversion) {
+      case 'csv_to_ndjson':
+      case 'csv_to_json':
+        method = 'parseCSV';
+        break;
+      case 'ndjson_to_csv':
+      case 'ndjson_to_json':
+        method = 'parseNDJSON';
+        break;
+      case 'json_to_csv':
+      case 'json_to_ndjson':
+        method = 'parseJSON';
+        break;
+      default:
+        throw new Error(`Unsupported conversion: ${conversion}`);
+    }
+
+    // Process chunks in parallel using thread pool
+    const results = await threadPool!.processChunks(method, chunks, {
+      outputFormat: opts.outputFormat,
+      csvConfig: opts.csvConfig,
+      xmlConfig: opts.xmlConfig,
+      debug: opts.debug
+    });
+
+    // Merge results intelligently based on output format
+    const merged = mergeResults(results, opts.outputFormat!);
+    return new TextEncoder().encode(merged);
+  }
+
+  private async convertUsingJsParallelism(input: Uint8Array, opts: ConvertBuddyOptions, numThreads: number): Promise<Uint8Array> {
+    // Split input into chunks based on line boundaries for CSV/NDJSON
+    const chunks = this.splitIntoChunks(input, Math.max(1, Math.floor(input.length / numThreads)));
+    
+    if (opts.debug) {
+      console.log(`[convert-buddy] Processing ${chunks.length} chunks with JS-level parallelism`);
+    }
+    
+    // Process chunks in parallel with improved coordination
+    const chunkPromises = chunks.map(async (chunk, index) => {
+      const chunkOpts = { ...opts, parallelism: 1 }; // Disable recursion
+      
+      // For CSV with headers, only the first chunk should process headers
+      if (opts.inputFormat === "csv" && index > 0) {
+        chunkOpts.csvConfig = { ...chunkOpts.csvConfig, hasHeaders: false };
+      }
+      
+      const chunkBuddy = await ConvertBuddy.create(chunkOpts);
+      const output = chunkBuddy.push(chunk);
+      const final = chunkBuddy.finish();
+      
+      // Combine chunk output
+      const result = new Uint8Array(output.length + final.length);
+      result.set(output, 0);
+      result.set(final, output.length);
+      
+      return result;
+    });
+
+    const chunkResults = await Promise.all(chunkPromises);
+
+    // Combine results more efficiently
+    const totalLength = chunkResults.reduce((sum, chunk) => sum + chunk.length, 0);
+    const result = new Uint8Array(totalLength);
+    
+    let offset = 0;
+    for (const chunk of chunkResults) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    if (opts.debug) {
+      console.log(`[convert-buddy] JS parallel processing completed: ${chunks.length} chunks, ${totalLength} bytes`);
+    }
+
+    return result;
+  }
+
+  private splitIntoChunks(input: Uint8Array, targetChunkSize: number): Uint8Array[] {
+    if (input.length <= targetChunkSize) {
+      return [input];
+    }
+
+    const chunks: Uint8Array[] = [];
+    let start = 0;
+
+    while (start < input.length) {
+      let end = Math.min(start + targetChunkSize, input.length);
+      
+      // Try to find a line boundary within a reasonable range
+      if (end < input.length) {
+        const searchStart = Math.max(start + targetChunkSize - 1024, start);
+        const searchEnd = Math.min(end + 1024, input.length);
+        
+        // Look for newline
+        for (let i = searchEnd - 1; i >= searchStart; i--) {
+          if (input[i] === 0x0A) { // '\n'
+            end = i + 1;
+            break;
+          }
+        }
+      }
+      
+      chunks.push(input.slice(start, end));
+      start = end;
+    }
+
+    return chunks;
   }
 
   private async convertFromFile(file: File, opts: ConvertBuddyOptions): Promise<Uint8Array> {
@@ -956,4 +1247,54 @@ export function getFileTypeConfig(format: Format): Array<{
       accept: { [mimeType]: [extension] },
     },
   ];
+}
+
+// WASM Threading Capabilities API
+/**
+ * Check if WASM threading is supported in the current environment
+ * @returns true if SharedArrayBuffer and Atomics are available (required for WASM threads)
+ */
+export function isWasmThreadingSupported(): boolean {
+  return detectWasmThreadingSupport();
+}
+
+/**
+ * Get the optimal number of worker threads based on CPU cores and WASM capabilities
+ * @returns Recommended thread count for optimal performance
+ */
+export function getOptimalThreadCount(): number {
+  const cores = typeof navigator !== 'undefined' 
+    ? (navigator.hardwareConcurrency || 4)
+    : (process?.env?.UV_THREADPOOL_SIZE ? parseInt(process.env.UV_THREADPOOL_SIZE) : 
+       typeof require !== 'undefined' ? require('os').cpus().length : 4);
+  
+  // For current JavaScript-level parallelism, limit to 4 parallel instances
+  // When true WASM threading is enabled, this can be increased
+  return Math.min(cores, 4);
+}
+
+/**
+ * Get current threading capabilities and configuration
+ * @returns Object with threading information
+ */
+export function getThreadingInfo(): {
+  wasmThreadingSupported: boolean;
+  customThreadPoolAvailable: boolean;
+  nodejsWasmThreading: boolean;
+  recommendedThreads: number;
+  currentThreads: number;
+  approach: string;
+} {
+  const isNodejs = typeof process !== 'undefined';
+  
+  return {
+    wasmThreadingSupported: detectWasmThreadingSupport(),
+    customThreadPoolAvailable: typeof window !== 'undefined',
+    nodejsWasmThreading: isNodejs && !!nodejsThreadPool,
+    recommendedThreads: getOptimalThreadCount(),
+    currentThreads: isNodejs ? 
+      (nodejsThreadPool ? nodejsThreadPool.workers?.length || 0 : 0) :
+      (threadPool ? threadPool.workers?.length || 0 : 0),
+    approach: isNodejs ? 'nodejs_enhanced_threading' : 'browser_custom_threading'
+  };
 }

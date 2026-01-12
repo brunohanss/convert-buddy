@@ -9,14 +9,19 @@ export function detectXmlElements(sample: Uint8Array): any;
  */
 export function detectFormat(sample: Uint8Array): string | undefined;
 /**
- * Check if SIMD is enabled in this build.
+ * Check if threading is enabled in this build.
  */
-export function getSimdEnabled(): boolean;
+export function getThreadingEnabled(): boolean;
+export function get_threading_support_info(): any;
+export function init(debug_enabled: boolean): void;
 /**
  * Detect CSV fields and delimiter from a sample of bytes.
  */
 export function detectCsvFields(sample: Uint8Array): any;
-export function init(debug_enabled: boolean): void;
+/**
+ * Check if SIMD is enabled in this build.
+ */
+export function getSimdEnabled(): boolean;
 /**
  * A streaming converter state machine.
  * Converts between CSV, NDJSON, JSON, and XML formats with high performance.

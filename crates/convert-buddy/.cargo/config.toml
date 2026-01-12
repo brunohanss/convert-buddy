@@ -1,0 +1,14 @@
+[build]
+target = "wasm32-unknown-unknown"
+rustflags = ["-C", "target-feature=+atomics,+bulk-memory,+mutable-globals"]
+
+[target.wasm32-unknown-unknown]
+rustflags = [
+  "-C", "target-feature=+atomics,+bulk-memory,+mutable-globals",
+  "-C", "link-arg=--max-memory=4294967296", # 4GB max
+  "-C", "link-arg=--shared-memory"
+]
+
+# Enable multivalue for better WASM performance
+[target.wasm32-unknown-unknown.env]
+CARGO_CFG_TARGET_FEATURE = "atomics,bulk-memory,mutable-globals"

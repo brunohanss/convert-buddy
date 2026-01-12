@@ -26,6 +26,11 @@ use csv_parser::CsvParser;
 use xml_parser::XmlParser;
 use json_parser::JsonParser;
 use js_sys::{Array, Object, Reflect};
+
+// WASM threading support for Node.js only
+#[cfg(all(target_arch = "wasm32", feature = "threads-nodejs"))]
+use wasm_bindgen_rayon::init_thread_pool;
+
 #[cfg(target_arch = "wasm32")]
 use serde::de::DeserializeOwned;
 #[cfg(target_arch = "wasm32")]
@@ -52,6 +57,12 @@ pub fn init(debug_enabled: bool) {
             let _ = console_log::init_with_level(log::Level::Info);
             info!("convert-buddy: logging initialized");
         }
+        
+        // Initialize rayon for native/Node.js environments
+        #[cfg(all(feature = "threads", not(target_arch = "wasm32")))]
+        {
+            info!("Rayon thread pool available for native processing");
+        }
     }
 }
 
@@ -59,6 +70,12 @@ pub fn init(debug_enabled: bool) {
 #[wasm_bindgen(js_name = getSimdEnabled)]
 pub fn get_simd_enabled() -> bool {
     cfg!(feature = "simd")
+}
+
+/// Check if threading is enabled in this build.
+#[wasm_bindgen(js_name = getThreadingEnabled)]
+pub fn get_threading_enabled() -> bool {
+    cfg!(feature = "threads")
 }
 
 /// Detect the input format from a sample of bytes.
@@ -312,11 +329,27 @@ impl Converter {
 
         let result = match self.state.as_mut() {
             Some(ConverterState::CsvToNdjson(parser)) => {
-                parser.push_to_ndjson(chunk)?
+                #[cfg(feature = "threads")]
+                {
+                    parser.push_to_ndjson_parallel(chunk)?
+                }
+                #[cfg(not(feature = "threads"))]
+                {
+                    parser.push_to_ndjson(chunk)?
+                }
             }
             Some(ConverterState::CsvToJson(csv_parser, ndjson_parser, is_first)) => {
                 // First convert CSV to NDJSON
-                let ndjson_chunk = csv_parser.push_to_ndjson(chunk)?;
+                let ndjson_chunk = {
+                    #[cfg(feature = "threads")]
+                    {
+                        csv_parser.push_to_ndjson_parallel(chunk)?
+                    }
+                    #[cfg(not(feature = "threads"))]
+                    {
+                        csv_parser.push_to_ndjson(chunk)?
+                    }
+                };
                 // Then convert NDJSON to JSON array
                 let is_first_chunk = *is_first;
                 *is_first = false;
@@ -324,7 +357,16 @@ impl Converter {
             }
             Some(ConverterState::CsvToXml(csv_parser, xml_writer)) => {
                 // First convert CSV to NDJSON
-                let ndjson_chunk = csv_parser.push_to_ndjson(chunk)?;
+                let ndjson_chunk = {
+                    #[cfg(feature = "threads")]
+                    {
+                        csv_parser.push_to_ndjson_parallel(chunk)?
+                    }
+                    #[cfg(not(feature = "threads"))]
+                    {
+                        csv_parser.push_to_ndjson(chunk)?
+                    }
+                };
                 // Then convert NDJSON to XML
                 let ndjson_str = std::str::from_utf8(&ndjson_chunk)
                     .map_err(|e| JsValue::from(ConvertError::from(e)))?;
@@ -338,7 +380,14 @@ impl Converter {
                 output
             }
             Some(ConverterState::NdjsonPassthrough(parser)) => {
-                parser.push(chunk)?
+                #[cfg(feature = "threads")]
+                {
+                    parser.push_parallel(chunk)?
+                }
+                #[cfg(not(feature = "threads"))]
+                {
+                    parser.push(chunk)?
+                }
             }
             Some(ConverterState::NdjsonToJson(parser, is_first)) => {
                 let is_first_chunk = *is_first;
@@ -1457,4 +1506,63 @@ mod integration_tests {
             assert!(!xml_result.is_null());
         }
     }
+}
+
+// Node.js WASM threading initialization functions
+#[cfg(all(target_arch = "wasm32", feature = "threads-nodejs"))]
+#[wasm_bindgen]
+pub fn init_nodejs_thread_pool(thread_count: usize) -> bool {
+    console_error_panic_hook::set_once();
+    
+    match init_thread_pool(thread_count) {
+        Ok(_) => {
+            info!("Node.js WASM thread pool initialized with {} threads", thread_count);
+            true
+        }
+        Err(e) => {
+            log::error!("Failed to initialize Node.js WASM thread pool: {:?}", e);
+            false
+        }
+    }
+}
+
+#[cfg(all(target_arch = "wasm32", feature = "threads-nodejs"))]
+#[wasm_bindgen]
+pub fn init_nodejs_thread_pool_auto() -> bool {
+    // In Node.js, use UV_THREADPOOL_SIZE or CPU count
+    let thread_count = std::env::var("UV_THREADPOOL_SIZE")
+        .ok()
+        .and_then(|s| s.parse::<usize>().ok())
+        .unwrap_or_else(|| {
+            #[cfg(feature = "num_cpus")]
+            {
+                num_cpus::get()
+            }
+            #[cfg(not(feature = "num_cpus"))]
+            {
+                4
+            }
+        })
+        .min(16); // Cap at 16 threads for Node.js
+        
+    init_nodejs_thread_pool(thread_count)
+}
+
+// Performance and threading information functions
+#[wasm_bindgen]
+pub fn get_threading_support_info() -> JsValue {
+    let info = serde_json::json!({
+        "rust_rayon_available": cfg!(feature = "threads"),
+        "nodejs_wasm_threading": cfg!(feature = "threads-nodejs"),
+        "web_custom_threading": cfg!(feature = "threads-web"),
+        "wasm_target": cfg!(target_arch = "wasm32"),
+        "simd_available": cfg!(feature = "simd"),
+        "recommended_approach": if cfg!(feature = "threads-nodejs") { 
+            "nodejs_wasm_threading" 
+        } else { 
+            "web_custom_threading" 
+        }
+    });
+    
+    serde_wasm_bindgen::to_value(&info).unwrap_or(JsValue::NULL)
 }

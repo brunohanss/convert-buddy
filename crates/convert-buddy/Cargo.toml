@@ -10,9 +10,11 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 # Feature gates for performance / platform capability
-default = []
+default = ["simd", "threads"]  # Enable SIMD + WASM threading for optimal performance
 simd = ["simd-json"]
-threads = []         # WASM threads: only when the host supports it (SharedArrayBuffer)
+threads = ["rayon", "num_cpus"]  # Base threading support
+threads-nodejs = ["threads", "wasm-bindgen-rayon"]  # Node.js WASM threading
+threads-web = ["threads"]  # Web custom JS threading
 debug-logs = []      # very verbose logs and internal instrumentation
 
 [dependencies]
@@ -40,6 +42,11 @@ quick-xml = "0.36"
 
 # Utilities
 thiserror = "1.0"
+
+# Parallel processing
+rayon = { version = "1.8", optional = true }
+wasm-bindgen-rayon = { version = "1.2", optional = true } # For Node.js WASM threading
+num_cpus = { version = "1.16", optional = true }
 
 [profile.release]
 opt-level = 3

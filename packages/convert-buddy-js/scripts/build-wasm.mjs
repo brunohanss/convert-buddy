@@ -11,7 +11,7 @@ mkdirSync(outDir, { recursive: true });
 // Controls
 const debug = process.env.CONVERT_BUDDY_DEBUG === "1";
 const enableSimd = process.env.CONVERT_BUDDY_SIMD !== "0"; // Enabled by default
-const enableThreads = process.env.CONVERT_BUDDY_THREADS === "1";
+const enableThreads = process.env.CONVERT_BUDDY_THREADS !== "0"; // Enable WASM threading by default
  // "web" | "nodejs"
 
 
@@ -19,17 +19,27 @@ const enableThreads = process.env.CONVERT_BUDDY_THREADS === "1";
 const features = [];
 if (debug) features.push("debug-logs");
 if (enableSimd) features.push("simd");
-if (enableThreads) features.push("threads");
+if (enableThreads) {
+  // Use threads-web for both targets for now (until wasm-bindgen-rayon issues are resolved)
+  features.push("threads-web"); // Custom JS threading for both Node.js and browsers
+}
 
 const featuresArg = features.length ? `--features ${features.join(",")}` : "";
 
-// RUSTFLAGS for SIMD
+// RUSTFLAGS for SIMD and threads
 const rustFlags = [];
 if (enableSimd) rustFlags.push("-C target-feature=+simd128");
+if (enableThreads) {
+  rustFlags.push("-C target-feature=+atomics");
+  rustFlags.push("-C target-feature=+bulk-memory");
+  rustFlags.push("-C target-feature=+mutable-globals");
+}
 
 const env = {
   ...process.env,
   RUSTFLAGS: rustFlags.join(" "),
+  // Enable threading with proper environment variable
+  ...(enableThreads && { WASM_BINDGEN_THREADS_SUPPORTED: "1" })
 };
 
 const cmd = [
@@ -43,4 +53,10 @@ const cmd = [
 ].filter(Boolean).join(" ");
 
 console.log(`[convert-buddy-js] build-wasm: ${cmd}`);
+if (enableThreads) {
+  console.log(`[convert-buddy-js] WASM Threading: ENABLED (with browser compatibility fallback)`);
+  console.log(`[convert-buddy-js] Threading configured via .cargo/config.toml`);
+} else {
+  console.log(`[convert-buddy-js] WASM Threading: DISABLED`);
+}
 execSync(cmd, { stdio: "inherit", env });

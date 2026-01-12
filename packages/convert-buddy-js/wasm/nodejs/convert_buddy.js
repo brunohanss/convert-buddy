@@ -207,12 +207,27 @@ module.exports.detectFormat = function(sample) {
 };
 
 /**
- * Check if SIMD is enabled in this build.
+ * Check if threading is enabled in this build.
  * @returns {boolean}
  */
-module.exports.getSimdEnabled = function() {
+module.exports.getThreadingEnabled = function() {
     const ret = wasm.getSimdEnabled();
     return ret !== 0;
+};
+
+/**
+ * @returns {any}
+ */
+module.exports.get_threading_support_info = function() {
+    const ret = wasm.get_threading_support_info();
+    return ret;
+};
+
+/**
+ * @param {boolean} debug_enabled
+ */
+module.exports.init = function(debug_enabled) {
+    wasm.init(debug_enabled);
 };
 
 /**
@@ -228,10 +243,12 @@ module.exports.detectCsvFields = function(sample) {
 };
 
 /**
- * @param {boolean} debug_enabled
+ * Check if SIMD is enabled in this build.
+ * @returns {boolean}
  */
-module.exports.init = function(debug_enabled) {
-    wasm.init(debug_enabled);
+module.exports.getSimdEnabled = function() {
+    const ret = wasm.getSimdEnabled();
+    return ret !== 0;
 };
 
 function takeFromExternrefTable0(idx) {
@@ -529,6 +546,11 @@ module.exports.__wbg_new_8a6f238a6ece86ea = function() {
     return ret;
 };
 
+module.exports.__wbg_new_bc96c6a1c0786643 = function() {
+    const ret = new Map();
+    return ret;
+};
+
 module.exports.__wbg_now_64d0bb151e5d3889 = function() {
     const ret = Date.now();
     return ret;
@@ -539,14 +561,27 @@ module.exports.__wbg_push_6edad0df4b546b2c = function(arg0, arg1) {
     return ret;
 };
 
+module.exports.__wbg_set_1d80752d0d5f0b21 = function(arg0, arg1, arg2) {
+    arg0[arg1 >>> 0] = arg2;
+};
+
 module.exports.__wbg_set_23d69db4e5c66a6e = function(arg0, arg1, arg2) {
     arg0.set(arg1, arg2 >>> 0);
+};
+
+module.exports.__wbg_set_3f1d0b984ed272ed = function(arg0, arg1, arg2) {
+    arg0[arg1] = arg2;
 };
 
 module.exports.__wbg_set_4e647025551483bd = function() { return handleError(function (arg0, arg1, arg2) {
     const ret = Reflect.set(arg0, arg1, arg2);
     return ret;
 }, arguments) };
+
+module.exports.__wbg_set_76818dc3c59a63d5 = function(arg0, arg1, arg2) {
+    const ret = arg0.set(arg1, arg2);
+    return ret;
+};
 
 module.exports.__wbg_stack_0ed75d68575b0f3c = function(arg0, arg1) {
     const ret = arg1.stack;
@@ -558,6 +593,16 @@ module.exports.__wbg_stack_0ed75d68575b0f3c = function(arg0, arg1) {
 
 module.exports.__wbg_warn_123db6aa8948382e = function(arg0) {
     console.warn(arg0);
+};
+
+module.exports.__wbindgen_bigint_from_i64 = function(arg0) {
+    const ret = arg0;
+    return ret;
+};
+
+module.exports.__wbindgen_bigint_from_u64 = function(arg0) {
+    const ret = BigInt.asUintN(64, arg0);
+    return ret;
 };
 
 module.exports.__wbindgen_boolean_get = function(arg0) {
@@ -606,6 +651,11 @@ module.exports.__wbindgen_is_object = function(arg0) {
     return ret;
 };
 
+module.exports.__wbindgen_is_string = function(arg0) {
+    const ret = typeof(arg0) === 'string';
+    return ret;
+};
+
 module.exports.__wbindgen_is_undefined = function(arg0) {
     const ret = arg0 === undefined;
     return ret;
@@ -626,6 +676,11 @@ module.exports.__wbindgen_number_get = function(arg0, arg1) {
     const ret = typeof(obj) === 'number' ? obj : undefined;
     getDataViewMemory0().setFloat64(arg0 + 8 * 1, isLikeNone(ret) ? 0 : ret, true);
     getDataViewMemory0().setInt32(arg0 + 4 * 0, !isLikeNone(ret), true);
+};
+
+module.exports.__wbindgen_number_new = function(arg0) {
+    const ret = arg0;
+    return ret;
 };
 
 module.exports.__wbindgen_string_get = function(arg0, arg1) {

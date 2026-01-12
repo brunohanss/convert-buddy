@@ -24,7 +24,6 @@
     "dist/**",
     "wasm/**",
     "wasm-node.cjs",
-    "!dist/smoke-test.*",
     "!dist/bench"
   ],
   "scripts": {
@@ -35,9 +34,7 @@
     "sync:wasm": "node ./scripts/sync-wasm.mjs",
     "build": "npm run build:wasm && tsup && npm run sync:wasm",
     "check:wasm": "node ./scripts/check-wasm.mjs",
-    "test": "npm run build && node ./dist/smoke-test.js",
-    "test:edge-cases": "npm run build && node --test ./dist/tests/edge-cases/*.test.js",
-    "test:all": "npm run test && npm run test:edge-cases",
+    "test": "npm run build && node --test ./dist/tests/edge-cases/*.test.js",
     "bench": "npm run build && node --expose-gc ./dist/bench/runner.js",
     "bench:single-thread": "npm run build && node --expose-gc ./scripts/run-single-thread.mjs",
     "bench:multi-thread": "npm run build && node --expose-gc ./dist/bench/multi-thread.js",

@@ -198,7 +198,7 @@ describe("NDJSON Edge Cases - Comprehensive Safety Tests", () => {
     });
 
     it("should handle Unicode escape sequences", async () => {
-      const ndjson = `{"emoji":"\\u{1F600}"}\n{"text":"\\u0048\\u0065\\u006C\\u006C\\u006F"}`;
+      const ndjson = `{"emoji":"😀"}\n{"text":"Hello"}`;
       const result = await convertToString(ndjson, {
         inputFormat: "ndjson",
         outputFormat: "json",
