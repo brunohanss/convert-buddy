@@ -33,9 +33,9 @@ async function benchmarkConversion(
   const throughputMbps = (data.length / (1024 * 1024)) / (latencyMs / 1000);
   const memoryMb = (endMem - startMem) / (1024 * 1024);
 
-  // Estimate records (count newlines in output)
-  const records = result.filter((b) => b === 10).length; // newline count
-  const recordsPerSec = records / (latencyMs / 1000);
+  // Estimate records (count newlines in input for better accuracy across all formats)
+  const inputRecords = data.filter((b) => b === 10).length; // newline count in input
+  const recordsPerSec = inputRecords / (latencyMs / 1000);
 
   return {
     name,
@@ -84,8 +84,9 @@ async function benchmarkStreaming(
   const throughputMbps = (data.length / (1024 * 1024)) / (latencyMs / 1000);
   const memoryMb = (endMem - startMem) / (1024 * 1024);
 
-  const records = result.filter((b) => b === 10).length;
-  const recordsPerSec = records / (latencyMs / 1000);
+  // Count records based on input format (more accurate for all output formats)
+  const inputRecords = data.filter((b) => b === 10).length; // newline count in input
+  const recordsPerSec = inputRecords / (latencyMs / 1000);
 
   return {
     name,
@@ -213,5 +214,9 @@ async function runBenchmarks() {
   console.log(`Average Memory: ${avgMemory.toFixed(2)} MB`);
 }
 
-// Run benchmarks
-runBenchmarks().catch(console.error);
+// Run benchmarks if executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  runBenchmarks().catch(console.error);
+}
+
+export { runBenchmarks };

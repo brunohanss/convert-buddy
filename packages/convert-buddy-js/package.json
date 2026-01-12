@@ -50,6 +50,9 @@
     "bench:use-case-json": "npm run build && node --expose-gc ./dist/bench/use-cases/json-conversions.js",
     "bench:use-case-xml": "npm run build && node --expose-gc ./dist/bench/use-cases/xml-conversions.js",
     "bench:use-cases": "npm run build && node --expose-gc ./dist/bench/run-all-use-cases.js",
+    "bench:check": "node ./dist/bench/compare-benchmarks.js --current bench-results.json --check-targets",
+    "bench:compare-baseline": "node ./dist/bench/compare-benchmarks.js --current bench-results.json --baseline",
+    "bench:update-baselines": "node ./scripts/update-baselines.mjs bench-results.json",
     "lint": "node ./scripts/lint-placeholder.mjs",
     "test:rust": "cargo test --lib --manifest-path ../../crates/convert-buddy/Cargo.toml --release",
     "prepack": "npm run test:rust && npm run build && npm run check:wasm"

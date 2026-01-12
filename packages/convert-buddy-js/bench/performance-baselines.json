@@ -1,0 +1,75 @@
+{
+  "$schema": "./performance-baselines-schema.json",
+  "description": "Performance guardrails: minimum acceptable thresholds for benchmarks",
+  "version": "1.0.0",
+  "thresholds": {
+    "regression": {
+      "throughput": 0.85,
+      "latency": 1.20,
+      "memory": 1.50,
+      "description": "Regression thresholds: throughput >= 85% of baseline, latency <= 120% of baseline, memory <= 150% of baseline"
+    },
+    "targets": {
+      "csv_to_json_small": {
+        "description": "CSV→JSON conversion, ~0.12MB (1K rows, 10 cols)",
+        "minThroughputMbps": 20,
+        "maxLatencyMs": 10,
+        "maxMemoryMb": 5,
+        "minRecordsPerSec": 50000
+      },
+      "csv_to_json_medium": {
+        "description": "CSV→JSON conversion, ~12MB (100K rows, 20 cols)",
+        "minThroughputMbps": 50,
+        "maxLatencyMs": 300,
+        "maxMemoryMb": 30,
+        "minRecordsPerSec": 200000
+      },
+      "csv_to_json_large": {
+        "description": "CSV→JSON conversion, ~120MB (1M rows, 10 cols)",
+        "minThroughputMbps": 80,
+        "maxLatencyMs": 2000,
+        "maxMemoryMb": 100,
+        "minRecordsPerSec": 400000
+      },
+      "csv_to_json_streaming": {
+        "description": "CSV→JSON streaming conversion, ~12MB",
+        "minThroughputMbps": 40,
+        "maxLatencyMs": 400,
+        "maxMemoryMb": 20,
+        "minRecordsPerSec": 150000
+      },
+      "ndjson_to_json_small": {
+        "description": "NDJSON→JSON conversion, ~0.5MB (1K records)",
+        "minThroughputMbps": 30,
+        "maxLatencyMs": 20,
+        "maxMemoryMb": 10,
+        "minRecordsPerSec": 40000
+      },
+      "ndjson_to_json_medium": {
+        "description": "NDJSON→JSON conversion, ~50MB (100K records)",
+        "minThroughputMbps": 60,
+        "maxLatencyMs": 1000,
+        "maxMemoryMb": 50,
+        "minRecordsPerSec": 80000
+      },
+      "ndjson_passthrough_large": {
+        "description": "NDJSON→NDJSON passthrough, ~500MB (1M records)",
+        "minThroughputMbps": 100,
+        "maxLatencyMs": 6000,
+        "maxMemoryMb": 80,
+        "minRecordsPerSec": 150000
+      }
+    }
+  },
+  "metadata": {
+    "lastUpdated": "2026-01-12",
+    "benchmarkEnvironment": {
+      "recommended": {
+        "nodeVersion": ">=18.0.0",
+        "platform": "linux",
+        "arch": "x64",
+        "cpuCores": ">=4"
+      }
+    }
+  }
+}

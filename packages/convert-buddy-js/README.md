@@ -584,9 +584,22 @@ npm -w convert-buddy-js run build
 
 ### Benchmarks (repository)
 
+Run benchmarks and compare against performance targets:
+
 ```bash
-npm -w convert-buddy-js run bench:competitors
+cd packages/convert-buddy-js
+
+# Run benchmarks
+npm run bench
+
+# Check against performance targets
+npm run bench:check
+
+# Compare with competitors
+npm run bench:competitors
 ```
+
+See [bench/PERFORMANCE.md](bench/PERFORMANCE.md) for details on performance guardrails, CI integration, and regression detection.
 
 ## Comparison to similar tools
 

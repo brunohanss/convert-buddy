@@ -57,9 +57,9 @@ async function benchmarkConversion(
   const memoryMb = (endMem - startMem) / (1024 * 1024);
   const cpuTime = (endCpu.user + endCpu.system) / 1000; // microseconds to milliseconds
 
-  // Estimate records (count newlines in output)
-  const records = result.filter((b) => b === 10).length;
-  const recordsPerSec = records / (latencyMs / 1000);
+  // Count records based on input format (more accurate for all output formats)
+  const inputRecords = data.filter((b) => b === 10).length; // newline count in input
+  const recordsPerSec = inputRecords / (latencyMs / 1000);
 
   return {
     name,
@@ -118,8 +118,9 @@ async function benchmarkStreaming(
   const memoryMb = (endMem - startMem) / (1024 * 1024);
   const cpuTime = (endCpu.user + endCpu.system) / 1000;
 
-  const records = result.filter((b) => b === 10).length;
-  const recordsPerSec = records / (latencyMs / 1000);
+  // Count records based on input format (more accurate for all output formats)
+  const inputRecords = data.filter((b) => b === 10).length; // newline count in input
+  const recordsPerSec = inputRecords / (latencyMs / 1000);
 
   return {
     name,

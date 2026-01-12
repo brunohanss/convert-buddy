@@ -1,7 +1,7 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/index.ts", "src/node.ts", "src/browser.ts", "src/smoke-test.ts", "bench/runner.ts", "bench/runner-with-competitors.ts", "bench/datasets.ts", "bench/multi-thread.ts", "bench/single-thread.ts", "bench/compare-threads.ts", "bench/runner-competitors-comprehensive.ts", "bench/run-all-use-cases.ts", "bench/use-cases/csv-to-json.ts", "bench/use-cases/ndjson-conversions.ts", "bench/use-cases/json-conversions.ts", "bench/use-cases/xml-conversions.ts", "tests/edge-cases/csv-edge-cases.test.ts", "tests/edge-cases/error-handling.test.ts", "tests/edge-cases/ndjson-edge-cases.test.ts", "tests/edge-cases/detection.test.ts", "tests/edge-cases/control-features.test.ts", "tests/edge-cases/node-helpers.test.ts"],
+  entry: ["src/index.ts", "src/node.ts", "src/browser.ts", "src/smoke-test.ts", "bench/runner.ts", "bench/runner-with-competitors.ts", "bench/datasets.ts", "bench/multi-thread.ts", "bench/single-thread.ts", "bench/compare-threads.ts", "bench/runner-competitors-comprehensive.ts", "bench/run-all-use-cases.ts", "bench/compare-benchmarks.ts", "bench/ci-runner.ts", "bench/use-cases/csv-to-json.ts", "bench/use-cases/ndjson-conversions.ts", "bench/use-cases/json-conversions.ts", "bench/use-cases/xml-conversions.ts", "tests/edge-cases/csv-edge-cases.test.ts", "tests/edge-cases/error-handling.test.ts", "tests/edge-cases/ndjson-edge-cases.test.ts", "tests/edge-cases/detection.test.ts", "tests/edge-cases/control-features.test.ts", "tests/edge-cases/node-helpers.test.ts"],
   format: ["esm"],
   dts: true,
   sourcemap: true,
