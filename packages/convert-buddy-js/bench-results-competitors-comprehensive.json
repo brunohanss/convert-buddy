@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-01-12T18:46:32.031Z",
+  "timestamp": "2026-01-12T20:03:41.436Z",
   "note": "This benchmark includes favorable, neutral, AND unfavorable cases for objectivity",
   "results": [
     {
@@ -8,10 +8,10 @@
       "conversion": "CSV→JSON",
       "size": "large",
       "dataset": "13.52 MB",
-      "throughputMbps": 71.24,
-      "latencyMs": 189.79,
+      "throughputMbps": 77.93,
+      "latencyMs": 173.49,
       "memoryMb": 0.17,
-      "recordsPerSec": 526908,
+      "recordsPerSec": 576392,
       "success": true
     },
     {
@@ -20,10 +20,10 @@
       "conversion": "CSV→JSON",
       "size": "large",
       "dataset": "13.52 MB",
-      "throughputMbps": 20.12,
-      "latencyMs": 671.99,
-      "memoryMb": 93.2,
-      "recordsPerSec": 148813,
+      "throughputMbps": 22.31,
+      "latencyMs": 606.03,
+      "memoryMb": 498.8,
+      "recordsPerSec": 165011,
       "success": true
     },
     {
@@ -32,10 +32,10 @@
       "conversion": "CSV→JSON",
       "size": "large",
       "dataset": "13.52 MB",
-      "throughputMbps": 25.76,
-      "latencyMs": 524.75,
-      "memoryMb": 94.78,
-      "recordsPerSec": 190566,
+      "throughputMbps": 27.65,
+      "latencyMs": 488.99,
+      "memoryMb": 95.73,
+      "recordsPerSec": 204502,
       "success": true
     },
     {
@@ -44,10 +44,10 @@
       "conversion": "CSV→JSON",
       "size": "large",
       "dataset": "13.52 MB",
-      "throughputMbps": 19.9,
-      "latencyMs": 679.24,
-      "memoryMb": 115.58,
-      "recordsPerSec": 147222,
+      "throughputMbps": 19.2,
+      "latencyMs": 704.08,
+      "memoryMb": 115.52,
+      "recordsPerSec": 142029,
       "success": true
     },
     {
@@ -56,10 +56,10 @@
       "conversion": "NDJSON→NDJSON",
       "size": "large",
       "dataset": "23.96 MB",
-      "throughputMbps": 223.9,
-      "latencyMs": 107.02,
-      "memoryMb": 0.02,
-      "recordsPerSec": 934393,
+      "throughputMbps": 243.36,
+      "latencyMs": 98.46,
+      "memoryMb": 0.01,
+      "recordsPerSec": 1015601,
       "success": true
     },
     {
@@ -68,10 +68,10 @@
       "conversion": "CSV→JSON",
       "size": "medium",
       "dataset": "1.26 MB",
-      "throughputMbps": 109.05,
-      "latencyMs": 11.52,
+      "throughputMbps": 118.99,
+      "latencyMs": 10.56,
       "memoryMb": 0.01,
-      "recordsPerSec": 867769,
+      "recordsPerSec": 946844,
       "success": true
     },
     {
@@ -80,10 +80,10 @@
       "conversion": "CSV→JSON",
       "size": "medium",
       "dataset": "1.26 MB",
-      "throughputMbps": 21.95,
-      "latencyMs": 57.26,
-      "memoryMb": 36.55,
-      "recordsPerSec": 174662,
+      "throughputMbps": 15.49,
+      "latencyMs": 81.13,
+      "memoryMb": 44.18,
+      "recordsPerSec": 123275,
       "success": true
     },
     {
@@ -92,10 +92,10 @@
       "conversion": "CSV→JSON",
       "size": "medium",
       "dataset": "1.26 MB",
-      "throughputMbps": 106.73,
-      "latencyMs": 11.77,
+      "throughputMbps": 123.36,
+      "latencyMs": 10.19,
       "memoryMb": 0.01,
-      "recordsPerSec": 849300,
+      "recordsPerSec": 981653,
       "success": true
     },
     {
@@ -104,10 +104,10 @@
       "conversion": "CSV→JSON",
       "size": "medium",
       "dataset": "1.26 MB",
-      "throughputMbps": 21.75,
-      "latencyMs": 57.77,
-      "memoryMb": 36.3,
-      "recordsPerSec": 173125,
+      "throughputMbps": 20.87,
+      "latencyMs": 60.22,
+      "memoryMb": 47.29,
+      "recordsPerSec": 166084,
       "success": true
     },
     {
@@ -116,10 +116,10 @@
       "conversion": "CSV→JSON",
       "size": "medium",
       "dataset": "1.26 MB",
-      "throughputMbps": 22.63,
-      "latencyMs": 55.54,
+      "throughputMbps": 24.12,
+      "latencyMs": 52.1,
       "memoryMb": 9.7,
-      "recordsPerSec": 180051,
+      "recordsPerSec": 191937,
       "success": true
     },
     {
@@ -128,10 +128,10 @@
       "conversion": "CSV→JSON",
       "size": "medium",
       "dataset": "1.26 MB",
-      "throughputMbps": 16.24,
-      "latencyMs": 77.39,
-      "memoryMb": 11.97,
-      "recordsPerSec": 129215,
+      "throughputMbps": 17.36,
+      "latencyMs": 72.4,
+      "memoryMb": 12.86,
+      "recordsPerSec": 138118,
       "success": true
     },
     {
@@ -140,10 +140,10 @@
       "conversion": "NDJSON→JSON",
       "size": "medium",
       "dataset": "2.34 MB",
-      "throughputMbps": 1766.73,
-      "latencyMs": 1.32,
+      "throughputMbps": 1559.63,
+      "latencyMs": 1.5,
       "memoryMb": 0.01,
-      "recordsPerSec": 7553441,
+      "recordsPerSec": 6668000,
       "success": true
     },
     {
@@ -152,10 +152,10 @@
       "conversion": "NDJSON→JSON",
       "size": "medium",
       "dataset": "2.34 MB",
-      "throughputMbps": 144.23,
-      "latencyMs": 16.22,
+      "throughputMbps": 152.06,
+      "latencyMs": 15.38,
       "memoryMb": 5.9,
-      "recordsPerSec": 616622,
+      "recordsPerSec": 650115,
       "success": true
     },
     {
@@ -164,10 +164,10 @@
       "conversion": "CSV→JSON",
       "size": "medium",
       "dataset": "0.56 MB",
-      "throughputMbps": 119.22,
-      "latencyMs": 4.66,
+      "throughputMbps": 135.25,
+      "latencyMs": 4.11,
       "memoryMb": 0.02,
-      "recordsPerSec": 1072639,
+      "recordsPerSec": 1216930,
       "success": true
     },
     {
@@ -176,10 +176,10 @@
       "conversion": "CSV→JSON",
       "size": "medium",
       "dataset": "0.56 MB",
-      "throughputMbps": 49.96,
-      "latencyMs": 11.12,
-      "memoryMb": 6.49,
-      "recordsPerSec": 449585,
+      "throughputMbps": 53.06,
+      "latencyMs": 10.47,
+      "memoryMb": 6.43,
+      "recordsPerSec": 477504,
       "success": true
     },
     {
@@ -188,10 +188,10 @@
       "conversion": "CSV→JSON",
       "size": "tiny",
       "dataset": "0.00 MB",
-      "throughputMbps": 1.21,
-      "latencyMs": 0.47,
+      "throughputMbps": 2.27,
+      "latencyMs": 0.25,
       "memoryMb": 0.01,
-      "recordsPerSec": 21299,
+      "recordsPerSec": 39968,
       "success": true
     },
     {
@@ -200,10 +200,10 @@
       "conversion": "CSV→JSON",
       "size": "tiny",
       "dataset": "0.00 MB",
-      "throughputMbps": 1.64,
-      "latencyMs": 0.35,
+      "throughputMbps": 1.02,
+      "latencyMs": 0.56,
       "memoryMb": 0.08,
-      "recordsPerSec": 31709,
+      "recordsPerSec": 19795,
       "success": true
     },
     {
@@ -212,10 +212,10 @@
       "conversion": "CSV→JSON",
       "size": "tiny",
       "dataset": "0.00 MB",
-      "throughputMbps": 0.6,
-      "latencyMs": 0.94,
+      "throughputMbps": 0.55,
+      "latencyMs": 1.03,
       "memoryMb": 0.07,
-      "recordsPerSec": 10635,
+      "recordsPerSec": 9684,
       "success": true
     },
     {
@@ -224,10 +224,10 @@
       "conversion": "CSV→JSON",
       "size": "tiny",
       "dataset": "0.00 MB",
-      "throughputMbps": 0.56,
-      "latencyMs": 1.02,
+      "throughputMbps": 0.75,
+      "latencyMs": 0.76,
       "memoryMb": 0.19,
-      "recordsPerSec": 9846,
+      "recordsPerSec": 13154,
       "success": true
     },
     {
@@ -236,10 +236,10 @@
       "conversion": "CSV→JSON",
       "size": "tiny",
       "dataset": "0.00 MB",
-      "throughputMbps": 0.51,
-      "latencyMs": 0.19,
+      "throughputMbps": 0.53,
+      "latencyMs": 0.18,
       "memoryMb": 0.01,
-      "recordsPerSec": 5342,
+      "recordsPerSec": 5531,
       "success": true
     },
     {
@@ -251,7 +251,7 @@
       "throughputMbps": 0.34,
       "latencyMs": 0.28,
       "memoryMb": 0.04,
-      "recordsPerSec": 7125,
+      "recordsPerSec": 7176,
       "success": true
     },
     {
@@ -260,10 +260,10 @@
       "conversion": "NDJSON→JSON",
       "size": "tiny",
       "dataset": "0.00 MB",
-      "throughputMbps": 6.69,
-      "latencyMs": 0.16,
-      "memoryMb": 0.02,
-      "recordsPerSec": 61237,
+      "throughputMbps": 3.26,
+      "latencyMs": 0.34,
+      "memoryMb": 0.01,
+      "recordsPerSec": 29833,
       "success": true
     },
     {
@@ -272,10 +272,10 @@
       "conversion": "NDJSON→JSON",
       "size": "tiny",
       "dataset": "0.00 MB",
-      "throughputMbps": 25.88,
+      "throughputMbps": 29.27,
       "latencyMs": 0.04,
       "memoryMb": 0,
-      "recordsPerSec": 236967,
+      "recordsPerSec": 268097,
       "success": true
     },
     {
@@ -284,10 +284,10 @@
       "conversion": "CSV→JSON",
       "size": "medium",
       "dataset": "0.56 MB",
-      "throughputMbps": 107.23,
-      "latencyMs": 5.24,
+      "throughputMbps": 110.97,
+      "latencyMs": 5.07,
       "memoryMb": 0.05,
-      "recordsPerSec": 190705,
+      "recordsPerSec": 197363,
       "success": true
     },
     {
@@ -296,10 +296,10 @@
       "conversion": "CSV→JSON",
       "size": "medium",
       "dataset": "0.56 MB",
-      "throughputMbps": 23.45,
-      "latencyMs": 23.98,
-      "memoryMb": 14.08,
-      "recordsPerSec": 41748,
+      "throughputMbps": 25.63,
+      "latencyMs": 21.94,
+      "memoryMb": 14.01,
+      "recordsPerSec": 45634,
       "success": true
     },
     {
@@ -308,10 +308,10 @@
       "conversion": "NDJSON→JSON",
       "size": "medium",
       "dataset": "0.63 MB",
-      "throughputMbps": 1111.95,
-      "latencyMs": 0.57,
+      "throughputMbps": 1217.01,
+      "latencyMs": 0.52,
       "memoryMb": 0.01,
-      "recordsPerSec": 1765225,
+      "recordsPerSec": 1931994,
       "success": true
     },
     {
@@ -320,10 +320,10 @@
       "conversion": "NDJSON→JSON",
       "size": "medium",
       "dataset": "0.63 MB",
-      "throughputMbps": 143.03,
-      "latencyMs": 4.4,
+      "throughputMbps": 151.92,
+      "latencyMs": 4.15,
       "memoryMb": 1.74,
-      "recordsPerSec": 227061,
+      "recordsPerSec": 241173,
       "success": true
     },
     {
@@ -332,10 +332,10 @@
       "conversion": "CSV→JSON",
       "size": "small",
       "dataset": "0.01 MB",
-      "throughputMbps": 44.62,
-      "latencyMs": 0.24,
+      "throughputMbps": 49.76,
+      "latencyMs": 0.21,
       "memoryMb": 0.01,
-      "recordsPerSec": 420521,
+      "recordsPerSec": 469043,
       "success": true
     },
     {
@@ -344,10 +344,10 @@
       "conversion": "CSV→JSON",
       "size": "small",
       "dataset": "0.01 MB",
-      "throughputMbps": 19.89,
-      "latencyMs": 0.53,
+      "throughputMbps": 15.84,
+      "latencyMs": 0.67,
       "memoryMb": 0.18,
-      "recordsPerSec": 189351,
+      "recordsPerSec": 150769,
       "success": true
     }
   ]
