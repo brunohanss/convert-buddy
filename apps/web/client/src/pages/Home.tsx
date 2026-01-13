@@ -120,51 +120,7 @@ export default function Home() {
       setLoading(false);
     }
   };
-  const testBuddy = async () => {
-    const sampleXml = `<movies> <movie> <title>The Shawshank Redemption</title> <genre>Drama</genre> <year>1994</year> <cast> <actor> <name>Tim Robbins</name> <role>Andy Dufresne</role> </actor> <actor> <name>Morgan Freeman</name> <role>Ellis Boyd 'Red' Redding</role> </actor> </cast> </movie> <movie> <title>The Matrix</title> <genre>Sci-Fi</genre> <year>1999</year> <cast> <actor> <name>Keanu Reeves</name> <role>Neo</role> </actor> <actor> <name>Laurence Fishburne</name> <role>Morpheus</role> </actor> </cast> </movie> <movie> <title>Inception</title> <genre>Thriller</genre> <year>2010</year> <cast> <actor> <name>Leonardo DiCaprio</name> <role>Cobb</role> </actor> <actor> <name>Joseph Gordon-Levitt</name> <role>Arthur</role> </actor> </cast> </movie> </movies>`;
-    
-    console.log("=== Testing AUTO-DETECTION (no config provided) ===");
-    // Test XML to JSON without providing xmlConfig - should auto-detect "movie" element
-    const resultAutoJson = await convertToString(new TextEncoder().encode(sampleXml), {
-      inputFormat: "xml",
-      outputFormat: "json",
-      // NO xmlConfig provided - library should auto-detect!
-    });
-    console.log("Auto-detected JSON result:", resultAutoJson);
-    
-    // Test XML to NDJSON without config
-    const resultAutoNdjson = await convertToString(new TextEncoder().encode(sampleXml), {
-      inputFormat: "xml",
-      outputFormat: "ndjson",
-      // NO xmlConfig provided - library should auto-detect!
-    });
-    console.log("Auto-detected NDJSON result:", resultAutoNdjson);
-    
-    console.log("=== Testing WITH explicit config (should match auto-detection) ===");
-    // Test with explicit config to compare
-    const resultExplicit = await convertToString(new TextEncoder().encode(sampleXml), {
-      inputFormat: "xml",
-      outputFormat: "json", 
-      xmlConfig: {
-        recordElement: "movie",
-      },
-    });
-    console.log("Explicit config JSON result:", resultExplicit);
-    
-    // Test CSV auto-detection
-    const sampleCsv = `title,genre,year,cast.actor.0.name,cast.actor.0.role,cast.actor.1.name,cast.actor.1.role
-The Shawshank Redemption,Drama,1994,Tim Robbins,Andy Dufresne,Morgan Freeman,Ellis Boyd 'Red' Redding
-The Matrix,Sci-Fi,1999,Keanu Reeves,Neo,Laurence Fishburne,Morpheus
-Inception,Thriller,2010,Leonardo DiCaprio,Cobb,Joseph Gordon-Levitt,Arthur`;
-    
-    console.log("=== Testing CSV auto-detection ===");
-    const csvResult = await convertToString(new TextEncoder().encode(sampleCsv), {
-      inputFormat: "csv",
-      outputFormat: "json",
-      // NO csvConfig provided - library should auto-detect comma delimiter!
-    });
-    console.log("Auto-detected CSV to JSON:", csvResult);
-  }
+  
 
   const handleDownload = async () => {
     if (!uploadedFile) return;
@@ -253,8 +209,6 @@ Inception,Thriller,2010,Leonardo DiCaprio,Cobb,Joseph Gordon-Levitt,Arthur`;
           <h1 className="text-5xl md:text-6xl font-bold mb-6 text-foreground" style={{ fontFamily: 'Poppins' }}>
             Next-Gen File Parser
           </h1>
-
-          <button onClick={() => testBuddy()}>My test</button>
           
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Convert Buddy outperforms traditional parsers. See the difference with real-time benchmarks on your files.
@@ -305,10 +259,11 @@ Inception,Thriller,2010,Leonardo DiCaprio,Cobb,Joseph Gordon-Levitt,Arthur`;
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-3">
-                  <div className="space-y-2 min-w-[180px]">
-                      <Label htmlFor="target-format">Target format</Label>
-                      <Select value={outputFormat} onValueChange={(value) => setOutputFormat(value as Format)}>
-                        <SelectTrigger id="target-format" className="w-full">
+                  <div className="space-y-2 min-w-[200px] p-3 bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 rounded-lg">
+                      <Label htmlFor="target-format" className="font-semibold">🎯 Output Format</Label>
+                      <p className="text-xs text-muted-foreground mb-2">{mode === "stream" ? "Locked during streaming" : "Choose before streaming"}</p>
+                      <Select value={outputFormat} onValueChange={(value) => setOutputFormat(value as Format)} disabled={mode === "stream"}>
+                        <SelectTrigger id="target-format" className="w-full font-medium" disabled={mode === "stream"}>
                           <SelectValue placeholder="Choose format" />
                         </SelectTrigger>
                         <SelectContent>
@@ -363,42 +318,51 @@ Inception,Thriller,2010,Leonardo DiCaprio,Cobb,Joseph Gordon-Levitt,Arthur`;
                 </div>
 
                 {/* Mode Selection */}
-                <div className="flex gap-4 flex-wrap">
-                  <Button
-                    onClick={() => void handleCheckFormat()}
-                    disabled={isBusy}
-                    className={`${
-                      mode === "check" 
-                        ? "bg-primary text-primary-foreground" 
-                        : "bg-secondary text-foreground hover:bg-secondary/80"
-                    }`}
-                  >
-                    Check Format
-                  </Button>
-                  <Button
-                    onClick={() => setMode("stream")}
-                    disabled={isBusy}
-                    className={`${
-                      mode === "stream" 
-                        ? "bg-destructive text-destructive-foreground" 
-                        : "bg-secondary text-foreground hover:bg-secondary/80"
-                    }`}
-                  >
-                    <Flame className="w-4 h-4 mr-2" />
-                    Stream Process
-                  </Button>
-                  <Button
-                    onClick={() => setMode("benchmark")}
-                    disabled={isBusy}
-                    className={`${
-                      mode === "benchmark" 
-                        ? "bg-orange-500 text-orange-foreground" 
-                        : "bg-secondary text-foreground hover:bg-secondary/80"
-                    }`}
-                  >
-                    <Flame className="w-4 h-4 mr-2" />
-                    Benchmark
-                  </Button>
+                <div className="space-y-4">
+                  <div className="flex gap-4 flex-wrap">
+                    <Button
+                      onClick={() => void handleCheckFormat()}
+                      disabled={isBusy}
+                      className={`${
+                        mode === "check" 
+                          ? "bg-primary text-primary-foreground" 
+                          : "bg-secondary text-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      Check Format
+                    </Button>
+                    <Button
+                      onClick={() => setMode("stream")}
+                      disabled={isBusy}
+                      className={`${
+                        mode === "stream" 
+                          ? "bg-destructive text-destructive-foreground" 
+                          : "bg-secondary text-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      <Flame className="w-4 h-4 mr-2" />
+                      Stream Process
+                    </Button>
+                    <Button
+                      onClick={() => setMode("benchmark")}
+                      disabled={isBusy}
+                      className={`${
+                        mode === "benchmark" 
+                          ? "bg-orange-500 text-orange-foreground" 
+                          : "bg-secondary text-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      <Flame className="w-4 h-4 mr-2" />
+                      Benchmark
+                    </Button>
+                  </div>
+                  {mode === "stream" && (
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <p className="text-xs text-blue-700 dark:text-blue-200">
+                        💡 <strong>Format is set to {outputFormat.toUpperCase()}</strong>. If you need a different format, change it above before selecting the output file.
+                      </p>
+                    </div>
+                  )}
                 </div>
                 {isFileTooLarge ? (
                   <p className="mt-4 text-xs text-amber-600 dark:text-amber-500 font-medium">

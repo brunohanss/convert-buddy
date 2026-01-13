@@ -10,6 +10,7 @@ import {
   generateWideCsv,
   generateLargeObjectNdjson
 } from "./datasets.js";
+import { XMLParser } from "fast-xml-parser";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { pipeline } from "node:stream/promises";
@@ -297,6 +298,137 @@ async function runBenchmarks() {
   console.log("   may be SLOWER than competitors. This is intentional for objectivity!\n");
 
   const results: BenchmarkResult[] = [];
+
+  // ========== XML CASES (NEW) ========== 
+  console.log("\n╔════════════════════════════════════════════════════════════════════╗");
+  console.log("║  XML Cases (convert-buddy vs competitors)                         ║");
+  console.log("╚════════════════════════════════════════════════════════════════════╝\n");
+
+  // XML → JSON (small, medium, large)
+  const xmlSmall = generateXmlDataset(1_000, 10);
+  const xmlSmallStr = new TextDecoder().decode(xmlSmall);
+  results.push(
+    await benchmarkConvertBuddy("xml-small", "XML→JSON", "small", xmlSmall, 1000, {
+      inputFormat: "xml",
+      outputFormat: "json",
+    })
+  );
+  // fast-xml-parser competitor
+  {
+    if (global.gc) global.gc();
+    const data = new TextEncoder().encode(xmlSmallStr);
+    const startMem = process.memoryUsage().heapUsed;
+    const start = performance.now();
+    const parser = new XMLParser();
+    const result = parser.parse(xmlSmallStr);
+    JSON.stringify(result);
+    const end = performance.now();
+    const endMem = process.memoryUsage().heapUsed;
+    const latencyMs = end - start;
+    const throughputMbps = (data.length / (1024 * 1024)) / (latencyMs / 1000);
+    const memoryMb = (endMem - startMem) / (1024 * 1024);
+    const recordsPerSec = 1 / (latencyMs / 1000); // rough
+    results.push({
+      tool: "fast-xml-parser",
+      scenario: "xml-small",
+      conversion: "XML→JSON",
+      size: "small",
+      dataset: `${(data.length / (1024 * 1024)).toFixed(2)} MB`,
+      throughputMbps: parseFloat(throughputMbps.toFixed(2)),
+      latencyMs: parseFloat(latencyMs.toFixed(2)),
+      memoryMb: parseFloat(memoryMb.toFixed(2)),
+      recordsPerSec: parseFloat(recordsPerSec.toFixed(0)),
+      success: true,
+    });
+  }
+
+  const xmlMedium = generateXmlDataset(10_000, 10);
+  const xmlMediumStr = new TextDecoder().decode(xmlMedium);
+  results.push(
+    await benchmarkConvertBuddy("xml-medium", "XML→JSON", "medium", xmlMedium, 10000, {
+      inputFormat: "xml",
+      outputFormat: "json",
+    })
+  );
+  {
+    if (global.gc) global.gc();
+    const data = new TextEncoder().encode(xmlMediumStr);
+    const startMem = process.memoryUsage().heapUsed;
+    const start = performance.now();
+    const parser = new XMLParser();
+    const result = parser.parse(xmlMediumStr);
+    JSON.stringify(result);
+    const end = performance.now();
+    const endMem = process.memoryUsage().heapUsed;
+    const latencyMs = end - start;
+    const throughputMbps = (data.length / (1024 * 1024)) / (latencyMs / 1000);
+    const memoryMb = (endMem - startMem) / (1024 * 1024);
+    const recordsPerSec = 1 / (latencyMs / 1000);
+    results.push({
+      tool: "fast-xml-parser",
+      scenario: "xml-medium",
+      conversion: "XML→JSON",
+      size: "medium",
+      dataset: `${(data.length / (1024 * 1024)).toFixed(2)} MB`,
+      throughputMbps: parseFloat(throughputMbps.toFixed(2)),
+      latencyMs: parseFloat(latencyMs.toFixed(2)),
+      memoryMb: parseFloat(memoryMb.toFixed(2)),
+      recordsPerSec: parseFloat(recordsPerSec.toFixed(0)),
+      success: true,
+    });
+  }
+
+  const xmlLarge = generateXmlDataset(100_000, 10);
+  const xmlLargeStr = new TextDecoder().decode(xmlLarge);
+  results.push(
+    await benchmarkConvertBuddy("xml-large", "XML→JSON", "large", xmlLarge, 100000, {
+      inputFormat: "xml",
+      outputFormat: "json",
+    })
+  );
+  {
+    if (global.gc) global.gc();
+    const data = new TextEncoder().encode(xmlLargeStr);
+    const startMem = process.memoryUsage().heapUsed;
+    const start = performance.now();
+    const parser = new XMLParser();
+    const result = parser.parse(xmlLargeStr);
+    JSON.stringify(result);
+    const end = performance.now();
+    const endMem = process.memoryUsage().heapUsed;
+    const latencyMs = end - start;
+    const throughputMbps = (data.length / (1024 * 1024)) / (latencyMs / 1000);
+    const memoryMb = (endMem - startMem) / (1024 * 1024);
+    const recordsPerSec = 1 / (latencyMs / 1000);
+    results.push({
+      tool: "fast-xml-parser",
+      scenario: "xml-large",
+      conversion: "XML→JSON",
+      size: "large",
+      dataset: `${(data.length / (1024 * 1024)).toFixed(2)} MB`,
+      throughputMbps: parseFloat(throughputMbps.toFixed(2)),
+      latencyMs: parseFloat(latencyMs.toFixed(2)),
+      memoryMb: parseFloat(memoryMb.toFixed(2)),
+      recordsPerSec: parseFloat(recordsPerSec.toFixed(0)),
+      success: true,
+    });
+  }
+
+  // XML → CSV (convert-buddy only)
+  results.push(
+    await benchmarkConvertBuddy("xml-csv-medium", "XML→CSV", "medium", xmlMedium, 10000, {
+      inputFormat: "xml",
+      outputFormat: "csv",
+    })
+  );
+
+  // XML → NDJSON (convert-buddy only)
+  results.push(
+    await benchmarkConvertBuddy("xml-ndjson-medium", "XML→NDJSON", "medium", xmlMedium, 10000, {
+      inputFormat: "xml",
+      outputFormat: "ndjson",
+    })
+  );
 
   // ========== FAVORABLE CASES (convert-buddy should excel) ==========
   console.log("╔════════════════════════════════════════════════════════════════════╗");

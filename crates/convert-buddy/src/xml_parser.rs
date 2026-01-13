@@ -80,32 +80,81 @@ impl XmlParser {
     }
 
     /// Extract complete record elements from the buffer
-    /// Optimized with arena allocation and SIMD-friendly processing
-    /// Extract complete record elements from the buffer
-    /// Optimized with arena allocation and SIMD-friendly processing
+    /// NEW APPROACH: Find complete record elements using string scanning instead of quick-xml streaming
+    /// This is more reliable for true streaming with incomplete XML chunks
     fn extract_records(&mut self, output: &mut Vec<u8>) -> Result<()> {
         // Reset arena for this batch of records
         self.arena.reset();
         
-        let mut reader = Reader::from_reader(&self.partial_buffer[..]);
+        let content = std::str::from_utf8(&self.partial_buffer).unwrap_or("");
+        
+        // Find all complete record elements using string matching
+        // This approach is more reliable for streaming than using quick-xml on partial buffers
+        let record_tag_start = format!("<{}", self.config.record_element);
+        let record_tag_end = format!("</{}>", self.config.record_element);
+        
+        let mut processed_up_to = 0;
+        let mut search_start = 0;
+        
+        loop {
+            // Find the next record start
+            if let Some(record_start) = content[search_start..].find(&record_tag_start) {
+                let record_start_abs = search_start + record_start;
+                
+                // Find the matching end tag for this record
+                let search_from = record_start_abs + record_tag_start.len();
+                if let Some(record_end) = content[search_from..].find(&record_tag_end) {
+                    let record_end_abs = search_from + record_end + record_tag_end.len();
+                    
+                    // Extract the complete record element
+                    let record_xml = &content[record_start_abs..record_end_abs];
+                    
+                    // Parse this single complete record using quick-xml
+                    if let Ok(parsed_record) = self.parse_single_record(record_xml) {
+                        output.extend_from_slice(&parsed_record);
+                        output.push(b'\n');
+                        self.record_count += 1;
+                    }
+                    
+                    processed_up_to = record_end_abs;
+                    search_start = record_end_abs;
+                } else {
+                    // Incomplete record - stop processing and keep this data for next chunk
+                    break;
+                }
+            } else {
+                // No more record starts found
+                break;
+            }
+        }
+        
+        // Remove the data we've successfully processed
+        if processed_up_to > 0 {
+            self.partial_buffer.drain(0..processed_up_to);
+        }
+
+        Ok(())
+    }
+    
+    /// Parse a single complete record element using quick-xml
+    fn parse_single_record(&self, record_xml: &str) -> Result<Vec<u8>> {
+        let mut reader = Reader::from_str(record_xml);
         reader.config_mut().trim_text(self.config.trim_text);
         reader.config_mut().expand_empty_elements = true;
-        // Enable SIMD-friendly buffering
-        reader.config_mut().check_end_names = false; // Skip validation for speed
-        reader.config_mut().check_comments = false; // Skip comment validation
-
+        
         let mut buf = Vec::new();
-        let mut in_record = false;
         let mut element_stack: Vec<(String, HashMap<String, JsonValue>)> = Vec::new();
         let mut current_text = String::new();
-
+        let mut root_found = false;
+        
         loop {
             match reader.read_event_into(&mut buf) {
                 Ok(Event::Start(e)) => {
                     let name = String::from_utf8_lossy(e.name().as_ref()).to_string();
                     
-                    if name == self.config.record_element && !in_record {
-                        in_record = true;
+                    if !root_found {
+                        // This should be our record element
+                        root_found = true;
                         let mut root = HashMap::new();
                         
                         // Include attributes if configured
@@ -120,8 +169,8 @@ impl XmlParser {
                         }
                         
                         element_stack.push((name, root));
-                    } else if in_record {
-                        // Push a new element onto the stack
+                    } else {
+                        // Child element
                         element_stack.push((name, HashMap::new()));
                         current_text.clear();
                     }
@@ -129,16 +178,14 @@ impl XmlParser {
                 Ok(Event::End(e)) => {
                     let name = String::from_utf8_lossy(e.name().as_ref()).to_string();
                     
-                    if name == self.config.record_element && in_record {
-                        // End of record - convert to JSON
+                    if element_stack.len() == 1 && name == self.config.record_element {
+                        // End of root record element
                         if let Some((_, root_obj)) = element_stack.pop() {
-                            self.json_value_to_output(&JsonValue::Object(root_obj), output)?;
-                            output.push(b'\n');
-                            self.record_count += 1;
+                            let mut output = Vec::new();
+                            self.json_value_to_output(&JsonValue::Object(root_obj), &mut output)?;
+                            return Ok(output);
                         }
-                        in_record = false;
-                        element_stack.clear();
-                    } else if in_record && !element_stack.is_empty() {
+                    } else if !element_stack.is_empty() {
                         // Pop the current element
                         if let Some((elem_name, elem_obj)) = element_stack.pop() {
                             // If we have text content and no children, store it as a string
@@ -158,33 +205,19 @@ impl XmlParser {
                     }
                 }
                 Ok(Event::Text(e)) => {
-                    if in_record {
-                        let text = e.unescape().unwrap_or_default();
-                        if !text.trim().is_empty() {
-                            current_text = text.to_string();
-                        }
+                    let text = e.unescape().unwrap_or_default();
+                    if !text.trim().is_empty() {
+                        current_text = text.to_string();
                     }
                 }
-                Ok(Event::Empty(_e)) => {
-                    // Handle empty elements if needed
-                }
                 Ok(Event::Eof) => break,
-                Err(e) => {
-                    debug!("XML parse error: {:?}", e);
-                    break;
-                }
+                Err(_) => break,
                 _ => {}
             }
-            
             buf.clear();
         }
-
-        // Clear processed data from buffer
-        if self.record_count > 0 {
-            self.partial_buffer.clear();
-        }
-
-        Ok(())
+        
+        Ok(Vec::new())
     }
 
     /// Insert a value into a HashMap, creating arrays for duplicate keys
@@ -274,6 +307,9 @@ impl XmlParser {
             self.extract_records(&mut output)?;
         }
 
+        // Clear any remaining partial data on finish to avoid leaking wrapper tags
+        self.partial_buffer.clear();
+
         Ok(output)
     }
 
@@ -355,7 +391,193 @@ mod tests {
         assert!(remaining.is_empty());
         assert!(parser.partial_size() == 0);
     }
+
+    #[test]
+    fn test_xml_rss_like_structure() {
+        // Test with RSS/Atom-like structure where items are the records
+        let config = XmlConfig {
+            record_element: "item".to_string(),
+            include_attributes: false,
+            ..Default::default()
+        };
+        let mut parser = XmlParser::new(config, 1024);
+
+        let input = br#"<?xml version="1.0"?>
+<rss version="2.0">
+  <channel>
+    <title>Test Feed</title>
+    <item>
+      <id>1</id>
+      <title>Article 1</title>
+    </item>
+    <item>
+      <id>2</id>
+      <title>Article 2</title>
+    </item>
+  </channel>
+</rss>"#;
+
+        let result = parser.push_to_ndjson(input).unwrap();
+        let output_str = String::from_utf8_lossy(&result);
+        
+        // Should have 2 records (2 items)
+        assert_eq!(output_str.matches('\n').count(), 2, "Expected 2 records for 2 items");
+        assert!(output_str.contains("Article 1"));
+        assert!(output_str.contains("Article 2"));
+        assert!(!output_str.contains("<?xml"), "XML declaration should not appear in output");
+        assert!(!output_str.contains("Test Feed"), "Channel title should not be in item records");
+        assert_eq!(parser.record_count(), 2);
+    }
+
+    #[test]
+    fn test_xml_streaming_with_chunks() {
+        // Test streaming XML parsing with a realistic RSS/Google shopping feed structure
+        // This test specifically covers the bug where XML declaration was used as record element
+        let config = XmlConfig {
+            record_element: "item".to_string(),
+            include_attributes: false,
+            ..Default::default()
+        };
+        let mut parser = XmlParser::new(config, 1024);
+
+                let xml_content = br#"<?xml version="1.0"?>
+<rss xmlns:g="http://example.com/ns/1.0" version="2.0">
+    <channel>
+        <title>Example Feed</title>
+        <link>https://example.local</link>
+        <description>Sample anonymized feed content for testing purposes only.</description>
+        <item>
+            <g:id>A1</g:id>
+            <g:id_alias>XXXXX</g:id_alias>
+            <g:id_sf>A1_XXXXX</g:id_sf>
+            <g:title>Sample Product Title</g:title>
+            <g:description>Short anonymized description of the sample product.</g:description>
+            <g:link>https://example.local/product/A1</g:link>
+            <g:product_arborescence>Category &gt; Subcategory</g:product_arborescence>
+            <g:image_link>https://cdn.example.local/images/A1.jpg</g:image_link>
+            <g:condition>new</g:condition>
+            <g:availability>in_stock</g:availability>
+            <g:price>9.99 USD</g:price>
+            <g:gtin_interne>0000000000000</g:gtin_interne>
+            <g:gtin>0000000000000</g:gtin>
+            <g:identifier_exists>true</g:identifier_exists>
+            <g:brand>ExampleBrand</g:brand>
+            <g:product_type>Category &gt; Product</g:product_type>
+            <g:google_product_category>000</g:google_product_category>
+            <g:additional_image_link>https://cdn.example.local/images/A1-2.jpg</g:additional_image_link>
+        </item>
+    </channel>
+</rss>"#;
+
+        // Process in smaller chunks to simulate streaming
+        let chunk_size = 512; // Small chunks to test streaming behavior
+        let mut total_output = Vec::new();
+        
+        for chunk in xml_content.chunks(chunk_size) {
+            let output = parser.push_to_ndjson(chunk).unwrap();
+            total_output.extend_from_slice(&output);
+        }
+        
+        // Finish parsing
+        let final_output = parser.finish().unwrap();
+        total_output.extend_from_slice(&final_output);
+        
+        let output_str = String::from_utf8_lossy(&total_output);
+        
+        println!("Debug: total_output length: {}", total_output.len());
+        println!("Debug: output_str: '{}'", output_str);
+        
+        // Should have 1 record (1 item)
+        assert_eq!(output_str.matches('\n').count(), 1, "Expected 1 record for 1 item, got: {}", output_str);
+
+        // Critical: XML declaration should NEVER appear as a key
+        assert!(!output_str.contains("<?xml version=1.0?>"), 
+            "XML declaration should not appear as JSON key - this was the original bug! Output: {}", output_str);
+
+        // Should contain anonymized item data
+        assert!(output_str.contains("Sample Product Title"), "Should contain item title");
+        assert!(output_str.contains("XXXXX"), "Should contain item ID alias");
+        assert!(output_str.contains("9.99 USD"), "Should contain price");
+        
+        // Should NOT contain channel-level data in the items
+        assert!(!output_str.contains("The bearing specialist"), "Channel title should not be in item records");
+        
+        // Verify it's proper JSON
+        let lines: Vec<&str> = output_str.trim().split('\n').collect();
+        assert_eq!(lines.len(), 1, "Should have exactly 1 NDJSON line");
+        
+        // Parse the JSON to verify structure
+        let json_result: std::result::Result<serde_json::Value, serde_json::Error> = serde_json::from_str(lines[0]);
+        assert!(json_result.is_ok(), "Output should be valid JSON: {}", lines[0]);
+        
+        let json_obj = json_result.unwrap();
+        assert!(json_obj.is_object(), "Each line should be a JSON object");
+        
+        // Verify some expected fields are present
+        let obj = json_obj.as_object().unwrap();
+        assert!(obj.contains_key("g:id"), "Should contain g:id field");
+        assert!(obj.contains_key("g:title"), "Should contain g:title field");
+        assert!(obj.contains_key("g:price"), "Should contain g:price field");
+        
+        assert_eq!(parser.record_count(), 1);
+    }
+
+    #[test]
+    fn test_xml_reproduce_original_bug() {
+        // Reproduce the exact bug reported where XML declaration becomes the key
+        // This happens when record_element is set incorrectly to "<?xml version=1.0?>"
+        let config = XmlConfig {
+            record_element: "<?xml version=1.0?>".to_string(), // This is the WRONG config that causes the bug
+            include_attributes: false,
+            ..Default::default()
+        };
+        let mut parser = XmlParser::new(config, 1024);
+
+        let xml_content = br#"<?xml version="1.0"?>
+    <rss xmlns:g="http://example.com/ns/1.0" version="2.0">
+     <channel>
+      <title>Example Feed</title>
+      <link>https://example.local</link>
+      <description>Sample anonymized channel description.</description>
+    <item>
+     <g:id>A1</g:id>
+     <g:id_alias>XXXXX</g:id_alias>
+     <g:id_sf>A1_XXXXX</g:id_sf>
+     <g:title>Sample Product Title</g:title>
+    </item>
+     </channel>
+    </rss>"#;
+
+        let result = parser.push_to_ndjson(xml_content).unwrap();
+        let output_str = String::from_utf8_lossy(&result);
+        
+        println!("Bug reproduction output: '{}'", output_str);
+        
+        // This should demonstrate the original bug where XML declaration becomes JSON key
+    }
+    
+    #[test]
+    fn test_xml_simple_debug() {
+        // Test the simplest possible case to understand what's happening
+        let config = XmlConfig {
+            record_element: "item".to_string(),
+            include_attributes: false,
+            ..Default::default()
+        };
+        let mut parser = XmlParser::new(config, 1024);
+
+        let xml_content = b"<root><item><id>1</id></item></root>";
+
+        let result = parser.push_to_ndjson(xml_content).unwrap();
+        let output_str = String::from_utf8_lossy(&result);
+        
+        println!("Simple debug output: '{}'", output_str);
+        
+        assert!(!output_str.is_empty(), "Should produce some output");
+        assert!(output_str.contains("\"id\""), "Should contain the id field");
+    }
 }
+
 /// XML writer that converts JSON objects to XML format
 pub struct XmlWriter {
     root_element: String,

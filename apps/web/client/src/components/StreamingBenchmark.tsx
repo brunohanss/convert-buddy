@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { AlertCircle, Activity, CheckCircle2, Download } from "lucide-react";
-import { detectFormat, getSuggestedFilename, getFileTypeConfig, type Format } from "convert-buddy-js/browser";
+import { autoDetectConfig, getSuggestedFilename, getFileTypeConfig, type Format, type XmlConfig } from "convert-buddy-js/browser";
 import { Button } from "@/components/ui/button";
+import { showFileCompletionToast } from "@/components/FileCompletionToast";
 
 interface StreamingBenchmarkMetrics {
   bytesRead: number;
@@ -352,17 +353,30 @@ export default function StreamingBenchmark({
   });
   const [startTime, setStartTime] = useState<number | null>(null);
   const [detectedFormat, setDetectedFormat] = useState<Format | null>(null);
+  const [detectedXmlConfig, setDetectedXmlConfig] = useState<XmlConfig | null>(null);
   const [competitorResults, setCompetitorResults] = useState<CompetitorBenchmark[]>([]);
   const [isStreamProcessing, setIsStreamProcessing] = useState(false);
   const [saveHandle, setSaveHandle] = useState<any | null>(null);
   const [competitorSaveHandles, setCompetitorSaveHandles] = useState<Record<string, any>>({});
+  const [outputFileName, setOutputFileName] = useState<string | null>(null);
 
   // Detect format once on mount
   useEffect(() => {
     const detectOnce = async () => {
       try {
-        const detectedFmt = await detectFormat(file.stream());
-        setDetectedFormat(detectedFmt as Format);
+        // Read a sample from the file to get detected config
+        const chunk = file.slice(0, 8192); // 8KB sample
+        const arrayBuffer = await chunk.arrayBuffer();
+        const sample = new Uint8Array(arrayBuffer);
+        
+        const detected = await autoDetectConfig(sample);
+        
+        setDetectedFormat(detected.format as Format);
+        setDetectedXmlConfig(detected.xmlConfig || null);
+        
+        if (detected.format === "xml" && detected.xmlConfig?.recordElement) {
+          console.log(`[StreamingBenchmark] Detected XML with record element: ${detected.xmlConfig.recordElement}`);
+        }
       } catch (error) {
         console.error("Format detection error:", error);
       }
@@ -370,6 +384,24 @@ export default function StreamingBenchmark({
 
     void detectOnce();
   }, [file]);
+
+  // Reset saveHandle when outputFormat changes to force user to select new output file
+  useEffect(() => {
+    if (saveHandle) {
+      setSaveHandle(null);
+      setIsStreamProcessing(false);
+      setMetrics((prev) => ({
+        ...prev,
+        status: "idle",
+        bytesRead: 0,
+        bytesWritten: 0,
+        percentComplete: 0,
+        throughputMbPerSec: 0,
+        elapsedSeconds: 0,
+        recordsProcessed: 0,
+      }));
+    }
+  }, [outputFormat]);
 
   // Trigger processing when saveHandle becomes available after user selection
   useEffect(() => {
@@ -401,67 +433,64 @@ export default function StreamingBenchmark({
 
         // Create a single ConvertBuddy instance for all chunks
         const buddy = await ConvertBuddy.create({
+          inputFormat: detectedFormat || "auto",
           outputFormat,
-          inputFormat: detectedFormat as Format,
+          xmlConfig: detectedXmlConfig || undefined,
         });
 
         // If user has started an explicit stream processing session (saveHandle
         // selected), prefer streaming read/write using the File System Access API
         if (isStreamProcessing && saveHandle && (file as any).stream) {
-          // Stream from file and write converted chunks directly to the selected file
-          const reader = (file as any).stream().getReader();
+          // Use worker-based streaming to keep UI responsive and improve throughput
           let writable: any = null;
-
           try {
             writable = await saveHandle.createWritable();
+
+            const { streamProcessFileInWorkerToWritable } = await import('convert-buddy-js/browser');
+
+            const start = performance.now();
+            // NOTE: streamProcessFileInWorkerToWritable handles closing the writable stream
+            // DO NOT close it here - let the function manage the lifecycle
+            await streamProcessFileInWorkerToWritable(
+              file,
+              writable,
+              { 
+                inputFormat: detectedFormat || "auto",
+                outputFormat,
+                xmlConfig: detectedXmlConfig || undefined
+              },
+              (progress: any) => {
+                const elapsedSec = (performance.now() - processStartTime) / 1000;
+                const throughput = progress.bytesRead / elapsedSec / (1024 * 1024);
+                const percentComplete = Math.round((progress.bytesRead / file.size) * 100);
+                totalBytesRead = progress.bytesRead;
+                totalBytesWritten = progress.bytesWritten;
+                totalRecords = progress.recordsProcessed;
+
+                setMetrics((prev) => ({
+                  ...prev,
+                  bytesRead: totalBytesRead,
+                  bytesWritten: totalBytesWritten,
+                  percentComplete,
+                  throughputMbPerSec: throughput,
+                  elapsedSeconds: elapsedSec,
+                  recordsProcessed: totalRecords,
+                }));
+              }
+            );
+
+            // Show completion notification with file handle for opening
+            const nameWithoutExt = file.name.split(".").slice(0, -1).join(".");
+            const outFileName = `${nameWithoutExt}.${outputFormat}`;
+            setOutputFileName(outFileName);
             
-            while (true) {
-              const { value, done } = await reader.read();
-              if (done) break;
-              const chunk = value as Uint8Array;
-              totalBytesRead += chunk.length;
-
-              // Push chunk to the single buddy instance
-              const result = buddy.push(chunk);
-
-              // Write the converted chunk to the file as-is
-              if (writable) {
-                await writable.write(result);
-              }
-              totalBytesWritten += result.length;
-
-              // Update estimates
-              const estimatedRecordsInChunk = Math.ceil(chunk.length / 100);
-              totalRecords += estimatedRecordsInChunk;
-
-              const elapsedMs = performance.now() - processStartTime;
-              const elapsedSec = elapsedMs / 1000;
-              const throughput = totalBytesRead / elapsedSec / (1024 * 1024);
-              const percentComplete = Math.round((totalBytesRead / file.size) * 100);
-
-              setMetrics((prev) => ({
-                ...prev,
-                bytesRead: totalBytesRead,
-                bytesWritten: totalBytesWritten,
-                percentComplete,
-                throughputMbPerSec: throughput,
-                elapsedSeconds: elapsedSec,
-                recordsProcessed: totalRecords,
-              }));
-            }
-
-            // Finish the conversion to get any remaining output
-            const finalResult = buddy.finish();
-            if (finalResult.length > 0) {
-              if (writable) {
-                await writable.write(finalResult);
-              }
-              totalBytesWritten += finalResult.length;
-            }
-
-            if (writable) {
-              await writable.close();
-            }
+            showFileCompletionToast({
+              fileName: outFileName,
+              format: outputFormat,
+              fileSize: totalBytesWritten,
+              fileHandle: saveHandle,
+              showPath: true,
+            });
           } catch (streamError) {
             if (writable) {
               try {
@@ -469,10 +498,6 @@ export default function StreamingBenchmark({
               } catch {}
             }
             throw streamError;
-          } finally {
-            try {
-              if ((reader as any).cancel) await (reader as any).cancel();
-            } catch {}
           }
 
           // Start benchmarks AFTER streaming conversion completes (not in parallel)
@@ -647,6 +672,26 @@ export default function StreamingBenchmark({
             )}
           </div>
         </div>
+
+        {/* Warning when output format changes after selection */}
+        {isStreamProcessing && metrics.status === "idle" && (
+          <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800 mb-4">
+            <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-2">
+              ⚠️ Output format changed
+            </p>
+            <p className="text-xs text-amber-700 dark:text-amber-200 mb-3">
+              Please select a new output file for the {outputFormat.toUpperCase()} format to proceed.
+            </p>
+            <Button 
+              size="sm" 
+              onClick={() => void handleStartStreamProcessing()}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Select File & Continue
+            </Button>
+          </div>
+        )}
 
         {/* Competitor output file selection - only show during idle */}
         {detectedFormat === "csv" && metrics.status === "idle" && !isStreamProcessing && (

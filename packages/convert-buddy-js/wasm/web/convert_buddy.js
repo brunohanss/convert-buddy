@@ -167,12 +167,10 @@ function isLikeNone(x) {
     return x === undefined || x === null;
 }
 /**
- * Check if threading is enabled in this build.
- * @returns {boolean}
+ * @param {boolean} debug_enabled
  */
-export function getThreadingEnabled() {
-    const ret = wasm.getSimdEnabled();
-    return ret !== 0;
+export function init(debug_enabled) {
+    wasm.init(debug_enabled);
 }
 
 function passArray8ToWasm0(arg, malloc) {
@@ -181,18 +179,6 @@ function passArray8ToWasm0(arg, malloc) {
     WASM_VECTOR_LEN = arg.length;
     return ptr;
 }
-/**
- * Detect XML elements from a sample of bytes.
- * @param {Uint8Array} sample
- * @returns {any}
- */
-export function detectXmlElements(sample) {
-    const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.detectXmlElements(ptr0, len0);
-    return ret;
-}
-
 /**
  * Detect CSV fields and delimiter from a sample of bytes.
  * @param {Uint8Array} sample
@@ -206,26 +192,22 @@ export function detectCsvFields(sample) {
 }
 
 /**
- * @param {boolean} debug_enabled
- */
-export function init(debug_enabled) {
-    wasm.init(debug_enabled);
-}
-
-/**
- * Check if SIMD is enabled in this build.
- * @returns {boolean}
- */
-export function getSimdEnabled() {
-    const ret = wasm.getSimdEnabled();
-    return ret !== 0;
-}
-
-/**
  * @returns {any}
  */
 export function get_threading_support_info() {
     const ret = wasm.get_threading_support_info();
+    return ret;
+}
+
+/**
+ * Detect XML elements from a sample of bytes.
+ * @param {Uint8Array} sample
+ * @returns {any}
+ */
+export function detectXmlElements(sample) {
+    const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.detectXmlElements(ptr0, len0);
     return ret;
 }
 
@@ -244,6 +226,24 @@ export function detectFormat(sample) {
         wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     }
     return v2;
+}
+
+/**
+ * Check if SIMD is enabled in this build.
+ * @returns {boolean}
+ */
+export function getSimdEnabled() {
+    const ret = wasm.getSimdEnabled();
+    return ret !== 0;
+}
+
+/**
+ * Check if threading is enabled in this build.
+ * @returns {boolean}
+ */
+export function getThreadingEnabled() {
+    const ret = wasm.getThreadingEnabled();
+    return ret !== 0;
 }
 
 function takeFromExternrefTable0(idx) {

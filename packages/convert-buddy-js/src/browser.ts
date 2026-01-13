@@ -1,3 +1,37 @@
+/**
+ * Stream a File/Blob conversion in a Web Worker with progress updates.
+ *
+ * @param file File or Blob to convert
+ * @param opts Convert options (inputFormat, outputFormat, etc)
+ * @param onProgress Callback for progress updates
+ * @returns Promise<Uint8Array> with the converted result
+ */
+export async function streamProcessFileInWorker(
+  file: File | Blob,
+  opts: BrowserConvertOptions = {},
+  onProgress?: (progress: { bytesRead: number; bytesWritten: number; percentComplete: number; recordsProcessed: number }) => void
+): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    // Create worker
+    const worker = new Worker(new URL('./streaming-worker.js', import.meta.url), { type: 'module' });
+
+    worker.onmessage = (event) => {
+      const { type, ...data } = event.data;
+      if (type === 'progress' && onProgress) {
+        onProgress(data);
+      } else if (type === 'complete') {
+        worker.terminate();
+        resolve(new Uint8Array(data.result));
+      } else if (type === 'error') {
+        worker.terminate();
+        reject(new Error(data.error));
+      }
+    };
+
+    // Send file and options to worker
+    worker.postMessage({ type: 'start', file, opts });
+  });
+}
 import { ConvertBuddy, type ConvertBuddyOptions, type ConvertOptions, type Format, autoDetectConfig, detectFormat, getMimeType, getFileTypeConfig, convertAny as convertAnyCore, convertAnyToString as convertAnyToStringCore } from "./index.js";
 
 export * from "./index.js";
@@ -435,4 +469,77 @@ export async function convertAndSave(
     // Re-throw other errors
     throw error;
   }
+}
+
+/**
+ * Stream a File/Blob conversion in a Web Worker and pipe output to a Writable.
+ * This is useful for saving directly to disk using File System Access API.
+ */
+export async function streamProcessFileInWorkerToWritable(
+  file: File | Blob,
+  writable: WritableStream<Uint8Array> | FileSystemWritableFileStream,
+  opts: BrowserConvertOptions = {},
+  onProgress?: (progress: { bytesRead: number; bytesWritten: number; percentComplete: number; recordsProcessed: number }) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('./streaming-worker.js', import.meta.url), { type: 'module' });
+    let writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
+
+    (async () => {
+      try {
+        if ((writable as any).getWriter) {
+          writer = (writable as WritableStream<Uint8Array>).getWriter();
+        } else {
+          // FileSystemWritableFileStream supports write(Uint8Array)
+          writer = null;
+        }
+
+        worker.onmessage = async (event) => {
+          const { type } = event.data;
+          if (type === 'data') {
+            const ab: ArrayBuffer = event.data.chunk;
+            const chunk = new Uint8Array(ab);
+            if (writer) {
+              await writer.write(chunk);
+            } else if ((writable as any).write) {
+              await (writable as any).write(chunk);
+            }
+          } else if (type === 'progress') {
+            onProgress?.(event.data);
+          } else if (type === 'complete') {
+            // write final chunk if present
+            if (event.data.result) {
+              const finalChunk = new Uint8Array(event.data.result);
+              if (writer) await writer.write(finalChunk);
+              else if ((writable as any).write) await (writable as any).write(finalChunk);
+            }
+
+            try {
+              // Only close if we have a writer (WritableStream with getWriter)
+              // FileSystemWritableFileStream should NOT be closed by us - caller owns it
+              if (writer) {
+                await writer.close();
+              }
+            } catch (e) {
+              // ignore close errors
+            }
+            worker.terminate();
+            resolve();
+          } else if (type === 'error') {
+            worker.terminate();
+            reject(new Error(event.data.error));
+          }
+        };
+
+        // Start worker
+        worker.postMessage({ type: 'start', file, opts });
+      } catch (err) {
+        if (writer) {
+          try { await writer.abort(err); } catch {}
+        }
+        worker.terminate();
+        reject(err);
+      }
+    })();
+  });
 }

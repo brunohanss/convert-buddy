@@ -1,12 +1,30 @@
 // Node.js specific threading implementation using Worker Threads
 // This provides better performance than the browser web worker approach
 
-import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+// Lazy-loaded Node.js imports to avoid browser bundling issues
+let Worker: any;
+let fileURLToPath: any;
+let dirname: any;
+let join: any;
+let __filename: string;
+let __dirname: string;
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+async function loadNodeDependencies() {
+  if (Worker) return; // Already loaded
+  
+  const workerThreads = await import('worker_threads');
+  Worker = workerThreads.Worker;
+  
+  const urlModule = await import('url');
+  fileURLToPath = urlModule.fileURLToPath;
+  
+  const pathModule = await import('path');
+  dirname = pathModule.dirname;
+  join = pathModule.join;
+  
+  __filename = fileURLToPath(import.meta.url);
+  __dirname = dirname(__filename);
+}
 
 export interface NodejsThreadPoolConfig {
   maxWorkers: number;
@@ -37,6 +55,9 @@ export class NodejsThreadPool {
 
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
+
+    // Load Node.js dependencies dynamically to avoid browser bundling issues
+    await loadNodeDependencies();
 
     // Create the worker script inline
     const workerScript = `
@@ -107,7 +128,7 @@ export class NodejsThreadPool {
           this.handleWorkerMessage(response);
         });
         
-        worker.on('error', (error) => {
+        worker.on('error', (error: Error) => {
           console.error('Worker error:', error);
         });
         

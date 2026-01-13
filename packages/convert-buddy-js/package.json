@@ -4,20 +4,20 @@
   "description": "TypeScript wrapper for convert-buddy (Rust/WASM core)",
   "license": "MIT",
   "type": "module",
-  "main": "./dist/src/index.js",
-  "types": "./dist/src/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/src/index.d.ts",
-      "default": "./dist/src/index.js"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./node": {
-      "types": "./dist/src/node.d.ts",
-      "default": "./dist/src/node.js"
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
     },
     "./browser": {
-      "types": "./dist/src/browser.d.ts",
-      "default": "./dist/src/browser.js"
+      "types": "./dist/browser.d.ts",
+      "default": "./dist/browser.js"
     }
   },
   "files": [

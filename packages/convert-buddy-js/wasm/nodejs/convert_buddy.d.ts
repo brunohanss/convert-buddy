@@ -1,27 +1,27 @@
 /* tslint:disable */
 /* eslint-disable */
+export function init(debug_enabled: boolean): void;
 /**
- * Check if threading is enabled in this build.
+ * Detect CSV fields and delimiter from a sample of bytes.
  */
-export function getThreadingEnabled(): boolean;
+export function detectCsvFields(sample: Uint8Array): any;
+export function get_threading_support_info(): any;
 /**
  * Detect XML elements from a sample of bytes.
  */
 export function detectXmlElements(sample: Uint8Array): any;
 /**
- * Detect CSV fields and delimiter from a sample of bytes.
+ * Detect the input format from a sample of bytes.
  */
-export function detectCsvFields(sample: Uint8Array): any;
-export function init(debug_enabled: boolean): void;
+export function detectFormat(sample: Uint8Array): string | undefined;
 /**
  * Check if SIMD is enabled in this build.
  */
 export function getSimdEnabled(): boolean;
-export function get_threading_support_info(): any;
 /**
- * Detect the input format from a sample of bytes.
+ * Check if threading is enabled in this build.
  */
-export function detectFormat(sample: Uint8Array): string | undefined;
+export function getThreadingEnabled(): boolean;
 /**
  * A streaming converter state machine.
  * Converts between CSV, NDJSON, JSON, and XML formats with high performance.

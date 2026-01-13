@@ -87,9 +87,11 @@ pub fn detect_xml(sample: &[u8]) -> Option<XmlDetection> {
     let sample = strip_bom(sample);
     let mut elements: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     let mut root_element: Option<String> = None;
-    let mut depth_2_elements: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut element_depths: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
+    let mut element_children: std::collections::HashMap<String, std::collections::HashSet<String>> = std::collections::HashMap::new();
     let mut depth: i32 = 0;
     let mut i = 0;
+    let mut parent_at_depth: [Option<String>; 10] = Default::default();
 
     while i < sample.len() {
         if sample[i] == b'<' && i + 1 < sample.len() {
@@ -106,6 +108,9 @@ pub fn detect_xml(sample: &[u8]) -> Option<XmlDetection> {
 
             // Handle closing tags
             if next == b'/' {
+                if depth > 0 {
+                    parent_at_depth[depth as usize] = None;
+                }
                 depth = depth.saturating_sub(1);
                 i += 1;
                 while i < sample.len() && sample[i] != b'>' {
@@ -130,13 +135,23 @@ pub fn detect_xml(sample: &[u8]) -> Option<XmlDetection> {
                             root_element = Some(element_name.clone());
                         }
                         
-                        // Track depth 2 elements (direct children of root) separately
-                        if depth == 1 {
-                            *depth_2_elements.entry(element_name.clone()).or_insert(0) += 1;
+                        // Track the shallowest depth at which each element appears
+                        element_depths.entry(element_name.clone())
+                            .and_modify(|d| if depth < *d { *d = depth })
+                            .or_insert(depth);
+                        
+                        // Track which elements are children of which parent
+                        if depth > 0 {
+                            if let Some(parent) = &parent_at_depth[depth as usize] {
+                                element_children
+                                    .entry(parent.clone())
+                                    .or_insert_with(std::collections::HashSet::new)
+                                    .insert(element_name.clone());
+                            }
                         }
                         
                         // Count element occurrences
-                        *elements.entry(element_name).or_insert(0) += 1;
+                        *elements.entry(element_name.clone()).or_insert(0) += 1;
                         
                         // Check if self-closing tag
                         let mut check_pos = end;
@@ -147,6 +162,9 @@ pub fn detect_xml(sample: &[u8]) -> Option<XmlDetection> {
                             // Self-closing, don't increment depth
                         } else {
                             depth += 1;
+                            if (depth as usize) < parent_at_depth.len() {
+                                parent_at_depth[depth as usize] = Some(element_name.clone());
+                            }
                         }
                     }
                 }
@@ -161,23 +179,60 @@ pub fn detect_xml(sample: &[u8]) -> Option<XmlDetection> {
     let mut elements_vec: Vec<String> = elements.keys().cloned().collect();
     elements_vec.sort();
 
-    // Find the record element - prefer direct children of root (depth 2)
-    // If we have depth 2 elements, use the most frequent one
-    // Otherwise, fall back to the most frequent non-root element
-    let record_element = if !depth_2_elements.is_empty() {
-        depth_2_elements
+    // Find the record element.
+    // Strategy: Look for repeating elements at any depth (except root).
+    // Prefer elements that:
+    // 1. Repeat more than once (count > 1)
+    // 2. Have child elements (are containers, not leaf nodes)
+    // 3. Appear at shallower depths (prefer direct children of root)
+    // 4. Among same-depth containers, pick the one that repeats most
+    let record_element = {
+        // Find all elements that repeat (count > 1) and are not the root
+        let repeating: Vec<_> = elements
             .iter()
-            .max_by_key(|(_, count)| *count)
-            .map(|(name, _)| name.clone())
-    } else {
-        elements
-            .iter()
-            .filter(|(name, _)| {
-                // Filter out the root element - we want a child element as the record
-                root_element.as_ref().map_or(true, |root| *name != root)
+            .filter(|(name, count)| {
+                **count > 1 && root_element.as_ref().map_or(true, |root| *name != root)
             })
-            .max_by_key(|(_, count)| *count)
-            .map(|(name, _)| name.clone())
+            .collect();
+
+        if !repeating.is_empty() {
+            // Among repeating elements, prefer those with children
+            let with_children: Vec<_> = repeating
+                .iter()
+                .filter(|(name, _)| {
+                    // An element has children if other element names nest under it
+                    element_children.get(*name).map_or(false, |children| !children.is_empty())
+                })
+                .collect();
+
+            if !with_children.is_empty() {
+                // Sort by depth (shallower first), then by count (more repeating first)
+                let mut sorted = with_children;
+                sorted.sort_by(|a, b| {
+                    let depth_a = element_depths.get(a.0).copied().unwrap_or(999);
+                    let depth_b = element_depths.get(b.0).copied().unwrap_or(999);
+                    
+                    match depth_a.cmp(&depth_b) {
+                        std::cmp::Ordering::Equal => {
+                            // Same depth, prefer more repeating
+                            b.1.cmp(a.1)
+                        }
+                        other => other,
+                    }
+                });
+                
+                sorted.first().map(|(name, _)| (*name).clone())
+            } else {
+                // No repeating element with children, pick the most repeating non-root element
+                repeating
+                    .iter()
+                    .max_by_key(|(_, count)| *count)
+                    .map(|(name, _)| (*name).clone())
+            }
+        } else {
+            // No repeating elements (shouldn't happen in well-formed record data)
+            None
+        }
     };
 
     Some(XmlDetection {
@@ -779,4 +834,29 @@ mod tests {
         let detection = detect_csv(sample).unwrap();
         assert_eq!(detection.delimiter, b',');
         assert_eq!(detection.fields.len(), 6);
-    }}
+    }
+
+    #[test]
+    fn detect_rss_item_element() {
+        // Test detection of RSS feed structure with item records
+        let sample = br#"<?xml version="1.0"?>
+<rss version="2.0">
+  <channel>
+    <title>Test Feed</title>
+    <item>
+      <id>1</id>
+      <title>Article 1</title>
+    </item>
+    <item>
+      <id>2</id>
+      <title>Article 2</title>
+    </item>
+  </channel>
+</rss>"#;
+
+        let detection = detect_xml(sample).expect("Should detect XML");
+        assert!(detection.record_element.is_some(), "Should detect a record element");
+        assert_eq!(detection.record_element, Some("item".to_string()), 
+                  "Should detect 'item' as the record element, got {:?}", detection.record_element);
+    }
+}

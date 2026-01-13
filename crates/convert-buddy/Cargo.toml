@@ -10,7 +10,8 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 # Feature gates for performance / platform capability
-default = ["threads"]  # Enable WASM/native threading by default (no simd)
+# Note: `threads` removed from default to avoid accidental WASM threaded builds
+default = []
 simd = ["simd-json"]
 threads = ["rayon", "num_cpus"]  # Base threading support
 threads-nodejs = ["threads", "wasm-bindgen-rayon"]  # Node.js WASM threading

@@ -11,7 +11,8 @@ mkdirSync(outDir, { recursive: true });
 // Controls
 const debug = process.env.CONVERT_BUDDY_DEBUG === "1";
 const enableSimd = process.env.CONVERT_BUDDY_SIMD !== "0"; // Enabled by default
-const enableThreads = process.env.CONVERT_BUDDY_THREADS !== "0"; // Enable WASM threading by default
+// Only enable threads when explicitly requested (set CONVERT_BUDDY_THREADS=1)
+const enableThreads = process.env.CONVERT_BUDDY_THREADS === "1";
  // "web" | "nodejs"
 
 
@@ -54,9 +55,9 @@ const cmd = [
 
 console.log(`[convert-buddy-js] build-wasm: ${cmd}`);
 if (enableThreads) {
-  console.log(`[convert-buddy-js] WASM Threading: ENABLED (with browser compatibility fallback)`);
+  console.log(`[convert-buddy-js] WASM Threading: ENABLED (explicit)`);
   console.log(`[convert-buddy-js] Threading configured via .cargo/config.toml`);
 } else {
-  console.log(`[convert-buddy-js] WASM Threading: DISABLED`);
+  console.log(`[convert-buddy-js] WASM Threading: DISABLED (default)`);
 }
 execSync(cmd, { stdio: "inherit", env });

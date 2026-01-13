@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<rss xmlns:g="http://base.google.com/ns/1.0" xmlns:c="http://base.google.com/cns/1.0" version="2.0">
+ <channel>
+   <title>Quirky Gadgets & Gizmos Emporium</title>
+    <link>https://www.weird-widgets.example</link>
+    <description>Discover an eclectic selection of oddities, gadgets, and gizmos curated for collectors and tinkerers. New drops weekly — fast shipping worldwide.</description>
+
+<item>
+ <g:id>5</g:id>
+ <g:id_alias>291165</g:id_alias>
+ <g:id_sf>5_291165</g:id_sf>
+ <g:title>Moonbeam Flux Capacitor — Limited Edition</g:title>
+ <g:description>Hand-assembled Moonbeam Flux Capacitor for experimental time-bending projects. Lightweight alloy shell with luminous inlay; ideal for curious engineers and prop collectors.</g:description>
+ <g:link>https://shop.example.com/products/moonbeam-flux-capacitor</g:link>
+ <g:product_arborescence>Bearing and housing &gt; Needle roller bearing &gt; Needle roller cage</g:product_arborescence>
+ <g:image_link>https://cdn.example.com/images/moonbeam-flux-capacitor-1.jpg</g:image_link>
+ <g:condition>new</g:condition>
+ <g:availability>out_of_stock</g:availability>
+ <g:price>39.73 USD</g:price>
+ <g:gtin_interne>3663952000015</g:gtin_interne>
+ <g:gtin>4012802700640</g:gtin>
+ <g:identifier_exists>true</g:identifier_exists>
+ <g:brand>INA</g:brand>
+ <g:product_type>Bearing &gt; Needle Roller And Cage Assemblies</g:product_type>
+ <g:google_product_category>899</g:google_product_category>
+ <g:additional_image_link>https://cdn.example.com/images/moonbeam-flux-capacitor-2.jpg</g:additional_image_link>
+</item>
+ </channel>
+</rss>
