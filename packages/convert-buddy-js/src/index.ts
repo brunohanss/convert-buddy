@@ -16,6 +16,21 @@ export type XmlDetection = {
   recordElement?: string;
 };
 
+export type JsonDetection = {
+  fields: string[];
+};
+
+export type NdjsonDetection = {
+  fields: string[];
+};
+
+export type StructureDetection = {
+  format: Format;
+  fields: string[];
+  delimiter?: string;      // For CSV
+  recordElement?: string;  // For XML
+};
+
 export type DetectOptions = {
   maxBytes?: number;
   debug?: boolean;
@@ -83,6 +98,9 @@ type WasmModule = {
   detectFormat?: (sample: Uint8Array) => string | null | undefined;
   detectCsvFields?: (sample: Uint8Array) => CsvDetection | null | undefined;
   detectXmlElements?: (sample: Uint8Array) => XmlDetection | null | undefined;
+  detectJsonFields?: (sample: Uint8Array) => JsonDetection | null | undefined;
+  detectNdjsonFields?: (sample: Uint8Array) => NdjsonDetection | null | undefined;
+  detectStructure?: (sample: Uint8Array, formatHint?: string) => StructureDetection | null | undefined;
   getSimdEnabled?: () => boolean;
   __wbg_set_wasm?: (wasm: unknown) => void;
 };
@@ -131,7 +149,7 @@ async function loadWasmModule(): Promise<WasmModule> {
     if (isNode) {
       const { createRequire } = await import("node:module");
       const require = createRequire(import.meta.url);
-      const mod = require("../../wasm-node.cjs");
+      const mod = require("../wasm-node.cjs");
       return mod as WasmModule;
     }
 
@@ -404,7 +422,7 @@ export class ConvertBuddy {
             const { NodejsThreadPool } = await import('./nodejs-thread-pool');
             nodejsThreadPool = new NodejsThreadPool({
               maxWorkers: actualThreads,
-              wasmPath: '../../wasm-node.cjs'
+              wasmPath: '../wasm-node.cjs'
             });
             await nodejsThreadPool.initialize();
           } catch (error) {
@@ -995,24 +1013,44 @@ export async function detectFormat(
   return (format as Format) ?? "unknown";
 }
 
+export async function detectStructure(
+  input: DetectInput,
+  formatHint?: Format,
+  opts: DetectOptions = {}
+): Promise<StructureDetection | null> {
+  const wasmModule = await loadDetectionWasm(!!opts.debug);
+  const sample = await readSample(input, opts.maxBytes);
+  const result = wasmModule.detectStructure?.(sample, formatHint);
+  return result ?? null;
+}
+
+// Backward compatibility functions - these now use the unified detectStructure internally
 export async function detectCsvFieldsAndDelimiter(
   input: DetectInput,
   opts: DetectOptions = {}
 ): Promise<CsvDetection | null> {
-  const wasmModule = await loadDetectionWasm(!!opts.debug);
-  const sample = await readSample(input, opts.maxBytes);
-  const result = wasmModule.detectCsvFields?.(sample);
-  return result ?? null;
+  const structure = await detectStructure(input, "csv", opts);
+  if (structure && structure.format === "csv" && structure.delimiter) {
+    return {
+      delimiter: structure.delimiter,
+      fields: structure.fields,
+    };
+  }
+  return null;
 }
 
 export async function detectXmlElements(
   input: DetectInput,
   opts: DetectOptions = {}
 ): Promise<XmlDetection | null> {
-  const wasmModule = await loadDetectionWasm(!!opts.debug);
-  const sample = await readSample(input, opts.maxBytes);
-  const result = wasmModule.detectXmlElements?.(sample);
-  return result ?? null;
+  const structure = await detectStructure(input, "xml", opts);
+  if (structure && structure.format === "xml") {
+    return {
+      elements: structure.fields,
+      recordElement: structure.recordElement,
+    };
+  }
+  return null;
 }
 
 // Helper to auto-detect format and CSV configuration from sample data

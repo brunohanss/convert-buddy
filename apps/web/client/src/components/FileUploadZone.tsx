@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { Upload } from "lucide-react";
+import { showFileWarningToast } from "./FileWarningToast";
 
 interface FileUploadZoneProps {
   onFileUpload: (file: File) => void;
@@ -10,12 +11,19 @@ interface FileUploadZoneProps {
  * Design: Kinetic Minimalism - Clean, minimal upload area with clear affordance
  * - Full-width upload zone with dashed border
  * - Drag-and-drop support with visual feedback
- * - Supports CSV and XML files
+ * - Supports CSV, XML, JSON, and NDJSON files
  */
 
 export default function FileUploadZone({ onFileUpload }: FileUploadZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Supported file extensions
+  const SUPPORTED_EXTENSIONS = ['.csv', '.xml', '.json', '.ndjson'];
+  
+  const isFileSupported = (fileName: string): boolean => {
+    return SUPPORTED_EXTENSIONS.some(ext => fileName.toLowerCase().endsWith(ext));
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -33,10 +41,14 @@ export default function FileUploadZone({ onFileUpload }: FileUploadZoneProps) {
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       const file = files[0];
-      if (file.name.endsWith(".csv") || file.name.endsWith(".xml")) {
+      if (isFileSupported(file.name)) {
         onFileUpload(file);
       } else {
-        alert("Please upload a CSV or XML file");
+        showFileWarningToast({
+          fileName: file.name,
+          message: "File format not supported",
+          suggestions: ["CSV (.csv)", "XML (.xml)", "JSON (.json)", "NDJSON (.ndjson)"]
+        });
       }
     }
   };
@@ -45,10 +57,14 @@ export default function FileUploadZone({ onFileUpload }: FileUploadZoneProps) {
     const files = e.currentTarget.files;
     if (files && files.length > 0) {
       const file = files[0];
-      if (file.name.endsWith(".csv") || file.name.endsWith(".xml")) {
+      if (isFileSupported(file.name)) {
         onFileUpload(file);
       } else {
-        alert("Please upload a CSV or XML file");
+        showFileWarningToast({
+          fileName: file.name,
+          message: "File format not supported",
+          suggestions: ["CSV (.csv)", "XML (.xml)", "JSON (.json)", "NDJSON (.ndjson)"]
+        });
       }
     }
   };
@@ -70,7 +86,7 @@ export default function FileUploadZone({ onFileUpload }: FileUploadZoneProps) {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".csv,.xml"
+        accept=".csv,.xml,.json,.ndjson"
         onChange={handleFileSelect}
         className="hidden"
       />
@@ -91,7 +107,7 @@ export default function FileUploadZone({ onFileUpload }: FileUploadZoneProps) {
         </p>
 
         <p className="text-sm text-muted-foreground">
-          Supports CSV and XML files
+          Supports CSV, XML, JSON, and NDJSON files
         </p>
       </div>
     </div>

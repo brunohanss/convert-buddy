@@ -7,7 +7,7 @@ import {
   convertFileToFile,
   convertBuffer,
   convertStream
-} from "../../src/node.js";
+} from "../../node.js";
 import { Readable } from "node:stream";
 
 const TEST_CSV = "name,age\nAlice,30\nBob,25\nCharlie,35\n";

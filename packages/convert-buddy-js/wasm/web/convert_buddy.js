@@ -166,12 +166,6 @@ function debugString(val) {
 function isLikeNone(x) {
     return x === undefined || x === null;
 }
-/**
- * @param {boolean} debug_enabled
- */
-export function init(debug_enabled) {
-    wasm.init(debug_enabled);
-}
 
 function passArray8ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 1, 1) >>> 0;
@@ -179,6 +173,25 @@ function passArray8ToWasm0(arg, malloc) {
     WASM_VECTOR_LEN = arg.length;
     return ptr;
 }
+/**
+ * Detect NDJSON fields from a sample of bytes.
+ * @param {Uint8Array} sample
+ * @returns {any}
+ */
+export function detectNdjsonFields(sample) {
+    const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.detectNdjsonFields(ptr0, len0);
+    return ret;
+}
+
+/**
+ * @param {boolean} debug_enabled
+ */
+export function init(debug_enabled) {
+    wasm.init(debug_enabled);
+}
+
 /**
  * Detect CSV fields and delimiter from a sample of bytes.
  * @param {Uint8Array} sample
@@ -192,14 +205,6 @@ export function detectCsvFields(sample) {
 }
 
 /**
- * @returns {any}
- */
-export function get_threading_support_info() {
-    const ret = wasm.get_threading_support_info();
-    return ret;
-}
-
-/**
  * Detect XML elements from a sample of bytes.
  * @param {Uint8Array} sample
  * @returns {any}
@@ -208,6 +213,18 @@ export function detectXmlElements(sample) {
     const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.detectXmlElements(ptr0, len0);
+    return ret;
+}
+
+/**
+ * Detect JSON fields from a sample of bytes.
+ * @param {Uint8Array} sample
+ * @returns {any}
+ */
+export function detectJsonFields(sample) {
+    const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.detectJsonFields(ptr0, len0);
     return ret;
 }
 
@@ -229,6 +246,21 @@ export function detectFormat(sample) {
 }
 
 /**
+ * Detect structure (fields/elements) for any format
+ * @param {Uint8Array} sample
+ * @param {string | undefined} [format_hint]
+ * @returns {any}
+ */
+export function detectStructure(sample, format_hint) {
+    const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    var ptr1 = isLikeNone(format_hint) ? 0 : passStringToWasm0(format_hint, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    var len1 = WASM_VECTOR_LEN;
+    const ret = wasm.detectStructure(ptr0, len0, ptr1, len1);
+    return ret;
+}
+
+/**
  * Check if SIMD is enabled in this build.
  * @returns {boolean}
  */
@@ -244,6 +276,14 @@ export function getSimdEnabled() {
 export function getThreadingEnabled() {
     const ret = wasm.getThreadingEnabled();
     return ret !== 0;
+}
+
+/**
+ * @returns {any}
+ */
+export function get_threading_support_info() {
+    const ret = wasm.get_threading_support_info();
+    return ret;
 }
 
 function takeFromExternrefTable0(idx) {

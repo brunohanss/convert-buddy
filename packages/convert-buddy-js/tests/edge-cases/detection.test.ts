@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import {
   detectFormat,
   detectCsvFieldsAndDelimiter,
-} from "../../src/index.js";
+} from "../../index.js";
 import { strict as assert } from "node:assert";
 
 /**

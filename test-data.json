@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Alice", 
+    "age": 30, 
+    "city": "New York",
+    "profile": {
+      "email": "alice@example.com",
+      "phone": "+1-555-0101"
+    },
+    "skills": ["JavaScript", "Python", "TypeScript"]
+  },
+  {
+    "name": "Bob", 
+    "age": 25, 
+    "city": "San Francisco",
+    "profile": {
+      "email": "bob@example.com",
+      "phone": "+1-555-0102"
+    },
+    "skills": ["Rust", "Go", "C++"]
+  },
+  {
+    "name": "Charlie", 
+    "age": 35, 
+    "city": "Chicago",
+    "profile": {
+      "email": "charlie@example.com",
+      "phone": "+1-555-0103"
+    },
+    "skills": ["Java", "Kotlin", "Scala"]
+  }
+]

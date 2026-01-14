@@ -10,9 +10,8 @@ import BenchmarkSection from "@/components/BenchmarkSection";
 import LiveBenchmarkSection from "@/components/LiveBenchmarkSection";
 import { 
   convertFile, 
-  detectCsvFieldsAndDelimiter, 
-  detectXmlElements, 
   detectFormat, 
+  detectStructure,
   getMimeType,
   type Format, 
   convertToString 
@@ -80,26 +79,16 @@ export default function Home() {
       const detectedFormat = await detectFormat(targetFile.stream());
       console.log("Detected format:", detectedFormat);
       
-      if (!detectedFormat || detectedFormat === "unknown") {
+      if (!detectedFormat) {
         setCheckError("Unable to detect the file format. Please try a different file.");
         setLoading(false);
         return;
       }
 
-      let csvInfo = null;
-      let xmlElements: string[] = [];
-      let xmlRecordElement: string | undefined;
-      
-      if (detectedFormat === "csv") {
-        csvInfo = await detectCsvFieldsAndDelimiter(targetFile.stream());
-      } else if (detectedFormat === "xml") {
-        // Extract XML elements using the WASM function
-        const xmlDetection = await detectXmlElements(targetFile.stream());
-        console.log("XML Detection result:", xmlDetection);
-        xmlElements = xmlDetection?.elements ?? [];
-        xmlRecordElement = xmlDetection?.recordElement;
-        console.log("Detected XML record element:", xmlRecordElement);
-      }
+      // Get structure (fields/elements/delimiter) for the detected format
+      console.log("Detecting structure for format:", detectedFormat);
+      const structureResult = await detectStructure(targetFile.stream(), detectedFormat as Format);
+      console.log("Structure detection result:", structureResult);
 
       const previewBytes = await targetFile.slice(0, PREVIEW_BYTES).text();
 
@@ -107,10 +96,10 @@ export default function Home() {
         format: detectedFormat,
         fileSize: targetFile.size,
         preview: previewBytes,
-        delimiter: csvInfo?.delimiter ?? null,
-        fields: csvInfo?.fields ?? xmlElements,
+        delimiter: structureResult?.delimiter ?? null,
+        fields: structureResult?.fields ?? [],
         sampled: targetFile.size > PREVIEW_BYTES,
-        xmlRecordElement,
+        xmlRecordElement: structureResult?.recordElement,
       });
       console.log("Check result set:", detectedFormat);
     } catch (error) {

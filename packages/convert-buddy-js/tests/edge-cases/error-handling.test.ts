@@ -1,5 +1,5 @@
 import { describe, it } from "node:test";
-import { convertToString, convert, ConvertBuddy } from "../../src/index.js";
+import { convertToString, convert, ConvertBuddy } from "../../index.js";
 import { strict as assert } from "node:assert";
 
 /**

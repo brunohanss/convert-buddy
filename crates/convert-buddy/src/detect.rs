@@ -16,6 +16,24 @@ pub struct XmlDetection {
     pub record_element: Option<String>,
 }
 
+#[derive(Debug)]
+pub struct JsonDetection {
+    pub fields: Vec<String>,
+}
+
+#[derive(Debug)]
+pub struct NdjsonDetection {
+    pub fields: Vec<String>,
+}
+
+#[derive(Debug)]
+pub struct StructureDetection {
+    pub format: Format,
+    pub fields: Vec<String>,
+    pub delimiter: Option<String>,      // For CSV
+    pub record_element: Option<String>, // For XML
+}
+
 pub fn detect_format(sample: &[u8]) -> Option<Format> {
     let sample = trim_ascii(sample);
     if sample.is_empty() {
@@ -239,6 +257,190 @@ pub fn detect_xml(sample: &[u8]) -> Option<XmlDetection> {
         elements: elements_vec,
         record_element,
     })
+}
+
+pub fn detect_json(sample: &[u8]) -> Option<JsonDetection> {
+    let sample = trim_ascii(sample);
+    if sample.is_empty() {
+        return None;
+    }
+
+    let sample = strip_bom(sample);
+    
+    // Parse the JSON to extract field names
+    let parser = JsonParser::new();
+    if !parser.quick_validate(sample) {
+        return None;
+    }
+    
+    let json_str = String::from_utf8_lossy(sample);
+    let fields = extract_json_fields(&json_str);
+    
+    Some(JsonDetection { fields })
+}
+
+pub fn detect_ndjson(sample: &[u8]) -> Option<NdjsonDetection> {
+    let sample = trim_ascii(sample);
+    if sample.is_empty() {
+        return None;
+    }
+
+    let sample = strip_bom(sample);
+    let sample_str = String::from_utf8_lossy(sample);
+    
+    // Parse each line as JSON and extract field names
+    let parser = JsonParser::new();
+    let mut all_fields = std::collections::HashSet::new();
+    let mut valid_lines = 0;
+    
+    for line in sample_str.lines().take(10) { // Sample first 10 lines
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        
+        // Validate that it's a JSON object or array
+        if !parser.quick_validate(line.as_bytes()) {
+            continue;
+        }
+        
+        let fields = extract_json_fields(line);
+        for field in fields {
+            all_fields.insert(field);
+        }
+        valid_lines += 1;
+    }
+    
+    // Must have at least one valid line to be considered NDJSON
+    if valid_lines == 0 {
+        return None;
+    }
+    
+    let mut fields_vec: Vec<String> = all_fields.into_iter().collect();
+    fields_vec.sort();
+    
+    Some(NdjsonDetection { fields: fields_vec })
+}
+
+fn extract_json_fields(json_str: &str) -> Vec<String> {
+    let mut fields = std::collections::HashSet::new();
+    
+    // Simple JSON field extraction - look for quoted keys
+    // This is a lightweight approach that doesn't require a full JSON parser
+    let bytes = json_str.as_bytes();
+    let mut i = 0;
+    
+    while i < bytes.len() {
+        if bytes[i] == b'"' {
+            // Start of a potential key
+            let mut key_start = i + 1;
+            let mut key_end = key_start;
+            
+            // Find the end of the quoted string
+            while key_end < bytes.len() && bytes[key_end] != b'"' {
+                if bytes[key_end] == b'\\' && key_end + 1 < bytes.len() {
+                    // Skip escaped character
+                    key_end += 2;
+                } else {
+                    key_end += 1;
+                }
+            }
+            
+            if key_end < bytes.len() && bytes[key_end] == b'"' {
+                // Check if this is followed by a colon (making it a key)
+                let mut colon_pos = key_end + 1;
+                while colon_pos < bytes.len() && bytes[colon_pos].is_ascii_whitespace() {
+                    colon_pos += 1;
+                }
+                
+                if colon_pos < bytes.len() && bytes[colon_pos] == b':' {
+                    // This is a key
+                    if let Ok(key) = String::from_utf8(bytes[key_start..key_end].to_vec()) {
+                        // Simple nested field support - extract only top-level fields for now
+                        if key.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-') {
+                            fields.insert(key);
+                        }
+                    }
+                }
+                
+                i = key_end + 1;
+            } else {
+                i += 1;
+            }
+        } else {
+            i += 1;
+        }
+    }
+    
+    let mut fields_vec: Vec<String> = fields.into_iter().collect();
+    fields_vec.sort();
+    fields_vec
+}
+
+pub fn detect_structure(sample: &[u8], format: Option<Format>) -> Option<StructureDetection> {
+    let sample = trim_ascii(sample);
+    if sample.is_empty() {
+        return None;
+    }
+
+    let sample = strip_bom(sample);
+    
+    // Auto-detect format if not provided
+    let detected_format = match format {
+        Some(f) => f,
+        None => detect_format(sample)?,
+    };
+    
+    match detected_format {
+        Format::Csv => {
+            if let Some(csv_detection) = detect_csv(sample) {
+                Some(StructureDetection {
+                    format: Format::Csv,
+                    fields: csv_detection.fields,
+                    delimiter: Some(String::from_utf8_lossy(&[csv_detection.delimiter]).to_string()),
+                    record_element: None,
+                })
+            } else {
+                None
+            }
+        }
+        Format::Xml => {
+            if let Some(xml_detection) = detect_xml(sample) {
+                Some(StructureDetection {
+                    format: Format::Xml,
+                    fields: xml_detection.elements,
+                    delimiter: None,
+                    record_element: xml_detection.record_element,
+                })
+            } else {
+                None
+            }
+        }
+        Format::Json => {
+            if let Some(json_detection) = detect_json(sample) {
+                Some(StructureDetection {
+                    format: Format::Json,
+                    fields: json_detection.fields,
+                    delimiter: None,
+                    record_element: None,
+                })
+            } else {
+                None
+            }
+        }
+        Format::Ndjson => {
+            if let Some(ndjson_detection) = detect_ndjson(sample) {
+                Some(StructureDetection {
+                    format: Format::Ndjson,
+                    fields: ndjson_detection.fields,
+                    delimiter: None,
+                    record_element: None,
+                })
+            } else {
+                None
+            }
+        }
+    }
 }
 
 fn strip_bom(sample: &[u8]) -> &[u8] {

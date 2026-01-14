@@ -1,6 +1,6 @@
 import { describe, it, before } from "node:test";
 import assert from "node:assert";
-import { ConvertBuddy } from "../../src/index.js";
+import { ConvertBuddy } from "../../index.js";
 
 describe("Abort/Pause/Resume Control", () => {
   it("should abort conversion when abort() is called", async () => {

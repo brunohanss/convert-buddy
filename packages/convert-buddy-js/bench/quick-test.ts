@@ -1,5 +1,5 @@
 import { performance } from "node:perf_hooks";
-import { convert } from "../src/index.js";
+import { convert } from "../index.js";
 import { generateCsvDataset } from "./datasets.js";
 
 /**

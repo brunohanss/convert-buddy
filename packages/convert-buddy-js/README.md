@@ -483,34 +483,45 @@ const result3 = await convert(input, {
 });
 ```
 
-#### Detect format and CSV fields/delimiter
+#### Detect format and structure
 
 Use streaming inputs to keep detection fast on large files.
 
 ```ts
 import {
   detectFormat,
-  detectCsvFieldsAndDelimiter,
-  detectXmlElements,
+  detectStructure,
 } from "convert-buddy-js";
 
 const fileStream = (await fetch("/data")).body!;
 
+// Detect format only
 const format = await detectFormat(fileStream, { maxBytes: 256 * 1024 });
 console.log(format); // "csv" | "json" | "ndjson" | "xml" | "unknown"
 
-// For CSV files, detect delimiter and field names
-const csvInfo = await detectCsvFieldsAndDelimiter(fileStream);
-if (csvInfo) {
-  console.log(csvInfo.delimiter);    // ","
-  console.log(csvInfo.fields);       // ["name", "age", "city"]
-}
+// Detect structure (fields/elements) - auto-detects format if not provided
+const structure = await detectStructure(fileStream);
+console.log(structure?.format);    // "csv"
+console.log(structure?.fields);    // ["name", "age", "city"]
+console.log(structure?.delimiter); // "," (for CSV)
 
-// For XML files, detect element names
+// Or provide format hint for efficiency
+const structure2 = await detectStructure(fileStream, "csv");
+console.log(structure2?.fields);       // ["name", "age", "city"]
+console.log(structure2?.delimiter);    // ","
+
+// For XML files, get elements and record element
+const xmlStructure = await detectStructure(xmlStream, "xml");
+console.log(xmlStructure?.fields);       // ["root", "record", "field", ...]
+console.log(xmlStructure?.recordElement); // "record"
+```
+
+**Backward compatibility functions** (still available but deprecated):
+```ts
+// These now use detectStructure internally
+const csvInfo = await detectCsvFieldsAndDelimiter(fileStream);
 const xmlInfo = await detectXmlElements(fileStream);
-if (xmlInfo) {
-  console.log(xmlInfo.elements);     // ["root", "record", "field", ...]
-}
+```
 ```
 
 ## Configuration

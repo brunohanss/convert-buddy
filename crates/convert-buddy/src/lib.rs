@@ -126,6 +126,82 @@ pub fn detect_xml_elements(sample: &[u8]) -> JsValue {
     result.into()
 }
 
+/// Detect JSON fields from a sample of bytes.
+#[wasm_bindgen(js_name = detectJsonFields)]
+pub fn detect_json_fields(sample: &[u8]) -> JsValue {
+    let Some(detection) = detect::detect_json(sample) else {
+        return JsValue::NULL;
+    };
+
+    let result = Object::new();
+    let fields = Array::new();
+    for field in detection.fields {
+        fields.push(&JsValue::from(field));
+    }
+
+    let _ = Reflect::set(&result, &JsValue::from("fields"), &fields);
+
+    result.into()
+}
+
+/// Detect NDJSON fields from a sample of bytes.
+#[wasm_bindgen(js_name = detectNdjsonFields)]
+pub fn detect_ndjson_fields(sample: &[u8]) -> JsValue {
+    let Some(detection) = detect::detect_ndjson(sample) else {
+        return JsValue::NULL;
+    };
+
+    let result = Object::new();
+    let fields = Array::new();
+    for field in detection.fields {
+        fields.push(&JsValue::from(field));
+    }
+
+    let _ = Reflect::set(&result, &JsValue::from("fields"), &fields);
+
+    result.into()
+}
+
+/// Detect structure (fields/elements) for any format
+#[wasm_bindgen(js_name = detectStructure)]
+pub fn detect_structure(sample: &[u8], format_hint: Option<String>) -> JsValue {
+    let format = format_hint.and_then(|f| match f.as_str() {
+        "csv" => Some(Format::Csv),
+        "xml" => Some(Format::Xml),
+        "json" => Some(Format::Json),
+        "ndjson" => Some(Format::Ndjson),
+        _ => None,
+    });
+    
+    let Some(detection) = detect::detect_structure(sample, format) else {
+        return JsValue::NULL;
+    };
+
+    let result = Object::new();
+    
+    // Set format
+    let _ = Reflect::set(&result, &JsValue::from("format"), &JsValue::from(detection.format.to_string_js()));
+    
+    // Set fields
+    let fields = Array::new();
+    for field in detection.fields {
+        fields.push(&JsValue::from(field));
+    }
+    let _ = Reflect::set(&result, &JsValue::from("fields"), &fields);
+    
+    // Set delimiter (for CSV)
+    if let Some(delimiter) = detection.delimiter {
+        let _ = Reflect::set(&result, &JsValue::from("delimiter"), &JsValue::from(delimiter));
+    }
+    
+    // Set record element (for XML)
+    if let Some(record_element) = detection.record_element {
+        let _ = Reflect::set(&result, &JsValue::from("recordElement"), &JsValue::from(record_element));
+    }
+
+    result.into()
+}
+
 /// Internal converter state
 enum ConverterState {
     CsvToNdjson(CsvParser),
