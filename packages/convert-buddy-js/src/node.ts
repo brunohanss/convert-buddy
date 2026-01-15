@@ -5,6 +5,12 @@ import { ConvertBuddy, type ConvertBuddyOptions, type ConvertOptions, type Forma
 
 export * from "./index.js";
 
+const utf8Decoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
+
+function decodeUtf8(bytes: Uint8Array): string {
+  return utf8Decoder.decode(bytes);
+}
+
 /**
  * Ultra-simple convert function for Node.js.
  * Auto-detects input type (file path, URL, Buffer, etc.) and format.
@@ -51,7 +57,7 @@ export async function convertToString(
   opts: ConvertOptions
 ): Promise<string> {
   const result = await convert(input, opts);
-  return new TextDecoder().decode(result);
+  return decodeUtf8(result);
 }
 
 // Node.js Transform Stream adapter
@@ -149,7 +155,7 @@ export async function convertFileToString(
   opts: ConvertBuddyOptions = {}
 ): Promise<string> {
   const bytes = await convertFileToBuffer(inputPath, opts);
-  return bytes.toString("utf-8");
+  return decodeUtf8(bytes);
 }
 
 /**

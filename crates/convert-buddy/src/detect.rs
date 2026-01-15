@@ -34,6 +34,22 @@ pub struct StructureDetection {
     pub record_element: Option<String>, // For XML
 }
 
+fn utf8_prefix(bytes: &[u8]) -> Option<&str> {
+    match std::str::from_utf8(bytes) {
+        Ok(value) => Some(value),
+        Err(err) => {
+            let valid_up_to = err.valid_up_to();
+            if err.error_len().is_none() && valid_up_to > 0 {
+                std::str::from_utf8(&bytes[..valid_up_to]).ok()
+            } else if err.error_len().is_none() {
+                Some("")
+            } else {
+                None
+            }
+        }
+    }
+}
+
 pub fn detect_format(sample: &[u8]) -> Option<Format> {
     let sample = trim_ascii(sample);
     if sample.is_empty() {
@@ -88,10 +104,11 @@ pub fn detect_csv(sample: &[u8]) -> Option<CsvDetection> {
     let sample = strip_bom(sample);
     let line = first_non_empty_line(sample)?;
     let delimiter = detect_delimiter(sample);
-    let fields = split_csv_fields(line, delimiter)
-        .into_iter()
-        .map(|field| String::from_utf8_lossy(&field).to_string())
-        .collect::<Vec<String>>();
+    let mut fields = Vec::new();
+    for field in split_csv_fields(line, delimiter) {
+        let decoded = std::str::from_utf8(&field).ok()?;
+        fields.push(decoded.to_string());
+    }
 
     Some(CsvDetection { delimiter, fields })
 }
@@ -273,8 +290,8 @@ pub fn detect_json(sample: &[u8]) -> Option<JsonDetection> {
         return None;
     }
     
-    let json_str = String::from_utf8_lossy(sample);
-    let fields = extract_json_fields(&json_str);
+    let json_str = utf8_prefix(sample)?;
+    let fields = extract_json_fields(json_str);
     
     Some(JsonDetection { fields })
 }
@@ -286,7 +303,7 @@ pub fn detect_ndjson(sample: &[u8]) -> Option<NdjsonDetection> {
     }
 
     let sample = strip_bom(sample);
-    let sample_str = String::from_utf8_lossy(sample);
+    let sample_str = utf8_prefix(sample)?;
     
     // Parse each line as JSON and extract field names
     let parser = JsonParser::new();
@@ -397,7 +414,7 @@ pub fn detect_structure(sample: &[u8], format: Option<Format>) -> Option<Structu
                 Some(StructureDetection {
                     format: Format::Csv,
                     fields: csv_detection.fields,
-                    delimiter: Some(String::from_utf8_lossy(&[csv_detection.delimiter]).to_string()),
+                    delimiter: Some(char::from(csv_detection.delimiter).to_string()),
                     record_element: None,
                 })
             } else {

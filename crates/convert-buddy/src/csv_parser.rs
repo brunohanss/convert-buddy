@@ -153,13 +153,13 @@ impl CsvParser {
         if self.config.has_headers && self.headers.is_none() && !line_starts.is_empty() {
             // Process first line as headers
             let header_line = &input_data[line_starts[0]..line_ends[0]];
+            std::str::from_utf8(header_line)?;
             let fields = self.parse_fields(header_line)?;
-            self.headers = Some(
-                fields
-                    .iter()
-                    .map(|f| String::from_utf8_lossy(f).to_string())
-                    .collect()
-            );
+            let headers = fields
+                .iter()
+                .map(|field| std::str::from_utf8(field).map(str::to_string))
+                .collect::<std::result::Result<Vec<String>, _>>()?;
+            self.headers = Some(headers);
             process_start = 1;
         }
 
@@ -225,6 +225,7 @@ impl CsvParser {
                                 let line_end = local_start + pos;
                                 let line = &slice[local_start..line_end];
                                 if !line.is_empty() && !line.iter().all(|&b| b.is_ascii_whitespace()) {
+                                    std::str::from_utf8(line)?;
                                     // Parse fields (fast or quoted) using local config
                                     let fields = CsvParser::parse_fields_static(&config_clone, line);
                                     // Convert fields to JSON into local_output
@@ -296,17 +297,17 @@ impl CsvParser {
 
     /// Process a single CSV line and convert to NDJSON
     fn process_csv_line(&mut self, line: &[u8], output: &mut Vec<u8>) -> Result<()> {
+        std::str::from_utf8(line)?;
         // Parse fields using fast or quoted path
         let fields = self.parse_fields(line)?;
 
         // Handle headers
         if self.config.has_headers && self.headers.is_none() {
-            self.headers = Some(
-                fields
-                    .iter()
-                    .map(|f| String::from_utf8_lossy(f).to_string())
-                    .collect()
-            );
+            let headers = fields
+                .iter()
+                .map(|field| std::str::from_utf8(field).map(str::to_string))
+                .collect::<std::result::Result<Vec<String>, _>>()?;
+            self.headers = Some(headers);
             return Ok(());
         }
 
