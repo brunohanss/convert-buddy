@@ -9,6 +9,7 @@ let fileSize = 0;
 let chunkSize = 1024 * 1024; // 1MB default
 let lastProgressPost = 0;
 const PROGRESS_THROTTLE_MS = 150; // post progress at most ~6-7 times/sec
+const utf8Decoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
 
 self.onmessage = async (event) => {
   const { type, file, opts } = event.data;
@@ -43,7 +44,7 @@ self.onmessage = async (event) => {
 
           // Count records (approximate) on worker side (keep for telemetry)
           try {
-            const chunkText = new TextDecoder().decode(output);
+            const chunkText = utf8Decoder.decode(output);
             recordsProcessed += chunkText.split('\n').length - 1;
           } catch (e) {
             // ignore decoding failures for counting
@@ -67,8 +68,12 @@ self.onmessage = async (event) => {
       // Finalize
       const final = buddy.finish();
       totalBytesWritten += final.length;
-      const finalText = new TextDecoder().decode(final);
-      recordsProcessed += finalText.split('\n').length - 1;
+      try {
+        const finalText = utf8Decoder.decode(final);
+        recordsProcessed += finalText.split('\n').length - 1;
+      } catch (e) {
+        // ignore decoding failures for counting
+      }
       self.postMessage({
         type: 'complete',
         bytesRead: totalBytesRead,

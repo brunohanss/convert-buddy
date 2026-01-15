@@ -110,6 +110,11 @@ let wasmModuleLoadPromise: Promise<WasmModule> | null = null;
 let wasmThreadingSupported = false;
 let threadPool: any = null; // Custom WASM thread pool (browser)
 let nodejsThreadPool: any = null; // Node.js specific thread pool
+const utf8Decoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
+
+function decodeUtf8(bytes: Uint8Array): string {
+  return utf8Decoder.decode(bytes);
+}
 
 // Detect SharedArrayBuffer support for WASM threading
 function detectWasmThreadingSupport(): boolean {
@@ -489,7 +494,7 @@ export class ConvertBuddy {
   }
 
   private async convertUsingWasmThreadPool(input: Uint8Array, opts: ConvertBuddyOptions, numThreads: number): Promise<Uint8Array> {
-    const inputStr = new TextDecoder().decode(input);
+    const inputStr = decodeUtf8(input);
     
     // Import chunking utilities
     const { chunkData, mergeResults } = await import('./thread-pool');
@@ -1161,7 +1166,7 @@ export async function convertToString(
   opts: ConvertBuddyOptions = {}
 ): Promise<string> {
   const result = await convert(input, opts);
-  return new TextDecoder().decode(result);
+  return decodeUtf8(result);
 }
 
 /**
@@ -1204,7 +1209,7 @@ export async function convertAnyToString(
   opts: ConvertOptions
 ): Promise<string> {
   const result = await convertAny(input, opts);
-  return new TextDecoder().decode(result);
+  return decodeUtf8(result);
 }
 
 // ===== Helper Functions =====

@@ -93,7 +93,7 @@ pub fn detect_csv_fields(sample: &[u8]) -> JsValue {
     };
 
     let result = Object::new();
-    let delimiter = String::from_utf8_lossy(&[detection.delimiter]).to_string();
+    let delimiter = char::from(detection.delimiter).to_string();
     let fields = Array::new();
     for field in detection.fields {
         fields.push(&JsValue::from(field));
@@ -867,7 +867,7 @@ impl Converter {
                     
                     if self.debug {
                         let delim_bytes = [detection.delimiter];
-                        let delim_char = String::from_utf8_lossy(&delim_bytes);
+                        let delim_char = char::from(delim_bytes[0]);
                         debug!("Auto-detected CSV delimiter: '{}' ({} fields)", delim_char, detection.fields.len());
                     }
                 } else if self.debug {

@@ -103,7 +103,8 @@ export async function convertFileToString(
   opts: BrowserConvertOptions = {}
 ): Promise<string> {
   const bytes = await convertFile(file, opts);
-  return new TextDecoder().decode(bytes);
+  const decoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
+  return decoder.decode(bytes);
 }
 
 /**

@@ -1,4 +1,4 @@
-use crate::error::Result;
+use crate::error::{ConvertError, Result};
 use log::debug;
 use quick_xml::events::Event;
 use quick_xml::Reader;
@@ -86,7 +86,18 @@ impl XmlParser {
         // Reset arena for this batch of records
         self.arena.reset();
         
-        let content = std::str::from_utf8(&self.partial_buffer).unwrap_or("");
+        let (content, _valid_len) = match std::str::from_utf8(&self.partial_buffer) {
+            Ok(content) => (content, self.partial_buffer.len()),
+            Err(err) => {
+                let valid_up_to = err.valid_up_to();
+                if err.error_len().is_none() {
+                    let content = std::str::from_utf8(&self.partial_buffer[..valid_up_to])?;
+                    (content, valid_up_to)
+                } else {
+                    return Err(err.into());
+                }
+            }
+        };
         
         // Find all complete record elements using string matching
         // This approach is more reliable for streaming than using quick-xml on partial buffers
@@ -110,7 +121,8 @@ impl XmlParser {
                     let record_xml = &content[record_start_abs..record_end_abs];
                     
                     // Parse this single complete record using quick-xml
-                    if let Ok(parsed_record) = self.parse_single_record(record_xml) {
+                    let parsed_record = self.parse_single_record(record_xml)?;
+                    if !parsed_record.is_empty() {
                         output.extend_from_slice(&parsed_record);
                         output.push(b'\n');
                         self.record_count += 1;
@@ -150,7 +162,7 @@ impl XmlParser {
         loop {
             match reader.read_event_into(&mut buf) {
                 Ok(Event::Start(e)) => {
-                    let name = String::from_utf8_lossy(e.name().as_ref()).to_string();
+                    let name = std::str::from_utf8(e.name().as_ref())?.to_string();
                     
                     if !root_found {
                         // This should be our record element
@@ -161,8 +173,8 @@ impl XmlParser {
                         if self.config.include_attributes {
                             for attr in e.attributes() {
                                 if let Ok(attr) = attr {
-                                    let key = format!("@{}", String::from_utf8_lossy(attr.key.as_ref()));
-                                    let value = String::from_utf8_lossy(&attr.value).to_string();
+                                    let key = format!("@{}", std::str::from_utf8(attr.key.as_ref())?);
+                                    let value = std::str::from_utf8(&attr.value)?.to_string();
                                     root.insert(key, JsonValue::String(value));
                                 }
                             }
@@ -176,7 +188,7 @@ impl XmlParser {
                     }
                 }
                 Ok(Event::End(e)) => {
-                    let name = String::from_utf8_lossy(e.name().as_ref()).to_string();
+                    let name = std::str::from_utf8(e.name().as_ref())?.to_string();
                     
                     if element_stack.len() == 1 && name == self.config.record_element {
                         // End of root record element
@@ -205,19 +217,21 @@ impl XmlParser {
                     }
                 }
                 Ok(Event::Text(e)) => {
-                    let text = e.unescape().unwrap_or_default();
+                    let text = e
+                        .unescape()
+                        .map_err(|e| ConvertError::XmlParse(e.to_string()))?;
                     if !text.trim().is_empty() {
                         current_text = text.to_string();
                     }
                 }
                 Ok(Event::Eof) => break,
-                Err(_) => break,
+                Err(e) => return Err(ConvertError::XmlParse(e.to_string())),
                 _ => {}
             }
             buf.clear();
         }
-        
-        Ok(Vec::new())
+
+        Err(ConvertError::XmlParse("Failed to parse XML record".to_string()))
     }
 
     /// Insert a value into a HashMap, creating arrays for duplicate keys
