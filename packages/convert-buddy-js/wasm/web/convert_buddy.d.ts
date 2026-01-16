@@ -43,7 +43,7 @@ export class Converter {
   /**
    * Create a new converter with specific configuration
    */
-  static withConfig(debug: boolean, input_format: string, output_format: string, chunk_target_bytes: number, enable_stats: boolean, csv_config: any, xml_config: any): Converter;
+  static withConfig(debug: boolean, input_format: string, output_format: string, chunk_target_bytes: number, enable_stats: boolean, csv_config: any, xml_config: any, transform_config: any): Converter;
   constructor(debug: boolean);
   /**
    * Push a chunk of bytes. Returns converted output bytes for that chunk.
@@ -86,7 +86,7 @@ export interface InitOutput {
   readonly converter_getStats: (a: number) => number;
   readonly converter_new: (a: number) => number;
   readonly converter_push: (a: number, b: number, c: number) => [number, number, number, number];
-  readonly converter_withConfig: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: any, i: any) => [number, number, number];
+  readonly converter_withConfig: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: any, i: any, j: any) => [number, number, number];
   readonly detectCsvFields: (a: number, b: number) => any;
   readonly detectFormat: (a: number, b: number) => [number, number];
   readonly detectJsonFields: (a: number, b: number) => any;

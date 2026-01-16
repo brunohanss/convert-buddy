@@ -43,7 +43,7 @@ export class Converter {
   /**
    * Create a new converter with specific configuration
    */
-  static withConfig(debug: boolean, input_format: string, output_format: string, chunk_target_bytes: number, enable_stats: boolean, csv_config: any, xml_config: any): Converter;
+  static withConfig(debug: boolean, input_format: string, output_format: string, chunk_target_bytes: number, enable_stats: boolean, csv_config: any, xml_config: any, transform_config: any): Converter;
   constructor(debug: boolean);
   /**
    * Push a chunk of bytes. Returns converted output bytes for that chunk.
