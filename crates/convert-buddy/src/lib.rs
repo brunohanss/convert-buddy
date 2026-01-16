@@ -404,46 +404,53 @@ impl Converter {
 
         let start = crate::timing::Timer::new();
 
-        let result = match self.state.as_mut() {
-            Some(ConverterState::CsvToNdjson(parser)) => {
+        let mut state = match self.state.take() {
+            Some(state) => state,
+            None => {
+                return Err(ConvertError::InvalidConfig("Converter already finished".to_string()).into());
+            }
+        };
+
+        let result = match &mut state {
+            ConverterState::CsvToNdjson(parser) => {
                 #[cfg(feature = "threads")]
                 {
-                    parser.push_to_ndjson_parallel(chunk)?
+                    parser.push_to_ndjson_parallel(chunk)
                 }
                 #[cfg(not(feature = "threads"))]
                 {
-                    parser.push_to_ndjson(chunk)?
+                    parser.push_to_ndjson(chunk)
                 }
             }
-            Some(ConverterState::CsvToJson(csv_parser, ndjson_parser, is_first)) => {
+            ConverterState::CsvToJson(csv_parser, ndjson_parser, is_first) => {
                 // First convert CSV to NDJSON
                 let ndjson_chunk = {
                     #[cfg(feature = "threads")]
                     {
-                        csv_parser.push_to_ndjson_parallel(chunk)?
+                        csv_parser.push_to_ndjson_parallel(chunk)
                     }
                     #[cfg(not(feature = "threads"))]
                     {
-                        csv_parser.push_to_ndjson(chunk)?
+                        csv_parser.push_to_ndjson(chunk)
                     }
-                };
+                }?;
                 // Then convert NDJSON to JSON array
                 let is_first_chunk = *is_first;
                 *is_first = false;
-                ndjson_parser.to_json_array(&ndjson_chunk, is_first_chunk, false)?
+                ndjson_parser.to_json_array(&ndjson_chunk, is_first_chunk, false)
             }
-            Some(ConverterState::CsvToXml(csv_parser, xml_writer)) => {
+            ConverterState::CsvToXml(csv_parser, xml_writer) => {
                 // First convert CSV to NDJSON
                 let ndjson_chunk = {
                     #[cfg(feature = "threads")]
                     {
-                        csv_parser.push_to_ndjson_parallel(chunk)?
+                        csv_parser.push_to_ndjson_parallel(chunk)
                     }
                     #[cfg(not(feature = "threads"))]
                     {
-                        csv_parser.push_to_ndjson(chunk)?
+                        csv_parser.push_to_ndjson(chunk)
                     }
-                };
+                }?;
                 // Then convert NDJSON to XML
                 let ndjson_str = std::str::from_utf8(&ndjson_chunk)
                     .map_err(|e| JsValue::from(ConvertError::from(e)))?;
@@ -454,24 +461,24 @@ impl Converter {
                         output.extend(xml_writer.process_json_line(line)?);
                     }
                 }
-                output
+                Ok(output)
             }
-            Some(ConverterState::NdjsonPassthrough(parser)) => {
+            ConverterState::NdjsonPassthrough(parser) => {
                 #[cfg(feature = "threads")]
                 {
-                    parser.push_parallel(chunk)?
+                    parser.push_parallel(chunk)
                 }
                 #[cfg(not(feature = "threads"))]
                 {
-                    parser.push(chunk)?
+                    parser.push(chunk)
                 }
             }
-            Some(ConverterState::NdjsonToJson(parser, is_first)) => {
+            ConverterState::NdjsonToJson(parser, is_first) => {
                 let is_first_chunk = *is_first;
                 *is_first = false;
-                parser.to_json_array(chunk, is_first_chunk, false)?
+                parser.to_json_array(chunk, is_first_chunk, false)
             }
-            Some(ConverterState::NdjsonToCsv(ndjson_parser, csv_writer)) => {
+            ConverterState::NdjsonToCsv(ndjson_parser, csv_writer) => {
                 // First convert NDJSON to individual lines
                 let ndjson_chunk = ndjson_parser.push(chunk)?;
                 let ndjson_str = std::str::from_utf8(&ndjson_chunk)
@@ -483,9 +490,9 @@ impl Converter {
                         output.extend(csv_writer.process_json_line(line)?);
                     }
                 }
-                output
+                Ok(output)
             }
-            Some(ConverterState::NdjsonToXml(ndjson_parser, xml_writer)) => {
+            ConverterState::NdjsonToXml(ndjson_parser, xml_writer) => {
                 // Convert NDJSON to XML
                 let ndjson_chunk = ndjson_parser.push(chunk)?;
                 let ndjson_str = std::str::from_utf8(&ndjson_chunk)
@@ -497,20 +504,20 @@ impl Converter {
                         output.extend(xml_writer.process_json_line(line)?);
                     }
                 }
-                output
+                Ok(output)
             }
-            Some(ConverterState::XmlToNdjson(parser)) => {
-                parser.push_to_ndjson(chunk)?
+            ConverterState::XmlToNdjson(parser) => {
+                parser.push_to_ndjson(chunk)
             }
-            Some(ConverterState::XmlToJson(xml_parser, ndjson_parser, is_first)) => {
+            ConverterState::XmlToJson(xml_parser, ndjson_parser, is_first) => {
                 // First convert XML to NDJSON
                 let ndjson_chunk = xml_parser.push_to_ndjson(chunk)?;
                 // Then convert NDJSON to JSON array
                 let is_first_chunk = *is_first;
                 *is_first = false;
-                ndjson_parser.to_json_array(&ndjson_chunk, is_first_chunk, false)?
+                ndjson_parser.to_json_array(&ndjson_chunk, is_first_chunk, false)
             }
-            Some(ConverterState::XmlToCsv(xml_parser, csv_writer)) => {
+            ConverterState::XmlToCsv(xml_parser, csv_writer) => {
                 // First convert XML to NDJSON
                 let ndjson_chunk = xml_parser.push_to_ndjson(chunk)?;
                 // Then convert NDJSON to CSV
@@ -523,17 +530,17 @@ impl Converter {
                         output.extend(csv_writer.process_json_line(line)?);
                     }
                 }
-                output
+                Ok(output)
             }
-            Some(ConverterState::XmlPassthrough(parser)) => {
+            ConverterState::XmlPassthrough(parser) => {
                 // For XML passthrough, we just validate and pass through
-                parser.push_to_ndjson(chunk)? // XML -> NDJSON is our standard format
+                parser.push_to_ndjson(chunk) // XML -> NDJSON is our standard format
             }
-            Some(ConverterState::JsonPassthrough(_parser)) => {
+            ConverterState::JsonPassthrough(_parser) => {
                 // For JSON passthrough, we just validate
-                chunk.to_vec()
+                Ok(chunk.to_vec())
             }
-            Some(ConverterState::JsonToNdjson(_json_parser)) => {
+            ConverterState::JsonToNdjson(_json_parser) => {
                 // Convert JSON array to NDJSON (extract items from array and emit as lines)
                 let mut output = Vec::new();
                 
@@ -555,9 +562,9 @@ impl Converter {
                     }
                 }
                 
-                output
+                Ok(output)
             }
-            Some(ConverterState::JsonToCsv(_json_parser, csv_writer)) => {
+            ConverterState::JsonToCsv(_json_parser, csv_writer) => {
                 // Convert JSON to NDJSON first, then to CSV
                 let mut output = Vec::new();
                 
@@ -576,9 +583,9 @@ impl Converter {
                     }
                 }
                 
-                output
+                Ok(output)
             }
-            Some(ConverterState::JsonToXml(_json_parser, xml_writer)) => {
+            ConverterState::JsonToXml(_json_parser, xml_writer) => {
                 // Convert JSON to NDJSON first, then to XML
                 let mut output = Vec::new();
                 
@@ -597,16 +604,16 @@ impl Converter {
                     }
                 }
                 
-                output
+                Ok(output)
             }
-            Some(ConverterState::NeedsDetection(_)) => {
+            ConverterState::NeedsDetection(_) => {
                 // Should not reach here as it's handled above
-                return Err(ConvertError::InvalidConfig("Invalid state: detection should have been completed".to_string()).into());
-            }
-            None => {
-                return Err(ConvertError::InvalidConfig("Converter already finished".to_string()).into());
+                Err(ConvertError::InvalidConfig("Invalid state: detection should have been completed".to_string()).into())
             }
         };
+
+        self.state = Some(state);
+        let result = result?;
 
         // Record output stats
         if self.config.enable_stats {
