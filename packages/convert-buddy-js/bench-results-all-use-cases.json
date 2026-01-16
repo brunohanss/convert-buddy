@@ -1,36 +1,36 @@
 {
-  "timestamp": "2026-01-11T22:36:08.931Z",
-  "totalDuration": 14460.6483,
+  "timestamp": "2026-01-15T13:51:05.015Z",
+  "totalDuration": 18975.4752,
   "summaries": [
     {
       "useCaseName": "CSV → JSON",
       "toolResults": [
         {
           "tool": "convert-buddy",
-          "avgThroughput": 83.822,
-          "avgLatency": 33.983999999999995,
-          "avgMemory": 0.06600000000000002,
+          "avgThroughput": 84.886,
+          "avgLatency": 31.764,
+          "avgMemory": 0.068,
           "count": 5
         },
         {
           "tool": "PapaParse",
-          "avgThroughput": 21.278,
-          "avgLatency": 192.328,
-          "avgMemory": 29.338,
+          "avgThroughput": 22.736,
+          "avgLatency": 198.43,
+          "avgMemory": 29.512,
           "count": 5
         },
         {
           "tool": "csv-parse",
-          "avgThroughput": 20.099999999999998,
-          "avgLatency": 168.30666666666667,
-          "avgMemory": 26.87333333333333,
+          "avgThroughput": 20.24,
+          "avgLatency": 164.91333333333333,
+          "avgMemory": 26.843333333333334,
           "count": 3
         },
         {
           "tool": "fast-csv",
-          "avgThroughput": 13.963333333333333,
-          "avgLatency": 246.98666666666668,
-          "avgMemory": 38.92333333333334,
+          "avgThroughput": 13.68,
+          "avgLatency": 245.78333333333333,
+          "avgMemory": 35.79666666666666,
           "count": 3
         }
       ]
@@ -40,16 +40,16 @@
       "toolResults": [
         {
           "tool": "convert-buddy",
-          "avgThroughput": 910.9216666666666,
-          "avgLatency": 30.814999999999998,
+          "avgThroughput": 1059.8866666666668,
+          "avgLatency": 29.098333333333333,
           "avgMemory": 0.011666666666666667,
           "count": 6
         },
         {
           "tool": "Native JSON",
-          "avgThroughput": 131.71,
-          "avgLatency": 60.883333333333326,
-          "avgMemory": 22.083333333333332,
+          "avgThroughput": 133.37,
+          "avgLatency": 61.54333333333333,
+          "avgMemory": 22.086666666666662,
           "count": 3
         }
       ]
@@ -59,9 +59,9 @@
       "toolResults": [
         {
           "tool": "convert-buddy",
-          "avgThroughput": 63.62875,
-          "avgLatency": 743.1325,
-          "avgMemory": -0.0012499999999999987,
+          "avgThroughput": 62.5075,
+          "avgLatency": 1304.8125,
+          "avgMemory": 0.046250000000000006,
           "count": 8
         }
       ]
@@ -71,16 +71,16 @@
       "toolResults": [
         {
           "tool": "convert-buddy",
-          "avgThroughput": 60.488,
-          "avgLatency": 139.184,
+          "avgThroughput": 46.732,
+          "avgLatency": 182.45800000000003,
           "avgMemory": 0.01,
           "count": 5
         },
         {
           "tool": "fast-xml-parser",
-          "avgThroughput": 18.613333333333333,
-          "avgLatency": 673.41,
-          "avgMemory": 148.02333333333334,
+          "avgThroughput": 18.580000000000002,
+          "avgLatency": 653.1033333333334,
+          "avgMemory": 146.20666666666668,
           "count": 3
         }
       ]
