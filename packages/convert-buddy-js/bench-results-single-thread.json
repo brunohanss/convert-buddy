@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-01-13T22:47:34.044Z",
+  "timestamp": "2026-01-15T22:16:48.252Z",
   "threadMode": "single-thread",
   "environment": {
     "uvThreadpoolSize": "1",
@@ -14,10 +14,10 @@
       "threadMode": "single-thread",
       "dataset": "0.01 MB",
       "size": "small",
-      "throughputMbps": 0.74,
-      "latencyMs": 7.71,
-      "memoryMb": 0.28,
-      "recordsPerSec": 13102,
+      "throughputMbps": 0.77,
+      "latencyMs": 7.4,
+      "memoryMb": 0.29,
+      "recordsPerSec": 13640,
       "cpuTime": 0
     },
     {
@@ -25,43 +25,43 @@
       "threadMode": "single-thread",
       "dataset": "0.12 MB",
       "size": "medium",
-      "throughputMbps": 43.55,
-      "latencyMs": 2.67,
+      "throughputMbps": 40.25,
+      "latencyMs": 2.89,
       "memoryMb": 0.03,
-      "recordsPerSec": 375117,
-      "cpuTime": 0
+      "recordsPerSec": 346667,
+      "cpuTime": 78
     },
     {
       "name": "CSV→NDJSON (medium)",
       "threadMode": "single-thread",
       "dataset": "1.26 MB",
       "size": "medium",
-      "throughputMbps": 103.98,
-      "latencyMs": 12.09,
+      "throughputMbps": 104.98,
+      "latencyMs": 11.97,
       "memoryMb": 0.02,
-      "recordsPerSec": 827452,
-      "cpuTime": 15
+      "recordsPerSec": 835422,
+      "cpuTime": 16
     },
     {
       "name": "CSV→NDJSON (large)",
       "threadMode": "single-thread",
       "dataset": "13.52 MB",
       "size": "large",
-      "throughputMbps": 120.68,
-      "latencyMs": 112.03,
+      "throughputMbps": 115.76,
+      "latencyMs": 116.79,
       "memoryMb": 0.01,
-      "recordsPerSec": 892650,
-      "cpuTime": 110
+      "recordsPerSec": 856260,
+      "cpuTime": 125
     },
     {
       "name": "CSV→NDJSON (streaming)",
       "threadMode": "single-thread",
       "dataset": "1.26 MB (streaming, 4KB chunks)",
       "size": "medium",
-      "throughputMbps": 70.32,
-      "latencyMs": 17.87,
+      "throughputMbps": 67.75,
+      "latencyMs": 18.55,
       "memoryMb": 0.94,
-      "recordsPerSec": 559650,
+      "recordsPerSec": 539199,
       "cpuTime": 16
     },
     {
@@ -69,21 +69,21 @@
       "threadMode": "single-thread",
       "dataset": "1.26 MB (streaming, 16KB chunks)",
       "size": "medium",
-      "throughputMbps": 84.21,
-      "latencyMs": 14.92,
+      "throughputMbps": 81.08,
+      "latencyMs": 15.5,
       "memoryMb": 0.31,
-      "recordsPerSec": 670147,
-      "cpuTime": 0
+      "recordsPerSec": 645263,
+      "cpuTime": 16
     },
     {
       "name": "NDJSON→JSON (tiny)",
       "threadMode": "single-thread",
       "dataset": "0.01 MB",
       "size": "small",
-      "throughputMbps": 6.3,
-      "latencyMs": 1.77,
+      "throughputMbps": 7.26,
+      "latencyMs": 1.54,
       "memoryMb": 0.01,
-      "recordsPerSec": 56360,
+      "recordsPerSec": 64986,
       "cpuTime": 0
     },
     {
@@ -91,10 +91,10 @@
       "threadMode": "single-thread",
       "dataset": "0.23 MB",
       "size": "medium",
-      "throughputMbps": 262.76,
-      "latencyMs": 0.87,
+      "throughputMbps": 333.26,
+      "latencyMs": 0.68,
       "memoryMb": 0.04,
-      "recordsPerSec": 1151543,
+      "recordsPerSec": 1460494,
       "cpuTime": 0
     },
     {
@@ -102,10 +102,10 @@
       "threadMode": "single-thread",
       "dataset": "2.34 MB",
       "size": "medium",
-      "throughputMbps": 1091.71,
-      "latencyMs": 2.14,
+      "throughputMbps": 1216.19,
+      "latencyMs": 1.92,
       "memoryMb": 0.04,
-      "recordsPerSec": 4667445,
+      "recordsPerSec": 5199667,
       "cpuTime": 0
     },
     {
@@ -113,32 +113,32 @@
       "threadMode": "single-thread",
       "dataset": "23.96 MB",
       "size": "large",
-      "throughputMbps": 1898.73,
-      "latencyMs": 12.62,
+      "throughputMbps": 1867.62,
+      "latencyMs": 12.83,
       "memoryMb": 0.01,
-      "recordsPerSec": 7923930,
-      "cpuTime": 0
+      "recordsPerSec": 7794111,
+      "cpuTime": 16
     },
     {
       "name": "NDJSON→NDJSON (large)",
       "threadMode": "single-thread",
       "dataset": "23.96 MB",
       "size": "large",
-      "throughputMbps": 247.41,
-      "latencyMs": 96.85,
+      "throughputMbps": 258.85,
+      "latencyMs": 92.57,
       "memoryMb": 0.02,
-      "recordsPerSec": 1032516,
-      "cpuTime": 94
+      "recordsPerSec": 1080273,
+      "cpuTime": 110
     },
     {
       "name": "XML→NDJSON (tiny)",
       "threadMode": "single-thread",
       "dataset": "0.02 MB",
       "size": "small",
-      "throughputMbps": 4.32,
-      "latencyMs": 4.44,
+      "throughputMbps": 5.83,
+      "latencyMs": 3.29,
       "memoryMb": 0.01,
-      "recordsPerSec": 158412,
+      "recordsPerSec": 213847,
       "cpuTime": 0
     },
     {
@@ -146,10 +146,10 @@
       "threadMode": "single-thread",
       "dataset": "0.36 MB",
       "size": "medium",
-      "throughputMbps": 28.34,
-      "latencyMs": 12.82,
+      "throughputMbps": 33.73,
+      "latencyMs": 10.77,
       "memoryMb": 0.01,
-      "recordsPerSec": 936476,
+      "recordsPerSec": 1114806,
       "cpuTime": 0
     },
     {
@@ -157,11 +157,11 @@
       "threadMode": "single-thread",
       "dataset": "3.74 MB",
       "size": "medium",
-      "throughputMbps": 54.19,
-      "latencyMs": 68.95,
+      "throughputMbps": 54.24,
+      "latencyMs": 68.88,
       "memoryMb": 0.01,
-      "recordsPerSec": 1740425,
-      "cpuTime": 63
+      "recordsPerSec": 1742093,
+      "cpuTime": 140
     }
   ]
 }

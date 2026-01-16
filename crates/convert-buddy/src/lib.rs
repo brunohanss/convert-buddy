@@ -562,19 +562,67 @@ impl Converter {
                 let mut output = Vec::new();
                 
                 // Use serde_json to avoid simd lifetime issues
-                if let Ok(value) = serde_json::from_slice::<serde_json::Value>(chunk) {
-                    if let Some(array) = value.as_array() {
-                        for item in array {
-                            let json_str = serde_json::to_string(item)
-                                .unwrap_or_default();
-                            output.extend(csv_writer.process_json_line(&json_str)?);
+                // Try streaming top-level values with Deserializer::from_slice(...).into_iter()
+                // Instrument parse/processing times and item counts to find hotspots.
+                let parse_timer = crate::timing::Timer::new();
+                let mut streamed_any = false;
+                let mut items: usize = 0;
+                let mut process_ns: u128 = 0;
+
+                let iter = serde_json::Deserializer::from_slice(chunk).into_iter::<serde_json::Value>();
+                for item in iter {
+                    match item {
+                        Ok(v) => {
+                            streamed_any = true;
+                            // If the streamed value is an array (common when the input is a single top-level array),
+                            // iterate its elements without reparsing each one.
+                            if let Some(array) = v.as_array() {
+                                for inner in array {
+                                    items += 1;
+                                    let p0 = crate::timing::Timer::new();
+                                    output.extend(csv_writer.process_json_value(inner)?);
+                                    process_ns += p0.elapsed().as_nanos();
+                                }
+                            } else {
+                                items += 1;
+                                let p0 = crate::timing::Timer::new();
+                                output.extend(csv_writer.process_json_value(&v)?);
+                                process_ns += p0.elapsed().as_nanos();
+                            }
                         }
-                    } else if let Some(_obj) = value.as_object() {
-                        let json_str = serde_json::to_string(&value)
-                            .unwrap_or_default();
-                        output.extend(csv_writer.process_json_line(&json_str)?);
+                        Err(_) => {
+                            // On streaming error, fallback to full parse
+                            streamed_any = false;
+                            break;
+                        }
                     }
                 }
+
+                let parse_ns = parse_timer.elapsed().as_nanos();
+
+                if !streamed_any {
+                    // Fallback: full-parse (preserves old behavior)
+                    if let Ok(value) = serde_json::from_slice::<serde_json::Value>(chunk) {
+                        if let Some(array) = value.as_array() {
+                            for item in array {
+                                items += 1;
+                                let p0 = crate::timing::Timer::new();
+                                output.extend(csv_writer.process_json_value(item)?);
+                                process_ns += p0.elapsed().as_nanos();
+                            }
+                        } else if let Some(_obj) = value.as_object() {
+                            items += 1;
+                            let p0 = crate::timing::Timer::new();
+                            output.extend(csv_writer.process_json_value(&value)?);
+                            process_ns += p0.elapsed().as_nanos();
+                        }
+                    }
+                }
+
+                // Log summary to help diagnose large-case slowness
+                let parse_ms = (parse_ns as f64) / 1_000_000.0;
+                let process_ms = (process_ns as f64) / 1_000_000.0;
+                info!("JsonToCsv: chunk_len={} items={} parse_ms={:.3} process_ms={:.3} total_ms={:.3}", chunk.len(), items, parse_ms, process_ms, parse_ms + process_ms);
                 
                 output
             }
