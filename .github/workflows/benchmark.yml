@@ -51,7 +51,11 @@ jobs:
 
       - name: Install wasm-pack
         run: |
-          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+          if ! command -v wasm-pack >/dev/null 2>&1; then
+            curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+          else
+            echo "wasm-pack already installed; skipping."
+          fi
 
       - name: Install dependencies
         run: npm ci
