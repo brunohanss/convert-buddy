@@ -9,6 +9,7 @@
     "build": "npm -w convert-buddy-js run build",
     "build:wasm": "npm -w convert-buddy-js run build:wasm",
     "test": "npm -w convert-buddy-js run test",
+    "test:crate": "cd D:/Dev/convert-buddy/crates/convert-buddy && wasm-pack test --node",
     "lint": "npm -w convert-buddy-js run lint",
     "clean": "npm -w convert-buddy-js run clean",
     "bench": "npm -w convert-buddy-js run bench",

@@ -4,6 +4,21 @@ imports['__wbindgen_placeholder__'] = module.exports;
 let wasm;
 const { TextDecoder, TextEncoder } = require(`util`);
 
+function addToExternrefTable0(obj) {
+    const idx = wasm.__externref_table_alloc();
+    wasm.__wbindgen_export_2.set(idx, obj);
+    return idx;
+}
+
+function handleError(f, args) {
+    try {
+        return f.apply(this, args);
+    } catch (e) {
+        const idx = addToExternrefTable0(e);
+        wasm.__wbindgen_exn_store(idx);
+    }
+}
+
 let cachedTextDecoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: true });
 
 cachedTextDecoder.decode();
@@ -20,21 +35,6 @@ function getUint8ArrayMemory0() {
 function getStringFromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return cachedTextDecoder.decode(getUint8ArrayMemory0().subarray(ptr, ptr + len));
-}
-
-function addToExternrefTable0(obj) {
-    const idx = wasm.__externref_table_alloc();
-    wasm.__wbindgen_export_3.set(idx, obj);
-    return idx;
-}
-
-function handleError(f, args) {
-    try {
-        return f.apply(this, args);
-    } catch (e) {
-        const idx = addToExternrefTable0(e);
-        wasm.__wbindgen_exn_store(idx);
-    }
 }
 
 let WASM_VECTOR_LEN = 0;
@@ -102,6 +102,10 @@ function getDataViewMemory0() {
     return cachedDataViewMemory0;
 }
 
+function isLikeNone(x) {
+    return x === undefined || x === null;
+}
+
 function debugString(val) {
     // primitive types
     const type = typeof val;
@@ -167,16 +171,24 @@ function debugString(val) {
     return className;
 }
 
-function isLikeNone(x) {
-    return x === undefined || x === null;
-}
-
 function passArray8ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 1, 1) >>> 0;
     getUint8ArrayMemory0().set(arg, ptr / 1);
     WASM_VECTOR_LEN = arg.length;
     return ptr;
 }
+/**
+ * Detect JSON fields from a sample of bytes.
+ * @param {Uint8Array} sample
+ * @returns {any}
+ */
+module.exports.detectJsonFields = function(sample) {
+    const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.detectJsonFields(ptr0, len0);
+    return ret;
+};
+
 /**
  * Detect NDJSON fields from a sample of bytes.
  * @param {Uint8Array} sample
@@ -190,46 +202,12 @@ module.exports.detectNdjsonFields = function(sample) {
 };
 
 /**
- * @param {boolean} debug_enabled
+ * Check if threading is enabled in this build.
+ * @returns {boolean}
  */
-module.exports.init = function(debug_enabled) {
-    wasm.init(debug_enabled);
-};
-
-/**
- * Detect CSV fields and delimiter from a sample of bytes.
- * @param {Uint8Array} sample
- * @returns {any}
- */
-module.exports.detectCsvFields = function(sample) {
-    const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.detectCsvFields(ptr0, len0);
-    return ret;
-};
-
-/**
- * Detect XML elements from a sample of bytes.
- * @param {Uint8Array} sample
- * @returns {any}
- */
-module.exports.detectXmlElements = function(sample) {
-    const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.detectXmlElements(ptr0, len0);
-    return ret;
-};
-
-/**
- * Detect JSON fields from a sample of bytes.
- * @param {Uint8Array} sample
- * @returns {any}
- */
-module.exports.detectJsonFields = function(sample) {
-    const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.detectJsonFields(ptr0, len0);
-    return ret;
+module.exports.getThreadingEnabled = function() {
+    const ret = wasm.getThreadingEnabled();
+    return ret !== 0;
 };
 
 /**
@@ -250,6 +228,46 @@ module.exports.detectFormat = function(sample) {
 };
 
 /**
+ * Detect XML elements from a sample of bytes.
+ * @param {Uint8Array} sample
+ * @returns {any}
+ */
+module.exports.detectXmlElements = function(sample) {
+    const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.detectXmlElements(ptr0, len0);
+    return ret;
+};
+
+/**
+ * Check if SIMD is enabled in this build.
+ * @returns {boolean}
+ */
+module.exports.getSimdEnabled = function() {
+    const ret = wasm.getSimdEnabled();
+    return ret !== 0;
+};
+
+/**
+ * Detect CSV fields and delimiter from a sample of bytes.
+ * @param {Uint8Array} sample
+ * @returns {any}
+ */
+module.exports.detectCsvFields = function(sample) {
+    const ptr0 = passArray8ToWasm0(sample, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.detectCsvFields(ptr0, len0);
+    return ret;
+};
+
+/**
+ * @param {boolean} debug_enabled
+ */
+module.exports.init = function(debug_enabled) {
+    wasm.init(debug_enabled);
+};
+
+/**
  * Detect structure (fields/elements) for any format
  * @param {Uint8Array} sample
  * @param {string | undefined} [format_hint]
@@ -265,24 +283,6 @@ module.exports.detectStructure = function(sample, format_hint) {
 };
 
 /**
- * Check if SIMD is enabled in this build.
- * @returns {boolean}
- */
-module.exports.getSimdEnabled = function() {
-    const ret = wasm.getSimdEnabled();
-    return ret !== 0;
-};
-
-/**
- * Check if threading is enabled in this build.
- * @returns {boolean}
- */
-module.exports.getThreadingEnabled = function() {
-    const ret = wasm.getThreadingEnabled();
-    return ret !== 0;
-};
-
-/**
  * @returns {any}
  */
 module.exports.get_threading_support_info = function() {
@@ -291,7 +291,7 @@ module.exports.get_threading_support_info = function() {
 };
 
 function takeFromExternrefTable0(idx) {
-    const value = wasm.__wbindgen_export_3.get(idx);
+    const value = wasm.__wbindgen_export_2.get(idx);
     wasm.__externref_table_dealloc(idx);
     return value;
 }
@@ -338,14 +338,15 @@ class Converter {
      * @param {boolean} enable_stats
      * @param {any} csv_config
      * @param {any} xml_config
+     * @param {any} transform_config
      * @returns {Converter}
      */
-    static withConfig(debug, input_format, output_format, chunk_target_bytes, enable_stats, csv_config, xml_config) {
+    static withConfig(debug, input_format, output_format, chunk_target_bytes, enable_stats, csv_config, xml_config, transform_config) {
         const ptr0 = passStringToWasm0(input_format, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passStringToWasm0(output_format, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.converter_withConfig(debug, ptr0, len0, ptr1, len1, chunk_target_bytes, enable_stats, csv_config, xml_config);
+        const ret = wasm.converter_withConfig(debug, ptr0, len0, ptr1, len1, chunk_target_bytes, enable_stats, csv_config, xml_config, transform_config);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
@@ -505,8 +506,23 @@ module.exports.__wbg_buffer_61b7ce01341d7f88 = function(arg0) {
     return ret;
 };
 
+module.exports.__wbg_call_b0d8e36992d9900d = function() { return handleError(function (arg0, arg1) {
+    const ret = arg0.call(arg1);
+    return ret;
+}, arguments) };
+
 module.exports.__wbg_debug_156ca727dbc3150f = function(arg0) {
     console.debug(arg0);
+};
+
+module.exports.__wbg_done_f22c1561fa919baa = function(arg0) {
+    const ret = arg0.done;
+    return ret;
+};
+
+module.exports.__wbg_entries_4f2bb9b0d701c0f6 = function(arg0) {
+    const ret = Object.entries(arg0);
+    return ret;
 };
 
 module.exports.__wbg_error_7534b8e9a36f1ab4 = function(arg0, arg1) {
@@ -524,6 +540,16 @@ module.exports.__wbg_error_7534b8e9a36f1ab4 = function(arg0, arg1) {
 module.exports.__wbg_error_fab41a42d22bf2bc = function(arg0) {
     console.error(arg0);
 };
+
+module.exports.__wbg_get_9aa3dff3f0266054 = function(arg0, arg1) {
+    const ret = arg0[arg1 >>> 0];
+    return ret;
+};
+
+module.exports.__wbg_get_bbccf8970793c087 = function() { return handleError(function (arg0, arg1) {
+    const ret = Reflect.get(arg0, arg1);
+    return ret;
+}, arguments) };
 
 module.exports.__wbg_getwithrefkey_1dc361bd10053bfe = function(arg0, arg1) {
     const ret = arg0[arg1];
@@ -545,6 +571,17 @@ module.exports.__wbg_instanceof_ArrayBuffer_670ddde44cdb2602 = function(arg0) {
     return ret;
 };
 
+module.exports.__wbg_instanceof_Map_98ecb30afec5acdb = function(arg0) {
+    let result;
+    try {
+        result = arg0 instanceof Map;
+    } catch (_) {
+        result = false;
+    }
+    const ret = result;
+    return ret;
+};
+
 module.exports.__wbg_instanceof_Uint8Array_28af5bc19d6acad8 = function(arg0) {
     let result;
     try {
@@ -556,7 +593,27 @@ module.exports.__wbg_instanceof_Uint8Array_28af5bc19d6acad8 = function(arg0) {
     return ret;
 };
 
+module.exports.__wbg_isArray_1ba11a930108ec51 = function(arg0) {
+    const ret = Array.isArray(arg0);
+    return ret;
+};
+
+module.exports.__wbg_isSafeInteger_12f5549b2fca23f4 = function(arg0) {
+    const ret = Number.isSafeInteger(arg0);
+    return ret;
+};
+
+module.exports.__wbg_iterator_23604bb983791576 = function() {
+    const ret = Symbol.iterator;
+    return ret;
+};
+
 module.exports.__wbg_length_65d1cd11729ced11 = function(arg0) {
+    const ret = arg0.length;
+    return ret;
+};
+
+module.exports.__wbg_length_d65cf0786bfc5739 = function(arg0) {
     const ret = arg0.length;
     return ret;
 };
@@ -587,6 +644,16 @@ module.exports.__wbg_new_8a6f238a6ece86ea = function() {
 
 module.exports.__wbg_new_bc96c6a1c0786643 = function() {
     const ret = new Map();
+    return ret;
+};
+
+module.exports.__wbg_next_01dd9234a5bf6d05 = function() { return handleError(function (arg0) {
+    const ret = arg0.next();
+    return ret;
+}, arguments) };
+
+module.exports.__wbg_next_137428deb98342b0 = function(arg0) {
+    const ret = arg0.next;
     return ret;
 };
 
@@ -630,6 +697,11 @@ module.exports.__wbg_stack_0ed75d68575b0f3c = function(arg0, arg1) {
     getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
 };
 
+module.exports.__wbg_value_4c32fd138a88eee2 = function(arg0) {
+    const ret = arg0.value;
+    return ret;
+};
+
 module.exports.__wbg_warn_123db6aa8948382e = function(arg0) {
     console.warn(arg0);
 };
@@ -642,6 +714,13 @@ module.exports.__wbindgen_bigint_from_i64 = function(arg0) {
 module.exports.__wbindgen_bigint_from_u64 = function(arg0) {
     const ret = BigInt.asUintN(64, arg0);
     return ret;
+};
+
+module.exports.__wbindgen_bigint_get_as_i64 = function(arg0, arg1) {
+    const v = arg1;
+    const ret = typeof(v) === 'bigint' ? v : undefined;
+    getDataViewMemory0().setBigInt64(arg0 + 8 * 1, isLikeNone(ret) ? BigInt(0) : ret, true);
+    getDataViewMemory0().setInt32(arg0 + 4 * 0, !isLikeNone(ret), true);
 };
 
 module.exports.__wbindgen_boolean_get = function(arg0) {
@@ -669,7 +748,7 @@ module.exports.__wbindgen_in = function(arg0, arg1) {
 };
 
 module.exports.__wbindgen_init_externref_table = function() {
-    const table = wasm.__wbindgen_export_3;
+    const table = wasm.__wbindgen_export_2;
     const offset = table.grow(4);
     table.set(0, undefined);
     table.set(offset + 0, undefined);
@@ -677,6 +756,16 @@ module.exports.__wbindgen_init_externref_table = function() {
     table.set(offset + 2, true);
     table.set(offset + 3, false);
     ;
+};
+
+module.exports.__wbindgen_is_bigint = function(arg0) {
+    const ret = typeof(arg0) === 'bigint';
+    return ret;
+};
+
+module.exports.__wbindgen_is_function = function(arg0) {
+    const ret = typeof(arg0) === 'function';
+    return ret;
 };
 
 module.exports.__wbindgen_is_null = function(arg0) {
@@ -697,6 +786,11 @@ module.exports.__wbindgen_is_string = function(arg0) {
 
 module.exports.__wbindgen_is_undefined = function(arg0) {
     const ret = arg0 === undefined;
+    return ret;
+};
+
+module.exports.__wbindgen_jsval_eq = function(arg0, arg1) {
+    const ret = arg0 === arg1;
     return ret;
 };
 

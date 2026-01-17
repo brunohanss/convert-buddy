@@ -1,38 +1,38 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Detect NDJSON fields from a sample of bytes.
- */
-export function detectNdjsonFields(sample: Uint8Array): any;
-export function init(debug_enabled: boolean): void;
-/**
- * Detect CSV fields and delimiter from a sample of bytes.
- */
-export function detectCsvFields(sample: Uint8Array): any;
-/**
- * Detect XML elements from a sample of bytes.
- */
-export function detectXmlElements(sample: Uint8Array): any;
-/**
  * Detect JSON fields from a sample of bytes.
  */
 export function detectJsonFields(sample: Uint8Array): any;
+/**
+ * Detect NDJSON fields from a sample of bytes.
+ */
+export function detectNdjsonFields(sample: Uint8Array): any;
+/**
+ * Check if threading is enabled in this build.
+ */
+export function getThreadingEnabled(): boolean;
 /**
  * Detect the input format from a sample of bytes.
  */
 export function detectFormat(sample: Uint8Array): string | undefined;
 /**
- * Detect structure (fields/elements) for any format
+ * Detect XML elements from a sample of bytes.
  */
-export function detectStructure(sample: Uint8Array, format_hint?: string): any;
+export function detectXmlElements(sample: Uint8Array): any;
 /**
  * Check if SIMD is enabled in this build.
  */
 export function getSimdEnabled(): boolean;
 /**
- * Check if threading is enabled in this build.
+ * Detect CSV fields and delimiter from a sample of bytes.
  */
-export function getThreadingEnabled(): boolean;
+export function detectCsvFields(sample: Uint8Array): any;
+export function init(debug_enabled: boolean): void;
+/**
+ * Detect structure (fields/elements) for any format
+ */
+export function detectStructure(sample: Uint8Array, format_hint?: string): any;
 export function get_threading_support_info(): any;
 /**
  * A streaming converter state machine.
@@ -107,10 +107,10 @@ export interface InitOutput {
   readonly stats_throughput_mb_per_sec: (a: number) => number;
   readonly stats_transform_time_ms: (a: number) => number;
   readonly stats_write_time_ms: (a: number) => number;
-  readonly __wbindgen_free: (a: number, b: number, c: number) => void;
   readonly __wbindgen_exn_store: (a: number) => void;
   readonly __externref_table_alloc: () => number;
-  readonly __wbindgen_export_3: WebAssembly.Table;
+  readonly __wbindgen_export_2: WebAssembly.Table;
+  readonly __wbindgen_free: (a: number, b: number, c: number) => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
   readonly __externref_table_dealloc: (a: number) => void;

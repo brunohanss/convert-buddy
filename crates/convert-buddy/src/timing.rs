@@ -74,34 +74,3 @@ macro_rules! time_block {
     }};
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn timer_tracks_elapsed_and_reset() {
-        let mut timer = Timer::new();
-        let first = timer.elapsed();
-        timer.reset();
-        let second = timer.elapsed();
-        assert!(first >= Duration::from_secs(0));
-        assert!(second >= Duration::from_secs(0));
-    }
-
-    #[test]
-    fn scoped_timer_updates_target_on_drop() {
-        let mut target = 0u64;
-        {
-            let _timer = ScopedTimer::new(&mut target);
-        }
-        assert!(target > 0);
-    }
-
-    #[test]
-    fn time_block_macro_records_time() {
-        let mut target = 0u64;
-        let result = time_block!(&mut target, { 2 + 2 });
-        assert_eq!(result, 4);
-        assert!(target > 0);
-    }
-}

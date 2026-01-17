@@ -56,6 +56,9 @@ rayon = { version = "1.8", optional = true }
 wasm-bindgen-rayon = { version = "1.2", optional = true } # For Node.js WASM threading
 num_cpus = { version = "1.16", optional = true }
 
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
 [profile.release]
 opt-level = 3
 lto = true

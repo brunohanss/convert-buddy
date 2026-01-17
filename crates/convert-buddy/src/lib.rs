@@ -16,6 +16,20 @@ mod transform;
 
 #[cfg(test)]
 mod detect_tests;
+#[cfg(test)]
+mod csv_parser_tests;
+#[cfg(test)]
+mod xml_parser_tests;
+#[cfg(test)]
+mod transform_tests;
+#[cfg(test)]
+mod ndjson_parser_tests;
+#[cfg(test)]
+mod timing_tests;
+#[cfg(test)]
+mod stats_tests;
+#[cfg(test)]
+mod converter_tests;
 
 pub use error::{ConvertError, Result};
 pub use stats::Stats;
@@ -1986,3 +2000,4 @@ pub fn get_threading_support_info() -> JsValue {
     
     serde_wasm_bindgen::to_value(&info).unwrap_or(JsValue::NULL)
 }
+

@@ -1,9 +1,10 @@
 #[cfg(test)]
 mod pipe_delimited_csv_tests {
+    use wasm_bindgen_test::*;
     use crate::detect::{detect_format, detect_csv};
     use crate::format::Format;
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_pipe_delimited_csv_detection() {
         // Test data: pipe-delimited CSV with quoted fields
         let csv_data = br#""ProductID"|"SKU"|"ProductName"|"Description"|"URL"|"ImageURL"|"Category"|"Size"|"Price"|"DiscountPrice"|"Stock"
@@ -25,7 +26,7 @@ mod pipe_delimited_csv_tests {
         assert_eq!(csv_info.fields[2], "ProductName");
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_pipe_delimited_csv_with_html_content() {
         // Test with complex HTML content in fields
         let csv_data = br#""ItemID"|"Barcode"|"ItemName"|"LongDescription"|"Link"|"PictureLink"|"ProductCategory"|"Variant"|"RegularPrice"|"SalePrice"|"Quantity"
@@ -36,7 +37,7 @@ mod pipe_delimited_csv_tests {
         assert_eq!(format, Some(Format::Csv), "Should detect pipe-delimited CSV with HTML as CSV");
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_pipe_delimited_csv_single_column() {
         // Edge case: single column with pipe-delimited data
         let csv_data = br#""Name"
@@ -50,7 +51,7 @@ mod pipe_delimited_csv_tests {
         assert_ne!(format, Some(Format::Ndjson), "Single column should not be detected as NDJSON");
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_quoted_strings_not_ndjson() {
         // This is the original failing case - quoted strings should not be treated as NDJSON
         let csv_data = br#""Field1"|"Field2"|"Field3"
@@ -61,7 +62,7 @@ mod pipe_delimited_csv_tests {
         assert_eq!(format, Some(Format::Csv), "Quoted strings with delimiters should be CSV, not NDJSON");
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_actual_ndjson_still_detected() {
         // Ensure that real NDJSON is still properly detected
         let ndjson_data = br#"{"id": 1, "name": "Alice", "age": 30}
@@ -72,7 +73,7 @@ mod pipe_delimited_csv_tests {
         assert_eq!(format, Some(Format::Ndjson), "Should still detect real NDJSON");
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_json_array_not_ndjson() {
         // Single JSON array should be detected as JSON, not NDJSON
         let json_data = br#"[{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]"#;
@@ -81,7 +82,7 @@ mod pipe_delimited_csv_tests {
         assert_eq!(format, Some(Format::Json), "JSON array should be detected as JSON, not NDJSON");
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_csv_with_various_delimiters() {
         // Verify comma-delimited CSV still works
         let comma_csv = br#""Name","Age","City"
