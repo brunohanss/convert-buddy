@@ -15,6 +15,7 @@ This directory contains the benchmarking infrastructure for convert-buddy-js.
 ### Competitor Comparisons
 - [`runner-with-competitors.ts`](./runner-with-competitors.ts) - Compare with other libraries
 - [`runner-competitors-comprehensive.ts`](./runner-competitors-comprehensive.ts) - Comprehensive comparison suite
+- [`large-file-competitors.ts`](./large-file-competitors.ts) - 100MB cross-format competitor benchmark
 
 ### Use Cases
 - [`use-cases/`](./use-cases/) - Real-world usage scenario benchmarks
@@ -48,6 +49,11 @@ npm run bench:compare-baseline path/to/baseline.json
 ### Run competitor comparisons
 ```bash
 npm run bench:competitors
+```
+
+### Run 100MB competitor benchmark
+```bash
+npm run bench:competitors-100mb
 ```
 
 ## Performance Targets
