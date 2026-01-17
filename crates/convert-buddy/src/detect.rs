@@ -350,7 +350,7 @@ fn extract_json_fields(json_str: &str) -> Vec<String> {
     while i < bytes.len() {
         if bytes[i] == b'"' {
             // Start of a potential key
-            let mut key_start = i + 1;
+            let key_start = i + 1;
             let mut key_end = key_start;
             
             // Find the end of the quoted string
