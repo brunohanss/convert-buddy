@@ -1,0 +1,21 @@
+# Streaming API
+
+For full control, use the streaming API to attach to pipelines directly.
+
+## Minimal example
+
+```ts
+const transform = new ConvertBuddyTransformStream({ inputFormat: "csv", outputFormat: "json" });
+```
+
+## Advanced example
+
+```ts
+const transform = new ConvertBuddyTransformStream({
+  inputFormat: "csv",
+  outputFormat: "json",
+  transform: (r) => ({ ...r, normalized: true })
+});
+
+inputStream.pipeThrough(transform).pipeTo(outputStream);
+```

@@ -1,0 +1,19 @@
+# CSV
+
+CSV is parsed with streaming delimiters, header detection, and schema inference.
+
+## Minimal example
+
+```ts
+const output = await convertToString(file, { inputFormat: "csv", outputFormat: "json" });
+```
+
+## Advanced example
+
+```ts
+const output = await convertToString(file, {
+  inputFormat: "csv",
+  outputFormat: "json",
+  csv: { delimiter: ",", hasHeaders: true }
+});
+```

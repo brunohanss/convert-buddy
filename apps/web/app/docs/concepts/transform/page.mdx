@@ -1,0 +1,26 @@
+# Transform
+
+Transforms run inline during streaming conversion, letting you enrich or filter data without loading the full dataset.
+
+## Minimal example
+
+```ts
+const buddy = new ConvertBuddy({
+  transform: (r) => ({
+    id: r.id,
+    created_at: new Date(r.ts).toISOString()
+  })
+});
+```
+
+## Advanced example
+
+```ts
+const buddy = new ConvertBuddy({
+  transform: (r) => ({
+    id: r.id,
+    created_at: new Date(r.ts).toISOString(),
+    age_group: r.age > 50 ? "senior" : "adult"
+  })
+});
+```

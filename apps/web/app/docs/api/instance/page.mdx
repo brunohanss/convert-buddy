@@ -1,0 +1,23 @@
+# Instance API
+
+Use the instance API when you need reuse, cancellation, and explicit control over configuration.
+
+## Minimal example
+
+```ts
+const buddy = new ConvertBuddy({ inputFormat: "csv", outputFormat: "json" });
+const outputStream = await buddy.convert(file);
+```
+
+## Advanced example
+
+```ts
+const buddy = new ConvertBuddy({
+  inputFormat: "json",
+  outputFormat: "csv",
+  transform: (r) => ({ ...r, exported_at: new Date().toISOString() })
+});
+
+const controller = new AbortController();
+const outputStream = await buddy.convert(file, { signal: controller.signal });
+```

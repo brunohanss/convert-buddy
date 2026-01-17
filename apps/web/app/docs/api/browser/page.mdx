@@ -1,0 +1,19 @@
+# Browser API
+
+The browser API provides streaming conversion with Web Workers and WASM loading on demand.
+
+## Minimal example
+
+```ts
+const output = await convertToString(file, { outputFormat: "json" });
+```
+
+## Advanced example
+
+```ts
+const buddy = new ConvertBuddy({
+  inputFormat: "csv",
+  outputFormat: "ndjson",
+  wasmUrl: "/wasm/convert-buddy.wasm"
+});
+```

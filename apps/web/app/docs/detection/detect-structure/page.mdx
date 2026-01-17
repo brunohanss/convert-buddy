@@ -1,0 +1,15 @@
+# Detect structure
+
+Structure detection extracts fields, record element names, and schema hints.
+
+## Minimal example
+
+```ts
+const structure = await detectStructure(stream);
+```
+
+## Advanced example
+
+```ts
+const structure = await detectStructure(stream, { maxRecords: 5000 });
+```

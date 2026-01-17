@@ -1,0 +1,15 @@
+# Detect format
+
+Format detection inspects bytes and emits the most likely input format.
+
+## Minimal example
+
+```ts
+const format = await detectFormat(stream);
+```
+
+## Advanced example
+
+```ts
+const format = await detectFormat(stream, { sampleBytes: 2_000_000 });
+```
