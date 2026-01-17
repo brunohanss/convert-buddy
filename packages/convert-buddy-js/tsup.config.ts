@@ -18,6 +18,7 @@ export default defineConfig({
     "bench/run-all-use-cases": "bench/run-all-use-cases.ts",
     "bench/compare-benchmarks": "bench/compare-benchmarks.ts",
     "bench/ci-runner": "bench/ci-runner.ts",
+    "bench/large-file-competitors": "bench/large-file-competitors.ts",
     "bench/use-cases/csv-to-json": "bench/use-cases/csv-to-json.ts",
     "bench/use-cases/ndjson-conversions": "bench/use-cases/ndjson-conversions.ts",
     "bench/use-cases/json-conversions": "bench/use-cases/json-conversions.ts",
