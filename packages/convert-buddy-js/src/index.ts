@@ -48,6 +48,7 @@ export type ConvertBuddyOptions = {
   maxMemoryMB?: number; // Memory limit for conversions (future use)
   csvConfig?: CsvConfig;
   xmlConfig?: XmlConfig;
+  transform?: TransformConfig;
   onProgress?: ProgressCallback;
   progressIntervalBytes?: number; // Trigger progress callback every N bytes (default: 1MB)
 };
@@ -57,6 +58,7 @@ export type ConvertOptions = {
   outputFormat: Format;
   csvConfig?: CsvConfig;
   xmlConfig?: XmlConfig;
+  transform?: TransformConfig;
   onProgress?: ProgressCallback;
 };
 
@@ -72,6 +74,32 @@ export type XmlConfig = {
   trimText?: boolean;
   includeAttributes?: boolean;
   expandEntities?: boolean;
+};
+
+export type TransformMode = "replace" | "augment";
+
+export type Coerce =
+  | { type: "string" }
+  | { type: "i64" }
+  | { type: "f64" }
+  | { type: "bool" }
+  | { type: "timestamp_ms"; format?: "iso8601" | "unix_ms" | "unix_s" };
+
+export type FieldMap = {
+  targetFieldName: string;
+  originFieldName?: string;
+  required?: boolean;
+  defaultValue?: string | number | boolean | null;
+  coerce?: Coerce;
+  compute?: string;
+};
+
+export type TransformConfig = {
+  mode?: TransformMode;
+  fields: FieldMap[];
+  onMissingField?: "error" | "null" | "drop";
+  onMissingRequired?: "error" | "abort";
+  onCoerceError?: "error" | "null" | "dropRecord";
 };
 
 export type Stats = {
@@ -837,7 +865,8 @@ export class ConvertBuddy {
         chunkTargetBytes,
         profile,
         csvConfig || null,
-        opts.xmlConfig || null
+        opts.xmlConfig || null,
+        opts.transform || null
       );
     } else {
       converter = new wasmModule.Converter(debug);

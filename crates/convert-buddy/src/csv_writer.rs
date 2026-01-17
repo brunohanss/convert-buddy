@@ -54,6 +54,42 @@ impl CsvWriter {
         Ok(output)
     }
 
+    /// Process a JSON value (borrowed) and convert to CSV without reparsing
+    pub fn process_json_value(&mut self, value: &serde_json::Value) -> Result<Vec<u8>> {
+        let mut output = Vec::new();
+
+        if let Some(obj) = value.as_object() {
+            // Extract all keys (flattened)
+            let mut fields = HashMap::new();
+            self.flatten_object("", obj, &mut fields);
+
+            // Update headers if this is the first row or we found new fields
+            let mut all_keys: HashSet<String> = fields.keys().cloned().collect();
+            for header in &self.headers {
+                all_keys.insert(header.clone());
+            }
+            let mut sorted_keys: Vec<String> = all_keys.into_iter().collect();
+            sorted_keys.sort();
+
+            // Write headers if not written yet
+            if !self.headers_written {
+                self.headers = sorted_keys.clone();
+                self.write_csv_row(&self.headers, &mut output);
+                self.headers_written = true;
+            }
+
+            // Write data row
+            let mut row_values = Vec::new();
+            for header in &self.headers {
+                let value = fields.get(header).cloned().unwrap_or_default();
+                row_values.push(value);
+            }
+            self.write_csv_row(&row_values, &mut output);
+        }
+
+        Ok(output)
+    }
+
     /// Flatten a JSON object into dot-notation keys with indexed arrays
     fn flatten_object(&self, prefix: &str, obj: &serde_json::Map<String, serde_json::Value>, result: &mut HashMap<String, String>) {
         for (key, value) in obj {

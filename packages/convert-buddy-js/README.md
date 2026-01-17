@@ -521,7 +521,7 @@ console.log(xmlStructure?.recordElement); // "record"
 // These now use detectStructure internally
 const csvInfo = await detectCsvFieldsAndDelimiter(fileStream);
 const xmlInfo = await detectXmlElements(fileStream);
-```
+
 ```
 
 ## Configuration

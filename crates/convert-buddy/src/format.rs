@@ -1,5 +1,6 @@
 use crate::csv_parser::CsvConfig;
 use crate::xml_parser::XmlConfig;
+use crate::transform::TransformPlan;
 
 /// Supported input/output formats
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -40,6 +41,7 @@ pub struct ConverterConfig {
     pub enable_stats: bool,
     pub csv_config: Option<CsvConfig>,
     pub xml_config: Option<XmlConfig>,
+    pub transform: Option<TransformPlan>,
 }
 
 impl Default for ConverterConfig {
@@ -51,6 +53,7 @@ impl Default for ConverterConfig {
             enable_stats: false,
             csv_config: Some(CsvConfig::default()),
             xml_config: Some(XmlConfig::default()),
+            transform: None,
         }
     }
 }
@@ -81,6 +84,11 @@ impl ConverterConfig {
 
     pub fn with_xml_config(mut self, config: XmlConfig) -> Self {
         self.xml_config = Some(config);
+        self
+    }
+
+    pub fn with_transform(mut self, transform: TransformPlan) -> Self {
+        self.transform = Some(transform);
         self
     }
 }
