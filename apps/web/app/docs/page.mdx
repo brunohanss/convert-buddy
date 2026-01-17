@@ -1,0 +1,26 @@
+# Introduction
+
+Convert Buddy is a streaming data processing engine that performs conversion, transformation, and detection with visible performance telemetry. It is built for non-developers converting data in the browser, and for developers embedding the engine in applications.
+
+## What you get
+
+- Browser-based conversion with deterministic memory usage.
+- WebAssembly-powered streaming core.
+- Telemetry emitted at fixed intervals.
+
+## Minimal example
+
+```ts
+await convertToString(file, { outputFormat: "json" });
+```
+
+## Advanced example
+
+```ts
+const buddy = new ConvertBuddy({
+  inputFormat: "csv",
+  outputFormat: "json",
+  transform: (r) => ({ ...r, source: "browser" }),
+  onProgress: (stats) => console.log(stats.throughputMbPerSec)
+});
+```

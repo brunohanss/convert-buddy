@@ -1,0 +1,26 @@
+# Telemetry
+
+Telemetry reports throughput, memory, elapsed time, and bytes in/out at fixed intervals.
+
+## Minimal example
+
+```ts
+const buddy = new ConvertBuddy({
+  onProgress: (stats) => {
+    console.log(stats.throughputMbPerSec);
+    console.log(stats.memoryMb);
+    console.log(stats.elapsedMs);
+  }
+});
+```
+
+## Advanced example
+
+```ts
+const buddy = new ConvertBuddy({
+  onProgress: (stats) => {
+    analytics.track("throughput", stats.throughputMbPerSec);
+  },
+  progressIntervalMs: 500
+});
+```

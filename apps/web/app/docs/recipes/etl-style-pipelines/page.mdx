@@ -1,0 +1,22 @@
+# ETL-style pipelines
+
+Combine detection, transformation, and conversion in a deterministic pipeline.
+
+## Minimal example
+
+```ts
+const buddy = new ConvertBuddy({ inputFormat: "csv", outputFormat: "json" });
+```
+
+## Advanced example
+
+```ts
+const format = await detectFormat(stream);
+const structure = await detectStructure(stream);
+const buddy = new ConvertBuddy({
+  inputFormat: format,
+  outputFormat: "json",
+  structure,
+  transform: (r) => ({ ...r, normalized: true })
+});
+```

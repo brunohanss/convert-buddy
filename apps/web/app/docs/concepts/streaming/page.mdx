@@ -1,0 +1,19 @@
+# Streaming
+
+Streaming is the core of Convert Buddy. Inputs are read in chunks, parsed, transformed, and emitted continuously.
+
+## Minimal example
+
+```ts
+const transform = new ConvertBuddyTransformStream({ inputFormat: "csv", outputFormat: "json" });
+```
+
+## Advanced example
+
+```ts
+const transform = new ConvertBuddyTransformStream({
+  inputFormat: "ndjson",
+  outputFormat: "json",
+  transform: (r) => ({ ...r, processed: true })
+});
+```

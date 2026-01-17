@@ -1,0 +1,19 @@
+# Large files
+
+For multi-GB inputs, rely on streaming and telemetry to keep memory predictable.
+
+## Minimal example
+
+```ts
+const buddy = new ConvertBuddy({ memoryLimitMb: 256 });
+```
+
+## Advanced example
+
+```ts
+const buddy = new ConvertBuddy({
+  inputFormat: "csv",
+  outputFormat: "json",
+  chunkSizeBytes: 4 * 1024 * 1024
+});
+```

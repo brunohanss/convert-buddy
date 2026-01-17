@@ -1,0 +1,28 @@
+# Performance model
+
+Performance is a first-class feature. Convert Buddy emits telemetry every interval so users can trust throughput, memory, and elapsed time.
+
+## Minimal example
+
+```ts
+const buddy = new ConvertBuddy({
+  onProgress: (stats) => {
+    console.log(stats.throughputMbPerSec);
+    console.log(stats.memoryMb);
+    console.log(stats.elapsedMs);
+  }
+});
+```
+
+## Advanced example
+
+```ts
+const buddy = new ConvertBuddy({
+  onProgress: (stats) => {
+    if (stats.memoryMb > 256) {
+      console.warn("Memory threshold exceeded");
+    }
+  },
+  progressIntervalMs: 250
+});
+```

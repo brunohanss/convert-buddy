@@ -1,0 +1,20 @@
+# Benchmarks
+
+Benchmarks validate throughput and latency across formats and file sizes.
+
+## Minimal example
+
+```ts
+await runBenchmark({ inputFormat: "csv", outputFormat: "json" });
+```
+
+## Advanced example
+
+```ts
+await runBenchmark({
+  inputFormat: "xml",
+  outputFormat: "json",
+  sizeGb: 5,
+  includeTransforms: true
+});
+```

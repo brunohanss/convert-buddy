@@ -1,0 +1,19 @@
+# JSON
+
+JSON inputs may be arrays or objects. Convert Buddy streams records without buffering the full file.
+
+## Minimal example
+
+```ts
+const output = await convertToString(file, { inputFormat: "json", outputFormat: "csv" });
+```
+
+## Advanced example
+
+```ts
+const output = await convertToString(file, {
+  inputFormat: "json",
+  outputFormat: "csv",
+  json: { recordPath: "items" }
+});
+```

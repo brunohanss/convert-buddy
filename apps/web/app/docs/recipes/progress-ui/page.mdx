@@ -1,0 +1,24 @@
+# Progress UI
+
+Display throughput and memory usage to build user trust.
+
+## Minimal example
+
+```ts
+const buddy = new ConvertBuddy({
+  onProgress: (stats) => setStats(stats)
+});
+```
+
+## Advanced example
+
+```ts
+const buddy = new ConvertBuddy({
+  onProgress: (stats) => {
+    setStats(stats);
+    if (stats.throughputMbPerSec < 50) {
+      setWarning("Input is slow");
+    }
+  }
+});
+```

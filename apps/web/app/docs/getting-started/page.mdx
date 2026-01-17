@@ -1,0 +1,25 @@
+# Getting started
+
+Convert Buddy works in the browser and Node. Install the package, then choose the API surface that matches your workflow.
+
+## Minimal example
+
+```ts
+import { convertToString } from "convert-buddy-js";
+
+const output = await convertToString(file, { outputFormat: "json" });
+```
+
+## Advanced example
+
+```ts
+import { ConvertBuddy } from "convert-buddy-js";
+
+const buddy = new ConvertBuddy({
+  inputFormat: "csv",
+  outputFormat: "json",
+  transform: (record) => ({ ...record, loaded_at: Date.now() })
+});
+
+const outputStream = await buddy.convert(file);
+```

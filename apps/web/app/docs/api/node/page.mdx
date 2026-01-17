@@ -1,0 +1,21 @@
+# Node API
+
+Use the Node API for ETL pipelines and backend processing with the same streaming engine.
+
+## Minimal example
+
+```ts
+const output = await convertToString(nodeStream, { outputFormat: "json" });
+```
+
+## Advanced example
+
+```ts
+const buddy = new ConvertBuddy({
+  inputFormat: "xml",
+  outputFormat: "json",
+  transform: (r) => ({ ...r, source: "node" })
+});
+
+await buddy.convert(nodeStream, { highWaterMark: 1024 * 1024 });
+```

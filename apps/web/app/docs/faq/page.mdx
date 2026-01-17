@@ -1,0 +1,23 @@
+# FAQ
+
+## Does Convert Buddy upload my files?
+
+No. Conversion runs locally in the browser or in your Node process.
+
+## Can I see performance during conversion?
+
+Yes. Telemetry emits throughput, memory, and elapsed time at fixed intervals.
+
+## Minimal example
+
+```ts
+await convertToString(file, { outputFormat: "json" });
+```
+
+## Advanced example
+
+```ts
+const buddy = new ConvertBuddy({
+  onProgress: (stats) => console.log(stats.throughputMbPerSec)
+});
+```

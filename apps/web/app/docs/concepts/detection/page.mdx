@@ -1,0 +1,17 @@
+# Detection
+
+Convert Buddy can infer format and structure before conversion. Detection runs on streams and returns JSON metadata.
+
+## Minimal example
+
+```ts
+const format = await detectFormat(stream);
+const structure = await detectStructure(stream);
+```
+
+## Advanced example
+
+```ts
+const format = await detectFormat(stream, { sampleBytes: 4_000_000 });
+const structure = await detectStructure(stream, { maxRecords: 25_000 });
+```

@@ -1,0 +1,23 @@
+# Transforms API
+
+Transforms provide record-level control over output and schema.
+
+## Minimal example
+
+```ts
+const buddy = new ConvertBuddy({
+  transform: (r) => ({ id: r.id, created_at: new Date(r.ts).toISOString() })
+});
+```
+
+## Advanced example
+
+```ts
+const buddy = new ConvertBuddy({
+  transform: (r) => ({
+    id: r.id,
+    created_at: new Date(r.ts).toISOString(),
+    is_priority: r.score > 0.8
+  })
+});
+```

@@ -1,0 +1,18 @@
+# Memory
+
+Streaming conversion keeps memory usage predictable by chunking input and output.
+
+## Minimal example
+
+```ts
+const buddy = new ConvertBuddy({ memoryLimitMb: 128 });
+```
+
+## Advanced example
+
+```ts
+const buddy = new ConvertBuddy({
+  memoryLimitMb: 256,
+  onProgress: (stats) => console.log(stats.memoryMb)
+});
+```
