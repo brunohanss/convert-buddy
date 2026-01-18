@@ -34,11 +34,11 @@ export function Pre({ children, className, ...props }: PreProps) {
       <button
         type="button"
         onClick={handleCopy}
-        className="absolute right-3 top-3 rounded-md border border-ink-700 bg-ink-800 px-2 py-1 text-xs text-ink-100 opacity-0 transition group-hover:opacity-100"
+        className="absolute right-3 top-3 rounded-md border border-border bg-elevated px-2 py-1 text-xs text-text-secondary opacity-0 transition group-hover:opacity-100"
       >
         {copied ? 'Copied' : 'Copy'}
       </button>
-      <pre className={cn('overflow-x-auto p-5 text-sm leading-6', className)} {...props}>
+      <pre className={cn('overflow-x-auto border border-border bg-surface p-5 text-sm leading-6', className)} {...props}>
         {children}
       </pre>
     </div>

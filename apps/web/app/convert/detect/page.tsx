@@ -3,7 +3,7 @@ import { SectionHeading } from '@/components/ui/SectionHeading';
 
 export default function DetectPage() {
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 py-16">
+    <div className="mx-auto w-full max-w-[1200px] px-6 py-16">
       <SectionHeading
         eyebrow="Detection"
         title="Inspect format and structure"

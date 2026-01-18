@@ -35,7 +35,7 @@ export default function ConversionPage({ params }: { params: { conversion: strin
   const reverseSlug = conversionPairs.get(reverseKey);
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 py-16">
+    <div className="mx-auto w-full max-w-[1280px] px-6 py-16">
       <SectionHeading
         eyebrow="Live conversion"
         title={`${conversion.label} streaming converter`}
@@ -50,51 +50,53 @@ export default function ConversionPage({ params }: { params: { conversion: strin
 
       <div className="mt-12 space-y-8">
         <section className="space-y-3">
-          <h2 className="text-2xl font-semibold text-ink-900">What this conversion does</h2>
-          <p className="text-sm text-ink-600">
+          <h2 className="text-2xl font-semibold text-text-primary">What this conversion does</h2>
+          <p className="text-sm text-text-secondary">
             Convert Buddy reads {conversion.input} records as a stream and emits {conversion.output} without loading the
             entire file into memory. This keeps conversion safe for multi-GB inputs.
           </p>
         </section>
         <section className="space-y-3">
-          <h2 className="text-2xl font-semibold text-ink-900">Why convert {conversion.input} to {conversion.output}</h2>
-          <p className="text-sm text-ink-600">
+          <h2 className="text-2xl font-semibold text-text-primary">
+            Why convert {conversion.input} to {conversion.output}
+          </h2>
+          <p className="text-sm text-text-secondary">
             {conversion.output} unlocks downstream analytics, APIs, and transformation pipelines while preserving
             structure. Streaming conversion lets you keep control of memory and throughput.
           </p>
         </section>
         <section className="space-y-3">
-          <h2 className="text-2xl font-semibold text-ink-900">How it works</h2>
-          <p className="text-sm text-ink-600">
+          <h2 className="text-2xl font-semibold text-text-primary">How it works</h2>
+          <p className="text-sm text-text-secondary">
             The Rust + WebAssembly core parses input in chunks, applies inline transforms, and emits telemetry at fixed
             intervals. Web Workers keep the UI responsive during conversion.
           </p>
         </section>
         <section className="space-y-3">
-          <h2 className="text-2xl font-semibold text-ink-900">Privacy & performance guarantees</h2>
-          <p className="text-sm text-ink-600">
+          <h2 className="text-2xl font-semibold text-text-primary">Privacy & performance guarantees</h2>
+          <p className="text-sm text-text-secondary">
             All processing runs locally in your browser. Ads stay outside the converter UI, and performance metrics are
             transparent and deterministic.
           </p>
         </section>
         <section className="space-y-3">
-          <h2 className="text-2xl font-semibold text-ink-900">FAQ</h2>
-          <div className="space-y-3 text-sm text-ink-600">
+          <h2 className="text-2xl font-semibold text-text-primary">FAQ</h2>
+          <div className="space-y-3 text-sm text-text-secondary">
             <p>Can I override detected settings? Yes, open the advanced panel and tune the configuration.</p>
             <p>Does it work for large files? Streaming keeps memory usage low even for multi-GB inputs.</p>
             <p>Can I apply transforms? Yes, transformations are applied inline during conversion.</p>
           </div>
         </section>
-        <section className="flex flex-wrap gap-4 text-sm text-ink-600">
+        <section className="flex flex-wrap gap-4 text-sm text-text-secondary">
           {reverseSlug ? (
-            <Link href={`/convert/${reverseSlug}`} className="text-accent-500">
+            <Link href={`/convert/${reverseSlug}`} className="text-accent hover:text-accent-600">
               Reverse conversion
             </Link>
           ) : null}
-          <Link href="/convert/detect" className="text-accent-500">
+          <Link href="/convert/detect" className="text-accent hover:text-accent-600">
             Detect format
           </Link>
-          <Link href="/developers" className="text-accent-500">
+          <Link href="/developers" className="text-accent hover:text-accent-600">
             For developers
           </Link>
         </section>

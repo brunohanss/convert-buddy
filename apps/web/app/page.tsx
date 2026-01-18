@@ -5,14 +5,14 @@ import { Stat } from '@/components/ui/Stat';
 
 export default function HomePage() {
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 py-16">
+    <div className="mx-auto w-full max-w-[1200px] px-6 py-16">
       <section className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-400">Convert Buddy</p>
-          <h1 className="text-4xl font-semibold leading-tight text-ink-900 md:text-5xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-text-muted">Convert Buddy</p>
+          <h1 className="text-[48px] font-semibold leading-tight text-text-primary md:text-[56px]">
             Convert, Transform, and Inspect Data at Scale
           </h1>
-          <p className="text-lg text-ink-600">
+          <p className="text-lg text-text-secondary">
             High-performance streaming conversion for CSV, JSON, NDJSON, and XML — in your browser or your code.
           </p>
           <div className="flex flex-wrap gap-3">
@@ -35,7 +35,7 @@ export default function HomePage() {
               title="Deterministic processing, visible performance."
               subtitle="Convert Buddy keeps conversion and transformation in a controlled pipeline with live telemetry so you can trust every run."
             />
-            <ul className="space-y-3 text-sm text-ink-600">
+            <ul className="space-y-3 text-sm text-text-secondary">
               <li>Streaming conversion and transformation pipelines.</li>
               <li>Detection and validation with overrideable configs.</li>
               <li>Performance metrics emitted every interval.</li>
@@ -48,9 +48,9 @@ export default function HomePage() {
       <section className="mt-20 grid gap-6 md:grid-cols-2">
         <Card>
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">For data users</p>
-            <h3 className="text-xl font-semibold text-ink-900">Convert files safely in your browser</h3>
-            <p className="text-sm text-ink-600">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">For data users</p>
+            <h3 className="text-xl font-semibold text-text-primary">Convert files safely in your browser</h3>
+            <p className="text-sm text-text-secondary">
               Upload nothing. Stream everything. Convert Buddy keeps large files local while showing real-time throughput,
               memory usage, and outputs.
             </p>
@@ -61,9 +61,9 @@ export default function HomePage() {
         </Card>
         <Card>
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">For developers</p>
-            <h3 className="text-xl font-semibold text-ink-900">Adopt the streaming engine</h3>
-            <p className="text-sm text-ink-600">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">For developers</p>
+            <h3 className="text-xl font-semibold text-text-primary">Adopt the streaming engine</h3>
+            <p className="text-sm text-text-secondary">
               Ship Convert Buddy in browsers and Node. Integrate streaming conversion, detection, and transformation in
               minutes.
             </p>

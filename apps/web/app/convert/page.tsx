@@ -6,7 +6,7 @@ import { SectionHeading } from '@/components/ui/SectionHeading';
 
 export default function ConvertHubPage() {
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 py-16">
+    <div className="mx-auto w-full max-w-[1200px] px-6 py-16">
       <SectionHeading
         eyebrow="Converter hub"
         title="Choose your conversion or inspect structure"
@@ -17,16 +17,16 @@ export default function ConvertHubPage() {
           <ConversionCard key={conversion.slug} conversion={conversion} />
         ))}
       </div>
-      <div className="mt-8 rounded-xl border border-ink-100 bg-ink-50 px-6 py-5">
-        <p className="text-sm font-semibold text-ink-800">Need format detection first?</p>
-        <p className="text-sm text-ink-600">
+      <div className="mt-8 rounded-lg border border-border bg-surface px-6 py-5">
+        <p className="text-sm font-semibold text-text-primary">Need format detection first?</p>
+        <p className="text-sm text-text-secondary">
           Inspect formats and structure without converting.{' '}
-          <Link href="/convert/detect" className="text-accent-500">
+          <Link href="/convert/detect" className="text-accent hover:text-accent-600">
             Go to detection
           </Link>
         </p>
       </div>
-      <div className="mt-6 text-sm text-ink-500">
+      <div className="mt-6 text-sm text-text-muted">
         <p>Capabilities include conversion, detection, transformation, and streaming telemetry.</p>
       </div>
     </div>
