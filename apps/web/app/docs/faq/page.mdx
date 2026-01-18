@@ -10,14 +10,34 @@ Yes. Telemetry emits throughput, memory, and elapsed time at fixed intervals.
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { convertToString } from "convert-buddy-js";
+
 await convertToString(file, { outputFormat: "json" });
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({
   onProgress: (stats) => console.log(stats.throughputMbPerSec)
 });
-```
+`,
+  }}
+/>
+

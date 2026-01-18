@@ -4,18 +4,35 @@ Transforms run inline during streaming conversion, letting you enrich or filter 
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({
   transform: (r) => ({
     id: r.id,
     created_at: new Date(r.ts).toISOString()
   })
 });
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({
   transform: (r) => ({
     id: r.id,
@@ -23,4 +40,7 @@ const buddy = new ConvertBuddy({
     age_group: r.age > 50 ? "senior" : "adult"
   })
 });
-```
+`,
+  }}
+/>
+

@@ -4,16 +4,32 @@ Conversion can be cancelled via AbortController.
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
 const controller = new AbortController();
 await buddy.convert(stream, { signal: controller.signal });
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
 const controller = new AbortController();
 const promise = buddy.convert(stream, { signal: controller.signal });
 setTimeout(() => controller.abort(), 5000);
 await promise;
-```
+`,
+  }}
+/>
+

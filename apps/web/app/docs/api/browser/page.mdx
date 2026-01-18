@@ -4,16 +4,36 @@ The browser API provides streaming conversion with Web Workers and WASM loading 
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { convertToString } from "convert-buddy-js";
+
 const output = await convertToString(file, { outputFormat: "json" });
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({
   inputFormat: "csv",
   outputFormat: "ndjson",
   wasmUrl: "/wasm/convert-buddy.wasm"
 });
-```
+`,
+  }}
+/>
+

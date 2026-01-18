@@ -4,7 +4,14 @@ Performance is a first-class feature. Convert Buddy emits telemetry every interv
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({
   onProgress: (stats) => {
     console.log(stats.throughputMbPerSec);
@@ -12,11 +19,21 @@ const buddy = new ConvertBuddy({
     console.log(stats.elapsedMs);
   }
 });
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({
   onProgress: (stats) => {
     if (stats.memoryMb > 256) {
@@ -25,4 +42,7 @@ const buddy = new ConvertBuddy({
   },
   progressIntervalMs: 250
 });
-```
+`,
+  }}
+/>
+

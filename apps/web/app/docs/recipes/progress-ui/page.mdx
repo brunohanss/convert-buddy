@@ -4,15 +4,32 @@ Display throughput and memory usage to build user trust.
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({
   onProgress: (stats) => setStats(stats)
 });
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({
   onProgress: (stats) => {
     setStats(stats);
@@ -21,4 +38,7 @@ const buddy = new ConvertBuddy({
     }
   }
 });
-```
+`,
+  }}
+/>
+

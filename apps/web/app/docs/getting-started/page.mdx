@@ -4,15 +4,28 @@ Convert Buddy works in the browser and Node. Install the package, then choose th
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
 import { convertToString } from "convert-buddy-js";
 
 const output = await convertToString(file, { outputFormat: "json" });
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
 import { ConvertBuddy } from "convert-buddy-js";
 
 const buddy = new ConvertBuddy({
@@ -22,4 +35,7 @@ const buddy = new ConvertBuddy({
 });
 
 const outputStream = await buddy.convert(file);
-```
+`,
+  }}
+/>
+

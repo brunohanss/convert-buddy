@@ -4,16 +4,35 @@ Streaming is the core of Convert Buddy. Inputs are read in chunks, parsed, trans
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddyTransformStream } from "convert-buddy-js";
+
 const transform = new ConvertBuddyTransformStream({ inputFormat: "csv", outputFormat: "json" });
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddyTransformStream } from "convert-buddy-js";
+
 const transform = new ConvertBuddyTransformStream({
   inputFormat: "ndjson",
   outputFormat: "json",
   transform: (r) => ({ ...r, processed: true })
 });
-```
+`,
+  }}
+/>

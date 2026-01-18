@@ -4,7 +4,14 @@ Telemetry reports throughput, memory, elapsed time, and bytes in/out at fixed in
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({
   onProgress: (stats) => {
     console.log(stats.throughputMbPerSec);
@@ -12,15 +19,28 @@ const buddy = new ConvertBuddy({
     console.log(stats.elapsedMs);
   }
 });
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({
   onProgress: (stats) => {
     analytics.track("throughput", stats.throughputMbPerSec);
   },
   progressIntervalMs: 500
 });
-```
+`,
+  }}
+/>
+

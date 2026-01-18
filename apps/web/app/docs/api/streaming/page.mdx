@@ -4,13 +4,30 @@ For full control, use the streaming API to attach to pipelines directly.
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddyTransformStream } from "convert-buddy-js";
+
 const transform = new ConvertBuddyTransformStream({ inputFormat: "csv", outputFormat: "json" });
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddyTransformStream } from "convert-buddy-js";
+
 const transform = new ConvertBuddyTransformStream({
   inputFormat: "csv",
   outputFormat: "json",
@@ -18,4 +35,6 @@ const transform = new ConvertBuddyTransformStream({
 });
 
 inputStream.pipeThrough(transform).pipeTo(outputStream);
-```
+`,
+  }}
+/>
