@@ -58,7 +58,7 @@ jobs:
           fi
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --workspace convert-buddy-js --include-workspace-root
 
       - name: Build WASM and TypeScript
         run: |
