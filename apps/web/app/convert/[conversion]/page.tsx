@@ -44,7 +44,11 @@ export default function ConversionPage({ params }: { params: { conversion: strin
 
       <div className="mt-10 space-y-8">
         <AdBanner position="top" />
-        <ConverterWidget />
+        <ConverterWidget
+          conversionLabel={conversion.label}
+          inputFormat={conversion.input}
+          outputFormat={conversion.output}
+        />
         <AdBanner position="mid" />
       </div>
 

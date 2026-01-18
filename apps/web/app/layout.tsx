@@ -27,9 +27,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${jetBrainsMono.variable} font-sans`}>
+      <body className={`${inter.variable} ${jetBrainsMono.variable} relative font-sans`}>
+        <div className="grid-background" aria-hidden="true" />
         <SiteHeader />
-        <main className="min-h-screen bg-canvas">{children}</main>
+        <main className="min-h-screen bg-transparent">{children}</main>
         <SiteFooter />
       </body>
     </html>
