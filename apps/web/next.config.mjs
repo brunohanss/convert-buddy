@@ -8,6 +8,19 @@ const withMDX = mdx({
 const nextConfig = {
   reactStrictMode: true,
   pageExtensions: ['ts', 'tsx', 'mdx'],
+  experimental: {
+    externalDir: true,
+  },
+  webpack: (config) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      worker_threads: false,
+      fs: false,
+      os: false,
+      path: false,
+    };
+    return config;
+  },
 };
 
 export default withMDX(nextConfig);

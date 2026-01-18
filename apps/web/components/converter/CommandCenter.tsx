@@ -1,108 +1,68 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
+import { useRef, useState, type DragEvent } from 'react';
 
-import { loadConvertBuddyWasm } from '@/lib/wasm';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { TransformEditor, type SchemaField } from '@/components/converter/TransformEditor';
+import type { TransformConfig } from '@/lib/convert-buddy';
 
-const sampleSchema: SchemaField[] = [
-  { name: 'name', type: 'string', sample: 'Ada Lovelace' },
-  { name: 'age', type: 'int', sample: '34' },
-  { name: 'city', type: 'string', sample: 'London' },
-  { name: 'internal_id', type: 'uuid', sample: 'a4c-19f' }
-];
+export type DetectionSummary = {
+  format: string;
+  structure: string;
+  records: string;
+  fields: number;
+  delimiter?: string;
+  recordElement?: string;
+};
 
 type CommandCenterProps = {
   conversionLabel?: string;
   inputFormat?: string;
   outputFormat?: string;
-  onConvert?: () => void;
+  fileName?: string | null;
+  isDetecting: boolean;
+  isDetected: boolean;
+  detectionSummary: DetectionSummary;
+  schema: SchemaField[];
+  selectedOutput: string;
+  onOutputChange: (value: string) => void;
+  onFileSelected: (file: File) => void;
+  onConvert: () => void;
+  onTransformChange: (config: TransformConfig | null) => void;
   isConverting?: boolean;
+  errorMessage?: string | null;
 };
 
 export function CommandCenter({
   conversionLabel,
   inputFormat,
   outputFormat,
+  fileName,
+  isDetecting,
+  isDetected,
+  detectionSummary,
+  schema,
+  selectedOutput,
+  onOutputChange,
+  onFileSelected,
   onConvert,
-  isConverting: isConvertingProp
+  onTransformChange,
+  isConverting,
+  errorMessage
 }: CommandCenterProps) {
-  const [isDetecting, setIsDetecting] = useState(false);
-  const [isDetected, setIsDetected] = useState(false);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [schema, setSchema] = useState<SchemaField[]>(sampleSchema);
-  const [selectedOutput, setSelectedOutput] = useState(outputFormat ?? 'JSON');
-  const [localConverting, setLocalConverting] = useState(false);
   const [transformOpen, setTransformOpen] = useState(true);
   const [dragActive, setDragActive] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const isConverting = isConvertingProp ?? localConverting;
   const conversionLocked = Boolean(outputFormat && inputFormat);
-
-  useEffect(() => {
-    loadConvertBuddyWasm();
-  }, []);
-
-  useEffect(() => {
-    if (isConverting) {
-      document.body.dataset.activity = 'converting';
-    } else {
-      delete document.body.dataset.activity;
-    }
-    return () => {
-      delete document.body.dataset.activity;
-    };
-  }, [isConverting]);
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  const detectionSummary = useMemo(
-    () => ({
-      format: inputFormat ?? 'CSV',
-      structure: 'Header row + UTF-8',
-      records: '~1.3M',
-      fields: schema.length
-    }),
-    [inputFormat, schema.length]
-  );
-
-  const startDetection = (name: string) => {
-    setFileName(name);
-    setIsDetecting(true);
-    setIsDetected(false);
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    timeoutRef.current = setTimeout(() => {
-      setSchema(sampleSchema);
-      setIsDetecting(false);
-      setIsDetected(true);
-    }, 500);
-  };
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setDragActive(false);
     const file = event.dataTransfer.files[0];
-    startDetection(file ? file.name : 'streamed-file');
-  };
-
-  const handleConvert = () => {
-    onConvert?.();
-    if (!isConvertingProp) {
-      setLocalConverting(true);
-      timeoutRef.current = setTimeout(() => setLocalConverting(false), 1400);
+    if (file) {
+      onFileSelected(file);
     }
   };
 
@@ -140,21 +100,18 @@ export function CommandCenter({
           >
             Choose file
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => startDetection('sample.csv')}>
-            Try sample file
-          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) {
+                onFileSelected(file);
+              }
+            }}
+          />
         </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) {
-              startDetection(file.name);
-            }
-          }}
-        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -175,25 +132,32 @@ export function CommandCenter({
               <p>Structure: {detectionSummary.structure}</p>
               <p>Fields: {detectionSummary.fields}</p>
               <p>Estimated records: {detectionSummary.records}</p>
+              {detectionSummary.delimiter ? <p>Delimiter: {detectionSummary.delimiter}</p> : null}
+              {detectionSummary.recordElement ? <p>Record element: {detectionSummary.recordElement}</p> : null}
               <p className="text-xs text-text-muted">Input: {fileName ?? 'Awaiting file'}</p>
             </div>
+            {errorMessage ? <p className="mt-2 text-xs text-red-300">{errorMessage}</p> : null}
           </div>
           <div className="rounded-lg border border-border bg-surface p-4">
             <p className="text-sm font-semibold text-text-primary">Schema preview</p>
             <p className="text-xs text-text-muted">Detected fields with sample values.</p>
             <div className="mt-3 space-y-2">
-              {schema.map((field) => (
-                <div
-                  key={field.name}
-                  className="flex items-center justify-between rounded-md border border-border bg-canvas/70 px-3 py-2 text-sm"
-                >
-                  <div>
-                    <p className="font-medium text-text-primary">{field.name}</p>
-                    <p className="text-xs text-text-muted">{field.type}</p>
+              {schema.length ? (
+                schema.map((field) => (
+                  <div
+                    key={field.name}
+                    className="flex items-center justify-between rounded-md border border-border bg-canvas/70 px-3 py-2 text-sm"
+                  >
+                    <div>
+                      <p className="font-medium text-text-primary">{field.name}</p>
+                      <p className="text-xs text-text-muted">{field.type}</p>
+                    </div>
+                    <p className="text-xs text-text-secondary">{field.sample}</p>
                   </div>
-                  <p className="text-xs text-text-secondary">{field.sample}</p>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-sm text-text-muted">Drop a file to inspect the detected schema.</p>
+              )}
             </div>
           </div>
         </div>
@@ -204,13 +168,15 @@ export function CommandCenter({
             <div className="mt-3">
               {conversionLocked ? (
                 <div className="flex items-center justify-between rounded-md border border-border bg-canvas/70 px-3 py-2 text-sm text-text-primary">
-                  <span>{inputFormat} → {outputFormat}</span>
+                  <span>
+                    {inputFormat} → {outputFormat}
+                  </span>
                   <Badge className="border-border/60 text-text-muted">Locked</Badge>
                 </div>
               ) : (
                 <select
                   value={selectedOutput}
-                  onChange={(event) => setSelectedOutput(event.target.value)}
+                  onChange={(event) => onOutputChange(event.target.value)}
                   className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-sm text-text-primary"
                 >
                   {['JSON', 'CSV', 'NDJSON', 'XML'].map((format) => (
@@ -230,14 +196,12 @@ export function CommandCenter({
             >
               {transformOpen ? 'Hide transform editor' : 'Open transform editor'}
             </button>
-            {transformOpen ? <TransformEditor fields={schema} /> : null}
+            {transformOpen ? <TransformEditor fields={schema} onChange={onTransformChange} /> : null}
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button onClick={handleConvert}>
+            <Button onClick={onConvert} disabled={!fileName || isConverting}>
               {isConverting ? 'Converting…' : 'Convert file'}
             </Button>
-            <Button variant="secondary">Download output</Button>
-            <Button variant="ghost">Copy output</Button>
           </div>
         </div>
       </div>
