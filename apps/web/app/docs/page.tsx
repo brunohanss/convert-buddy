@@ -1,3 +1,4 @@
+"use client";
 import dynamic from 'next/dynamic';
 
 const DocsContent = dynamic(() => import('./content.mdx'), { ssr: false });
