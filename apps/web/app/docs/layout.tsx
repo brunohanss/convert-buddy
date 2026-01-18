@@ -1,3 +1,4 @@
+"use clients";
 import { DocsSidebar } from '@/components/mdx/DocsSidebar';
 
 export default function DocsLayout({ children }: { children: React.ReactNode }) {
