@@ -1,4 +1,5 @@
 "use client";
+import { CommandCenter } from '@/components/converter/CommandCenter';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { SectionHeading } from '@/components/ui/SectionHeading';
@@ -44,6 +45,10 @@ export default function HomePage() {
             </ul>
           </div>
         </Card>
+      </section>
+
+      <section className="mt-16">
+        <CommandCenter />
       </section>
 
       <section className="mt-20 grid gap-6 md:grid-cols-2">
