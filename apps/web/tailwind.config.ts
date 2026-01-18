@@ -6,29 +6,26 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: {
-          50: '#f4f6f8',
-          100: '#e6ebf0',
-          200: '#c7d1db',
-          300: '#a6b3c1',
-          400: '#7b8a9b',
-          500: '#59697c',
-          600: '#3d4a5a',
-          700: '#2a3542',
-          800: '#1b242f',
-          900: '#0d141c'
+        canvas: '#0b0d10',
+        surface: '#11141a',
+        elevated: '#161a22',
+        border: '#232838',
+        text: {
+          primary: '#e6e8eb',
+          secondary: '#9aa4b2',
+          muted: '#6b7280'
         },
         accent: {
-          500: '#2f6fec',
-          600: '#245bd0'
+          DEFAULT: '#3b82f6',
+          600: '#2563eb'
         }
       },
       boxShadow: {
-        panel: '0 0 0 1px rgba(15, 23, 42, 0.08), 0 6px 20px rgba(15, 23, 42, 0.08)'
+        glow: '0 0 0 1px rgba(59, 130, 246, 0.2), 0 0 24px rgba(59, 130, 246, 0.35)'
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-jetbrains)', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
       }
     }
   },

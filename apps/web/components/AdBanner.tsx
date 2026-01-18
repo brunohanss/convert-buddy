@@ -9,12 +9,13 @@ export function AdBanner({ position, className }: AdBannerProps) {
   return (
     <div
       className={cn(
-        'flex min-h-[96px] items-center justify-center rounded-xl border border-dashed border-ink-200 bg-ink-50 text-xs uppercase tracking-[0.2em] text-ink-400',
+        'flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-lg bg-[#0f1218] text-[11px] uppercase tracking-[0.3em] text-text-muted',
         className
       )}
       aria-label={`Advertisement banner ${position}`}
     >
-      Ad placement · {position}
+      <span className="text-[10px] font-semibold text-text-secondary">Sponsored</span>
+      <span>Ad placement · {position}</span>
     </div>
   );
 }

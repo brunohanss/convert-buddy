@@ -11,15 +11,15 @@ const navItems = [
 
 export function SiteHeader() {
   return (
-    <header className="border-b border-ink-100 bg-white">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
+    <header className="border-b border-border bg-surface">
+      <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-6 py-4">
         <div className="flex items-center gap-8">
-          <Link href="/" className="text-sm font-semibold uppercase tracking-[0.2em] text-ink-800">
+          <Link href="/" className="text-sm font-semibold uppercase tracking-[0.2em] text-text-primary">
             Convert Buddy
           </Link>
-          <nav className="hidden items-center gap-6 text-sm text-ink-600 md:flex">
+          <nav className="hidden items-center gap-6 text-sm text-text-secondary md:flex">
             {navItems.map((item) => (
-              <Link key={item.href} href={item.href} className="transition-colors hover:text-ink-900">
+              <Link key={item.href} href={item.href} className="transition-colors hover:text-text-primary">
                 {item.label}
               </Link>
             ))}

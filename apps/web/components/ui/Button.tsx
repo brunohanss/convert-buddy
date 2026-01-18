@@ -19,11 +19,11 @@ export function Button({
   ...props
 }: ButtonProps) {
   const base =
-    'inline-flex items-center justify-center rounded-md border px-4 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2';
+    'inline-flex items-center justify-center rounded-md border px-4 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-canvas';
   const variants = {
-    primary: 'border-transparent bg-accent-500 text-white hover:bg-accent-600',
-    secondary: 'border-ink-200 bg-white text-ink-700 hover:bg-ink-50',
-    ghost: 'border-transparent bg-transparent text-ink-700 hover:bg-ink-50'
+    primary: 'border-transparent bg-accent text-white hover:bg-accent-600 hover:shadow-glow',
+    secondary: 'border-border bg-transparent text-text-secondary hover:border-accent/40 hover:text-text-primary',
+    ghost: 'border-transparent bg-transparent text-text-secondary hover:text-text-primary'
   };
   const sizes = {
     sm: 'h-9 text-sm',

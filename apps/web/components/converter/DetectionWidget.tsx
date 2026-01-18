@@ -20,22 +20,22 @@ export function DetectionWidget() {
     <Card>
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-ink-900">Inspect a file</h3>
-          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-ink-200 bg-ink-50 px-6 py-10 text-center">
-            <p className="text-sm font-medium text-ink-700">Drop a file or stream input</p>
-            <p className="text-xs text-ink-400">We detect format and structure instantly.</p>
+          <h3 className="text-lg font-semibold text-text-primary">Inspect a file</h3>
+          <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-surface px-6 py-10 text-center">
+            <p className="text-sm font-medium text-text-primary">Drop a file or stream input</p>
+            <p className="text-xs text-text-muted">We detect format and structure instantly.</p>
             <Button variant="secondary" size="sm">
               Choose file
             </Button>
           </div>
           <textarea
-            className="min-h-[120px] w-full rounded-lg border border-ink-200 px-4 py-3 text-sm focus:border-accent-500 focus:outline-none"
+            className="min-h-[120px] w-full rounded-lg border border-border bg-surface px-4 py-3 text-sm text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none"
             placeholder="Paste raw data for format detection"
           />
         </div>
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-ink-900">Detection results</h3>
-          <div className="rounded-lg border border-ink-100 bg-ink-50 p-4 text-sm text-ink-700">
+          <h3 className="text-lg font-semibold text-text-primary">Detection results</h3>
+          <div className="rounded-lg border border-border bg-surface p-4 text-sm text-text-secondary">
             <p>Format: {format}</p>
             <p>Record element: {recordElement}</p>
             <p>Fields: {fields}</p>
