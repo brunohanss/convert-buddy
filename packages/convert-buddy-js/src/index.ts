@@ -180,14 +180,13 @@ async function loadWasmModule(): Promise<WasmModule> {
     wasmThreadingSupported = detectWasmThreadingSupport();
     
     if (isNode) {
-      const { createRequire } = await import("node:module");
+      const { createRequire } = await import(/* webpackIgnore: true */ "node:module");
       const require = createRequire(import.meta.url);
       const mod = require("../wasm-node.cjs");
       return mod as WasmModule;
     }
 
-    const wasmUrl = new URL("../wasm/web/convert_buddy.js", import.meta.url);
-    const mod = (await import(wasmUrl.href)) as unknown as WasmModule;
+    const mod = (await import("../wasm/web/convert_buddy.js")) as unknown as WasmModule;
     
     // Initialize threading if supported
     if (wasmThreadingSupported && (mod as any).initThreadPool) {
@@ -410,8 +409,12 @@ export class ConvertBuddy {
   private async convertFromBufferParallel(input: Uint8Array, opts: ConvertBuddyOptions): Promise<Uint8Array> {
     // Only use parallel processing for large inputs and supported conversions
     const parallelThreshold = 512 * 1024; // 512KB (lowered threshold for better parallelism)
-    const maxConcurrency = Math.min(navigator?.hardwareConcurrency || 
-                                  (typeof process !== 'undefined' ? require('os').cpus().length : 4), 8);
+    const maxConcurrency = Math.min(
+      typeof navigator !== "undefined" && navigator.hardwareConcurrency
+        ? navigator.hardwareConcurrency
+        : 4,
+      8
+    );
     
     if (input.length < parallelThreshold || !opts.parallelism || opts.parallelism < 2) {
       return this.convertFromBuffer(input, { ...opts, parallelism: 1 });
@@ -441,7 +444,7 @@ export class ConvertBuddy {
 
     try {
       const actualThreads = Math.min(maxConcurrency, opts.parallelism || maxConcurrency);
-      const isNodejs = typeof process !== 'undefined';
+      const isNodejs = typeof window === "undefined" && typeof process !== "undefined";
       
       if (opts.debug) {
         const threadingType = isNodejs ? 'Node.js WASM threading' : 'Browser custom threading';

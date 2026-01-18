@@ -32,9 +32,9 @@ export async function streamProcessFileInWorker(
     worker.postMessage({ type: 'start', file, opts });
   });
 }
-import { ConvertBuddy, type ConvertBuddyOptions, type ConvertOptions, type Format, autoDetectConfig, detectFormat, getMimeType, getFileTypeConfig, convertAny as convertAnyCore, convertAnyToString as convertAnyToStringCore } from "./index.js";
+import { ConvertBuddy, type ConvertBuddyOptions, type ConvertOptions, type Format, autoDetectConfig, detectFormat, getMimeType, getFileTypeConfig, convertAny as convertAnyCore, convertAnyToString as convertAnyToStringCore } from "./index";
 
-export * from "./index.js";
+export * from "./index";
 
 export type BrowserConvertOptions = ConvertBuddyOptions & {
   // Additional browser-specific options can go here

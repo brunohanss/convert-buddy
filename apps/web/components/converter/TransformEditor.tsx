@@ -1,10 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import type { FieldMap, TransformConfig } from '@/lib/convert-buddy';
 
 export type SchemaField = {
   name: string;
@@ -20,26 +21,29 @@ type FieldTransform = SchemaField & {
 
 type TransformEditorProps = {
   fields: SchemaField[];
+  onChange?: (config: TransformConfig | null) => void;
 };
 
 const castOptions = ['Keep', 'string', 'number', 'boolean', 'date'];
 
-export function TransformEditor({ fields }: TransformEditorProps) {
+export function TransformEditor({ fields, onChange }: TransformEditorProps) {
   const initialTransforms = useMemo<FieldTransform[]>(
     () =>
       fields.map((field) => ({
         ...field,
-        include: !['internal_id', 'session_token'].includes(field.name),
-        rename: field.name === 'name' ? 'full_name' : '',
+        include: true,
+        rename: '',
         cast: 'Keep'
       })),
     [fields]
   );
   const [transforms, setTransforms] = useState<FieldTransform[]>(initialTransforms);
-  const [computedFields, setComputedFields] = useState([
-    { name: 'is_adult', expression: 'age >= 18' },
-    { name: 'source', expression: '"upload"' }
-  ]);
+  const [computedFields, setComputedFields] = useState<{ name: string; expression: string }[]>([]);
+
+  useEffect(() => {
+    setTransforms(initialTransforms);
+    setComputedFields([]);
+  }, [initialTransforms]);
 
   const updateField = (index: number, updates: Partial<FieldTransform>) => {
     setTransforms((prev) =>
@@ -53,6 +57,51 @@ export function TransformEditor({ fields }: TransformEditorProps) {
       { name: `computed_${prev.length + 1}`, expression: '...' }
     ]);
   };
+
+  useEffect(() => {
+    if (!onChange) return;
+    const fieldMaps: FieldMap[] = transforms
+      .filter((field) => field.include)
+      .map((field) => {
+        const targetName = field.rename?.trim() ? field.rename.trim() : field.name;
+        const fieldMap: FieldMap = {
+          targetFieldName: targetName,
+          ...(targetName !== field.name ? { originFieldName: field.name } : {})
+        };
+        if (field.cast && field.cast !== 'Keep') {
+          fieldMap.coerce = {
+            type:
+              field.cast === 'number'
+                ? 'f64'
+                : field.cast === 'boolean'
+                  ? 'bool'
+                  : field.cast === 'date'
+                    ? 'timestamp_ms'
+                    : 'string'
+          };
+        }
+        return fieldMap;
+      });
+
+    const computedMaps: FieldMap[] = computedFields
+      .filter((field) => field.name.trim().length > 0 && field.expression.trim().length > 0)
+      .map((field) => ({
+        targetFieldName: field.name.trim(),
+        compute: field.expression.trim()
+      }));
+
+    const combined = [...fieldMaps, ...computedMaps];
+
+    if (combined.length === 0) {
+      onChange(null);
+      return;
+    }
+
+    onChange({
+      mode: 'replace',
+      fields: combined
+    });
+  }, [computedFields, onChange, transforms]);
 
   return (
     <Card className="border-border/80 bg-surface">
@@ -120,10 +169,32 @@ export function TransformEditor({ fields }: TransformEditorProps) {
             <p className="text-sm font-semibold text-text-primary">Computed fields</p>
             <p className="text-xs text-text-muted">Derive new fields using expressions.</p>
             <div className="mt-3 space-y-3">
-              {computedFields.map((field) => (
-                <div key={field.name} className="rounded-md border border-border bg-surface px-3 py-2">
-                  <p className="text-xs text-text-muted">{field.name}</p>
-                  <p className="text-sm font-mono text-text-primary">{field.expression}</p>
+              {computedFields.map((field, index) => (
+                <div key={`${field.name}-${index}`} className="rounded-md border border-border bg-surface px-3 py-2">
+                  <label className="block text-[11px] uppercase tracking-[0.2em] text-text-muted">Field name</label>
+                  <input
+                    value={field.name}
+                    onChange={(event) =>
+                      setComputedFields((prev) =>
+                        prev.map((item, idx) =>
+                          idx === index ? { ...item, name: event.target.value } : item
+                        )
+                      )
+                    }
+                    className="mt-1 w-full rounded-md border border-border bg-canvas px-2 py-1 text-sm text-text-primary"
+                  />
+                  <label className="mt-3 block text-[11px] uppercase tracking-[0.2em] text-text-muted">Expression</label>
+                  <input
+                    value={field.expression}
+                    onChange={(event) =>
+                      setComputedFields((prev) =>
+                        prev.map((item, idx) =>
+                          idx === index ? { ...item, expression: event.target.value } : item
+                        )
+                      )
+                    }
+                    className="mt-1 w-full rounded-md border border-border bg-canvas px-2 py-1 font-mono text-sm text-text-primary"
+                  />
                 </div>
               ))}
             </div>

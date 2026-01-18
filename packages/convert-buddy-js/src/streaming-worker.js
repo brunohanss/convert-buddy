@@ -17,7 +17,7 @@ self.onmessage = async (event) => {
   if (type === 'start') {
     try {
       // Dynamically import WASM module
-      const mod = await import('convert-buddy-js');
+      const mod = await import('./index');
       const { ConvertBuddy } = mod;
       buddy = await ConvertBuddy.create(opts);
       fileSize = file.size;

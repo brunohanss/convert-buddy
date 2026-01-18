@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { CommandCenter } from '@/components/converter/CommandCenter';
+import { ConverterWidget } from '@/components/converter/ConverterWidget';
 import { ConversionCard } from '@/components/converter/ConversionCard';
 import { conversions } from '@/lib/conversions';
 import { SectionHeading } from '@/components/ui/SectionHeading';
@@ -14,7 +14,7 @@ export default function ConvertHubPage() {
         subtitle="Convert Buddy streams data through detection, transformation, and conversion pipelines so you can convert massive files safely in the browser."
       />
       <div className="mt-10">
-        <CommandCenter />
+        <ConverterWidget />
       </div>
       <div className="mt-12 grid gap-6 md:grid-cols-2">
         {conversions.map((conversion) => (
