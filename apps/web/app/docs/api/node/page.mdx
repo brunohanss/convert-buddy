@@ -4,13 +4,30 @@ Use the Node API for ETL pipelines and backend processing with the same streamin
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { convertToString } from "convert-buddy-js";
+
 const output = await convertToString(nodeStream, { outputFormat: "json" });
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({
   inputFormat: "xml",
   outputFormat: "json",
@@ -18,4 +35,7 @@ const buddy = new ConvertBuddy({
 });
 
 await buddy.convert(nodeStream, { highWaterMark: 1024 * 1024 });
-```
+`,
+  }}
+/>
+

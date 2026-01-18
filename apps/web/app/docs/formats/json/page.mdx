@@ -4,16 +4,36 @@ JSON inputs may be arrays or objects. Convert Buddy streams records without buff
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { convertToString } from "convert-buddy-js";
+
 const output = await convertToString(file, { inputFormat: "json", outputFormat: "csv" });
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { convertToString } from "convert-buddy-js";
+
 const output = await convertToString(file, {
   inputFormat: "json",
   outputFormat: "csv",
   json: { recordPath: "items" }
 });
-```
+`,
+  }}
+/>
+

@@ -4,13 +4,30 @@ Combine detection, transformation, and conversion in a deterministic pipeline.
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({ inputFormat: "csv", outputFormat: "json" });
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy, detectFormat, detectStructure } from "convert-buddy-js";
+
 const format = await detectFormat(stream);
 const structure = await detectStructure(stream);
 const buddy = new ConvertBuddy({
@@ -19,4 +36,7 @@ const buddy = new ConvertBuddy({
   structure,
   transform: (r) => ({ ...r, normalized: true })
 });
-```
+`,
+  }}
+/>
+

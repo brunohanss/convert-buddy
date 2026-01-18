@@ -3,14 +3,31 @@ Use the instance API when you need reuse, cancellation, and explicit control ove
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({ inputFormat: "csv", outputFormat: "json" });
 const outputStream = await buddy.convert(file);
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({
   inputFormat: "json",
   outputFormat: "csv",
@@ -19,4 +36,7 @@ const buddy = new ConvertBuddy({
 
 const controller = new AbortController();
 const outputStream = await buddy.convert(file, { signal: controller.signal });
-```
+`,
+  }}
+/>
+

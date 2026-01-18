@@ -4,12 +4,32 @@ Structure detection extracts fields, record element names, and schema hints.
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { detectStructure } from "convert-buddy-js";
+
 const structure = await detectStructure(stream);
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { detectStructure } from "convert-buddy-js";
+
 const structure = await detectStructure(stream, { maxRecords: 5000 });
-```
+`,
+  }}
+/>
+

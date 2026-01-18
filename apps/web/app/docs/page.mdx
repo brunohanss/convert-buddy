@@ -10,17 +10,37 @@ Convert Buddy is a streaming data processing engine that performs conversion, tr
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { convertToString } from "convert-buddy-js";
+
 await convertToString(file, { outputFormat: "json" });
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({
   inputFormat: "csv",
   outputFormat: "json",
   transform: (r) => ({ ...r, source: "browser" }),
   onProgress: (stats) => console.log(stats.throughputMbPerSec)
 });
-```
+`,
+  }}
+/>
+

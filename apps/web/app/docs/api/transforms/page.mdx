@@ -4,15 +4,32 @@ Transforms provide record-level control over output and schema.
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({
   transform: (r) => ({ id: r.id, created_at: new Date(r.ts).toISOString() })
 });
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({
   transform: (r) => ({
     id: r.id,
@@ -20,4 +37,7 @@ const buddy = new ConvertBuddy({
     is_priority: r.score > 0.8
   })
 });
-```
+`,
+  }}
+/>
+

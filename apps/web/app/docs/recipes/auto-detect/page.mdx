@@ -4,14 +4,34 @@ Auto detection chooses the best parser and schema before conversion.
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { detectFormat } from "convert-buddy-js";
+
 const format = await detectFormat(stream);
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy, detectFormat, detectStructure } from "convert-buddy-js";
+
 const format = await detectFormat(stream);
 const structure = await detectStructure(stream);
 const buddy = new ConvertBuddy({ inputFormat: format, outputFormat: "json", structure });
-```
+`,
+  }}
+/>
+

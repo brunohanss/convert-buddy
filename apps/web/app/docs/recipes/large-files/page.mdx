@@ -4,16 +4,36 @@ For multi-GB inputs, rely on streaming and telemetry to keep memory predictable.
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({ memoryLimitMb: 256 });
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { ConvertBuddy } from "convert-buddy-js";
+
 const buddy = new ConvertBuddy({
   inputFormat: "csv",
   outputFormat: "json",
   chunkSizeBytes: 4 * 1024 * 1024
 });
-```
+`,
+  }}
+/>
+

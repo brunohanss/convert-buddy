@@ -4,14 +4,34 @@ Convert Buddy can infer format and structure before conversion. Detection runs o
 
 ## Minimal example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { detectFormat, detectStructure } from "convert-buddy-js";
+
 const format = await detectFormat(stream);
 const structure = await detectStructure(stream);
-```
+`,
+  }}
+/>
+
 
 ## Advanced example
 
-```ts
+<SandpackExample
+  template="vanilla-ts"
+  activeFile="/index.ts"
+  preview={false}
+  files={{
+    "/index.ts": `
+import { detectFormat, detectStructure } from "convert-buddy-js";
+
 const format = await detectFormat(stream, { sampleBytes: 4_000_000 });
 const structure = await detectStructure(stream, { maxRecords: 25_000 });
-```
+`,
+  }}
+/>
+
