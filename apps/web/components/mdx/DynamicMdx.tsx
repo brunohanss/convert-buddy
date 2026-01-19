@@ -1,16 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
-import dynamic from 'next/dynamic';
-
-type MdxModule = { default: React.ComponentType };
-
-type DynamicMdxProps = {
-  loader: () => Promise<MdxModule>;
-};
-
-export function DynamicMdx({ loader }: DynamicMdxProps) {
-  const Content = useMemo(() => dynamic(loader, { ssr: false }), [loader]);
-
-  return <Content />;
+export function DynamicMdx(): never {
+  throw new Error(
+    'DynamicMdx is removed — import dynamic from "next/dynamic" and use dynamic(() => import("./content.mdx"), { ssr: false }) instead.'
+  );
 }

@@ -180,8 +180,10 @@ async function loadWasmModule(): Promise<WasmModule> {
     wasmThreadingSupported = detectWasmThreadingSupport();
     
     if (isNode) {
-      const { createRequire } = await import(/* webpackIgnore: true */ "node:module");
-      const require = createRequire(import.meta.url);
+      const nodeModule: any = await import(/* webpackIgnore: true */ "node:module");
+      const createRequire = nodeModule.createRequire as any;
+      const requireFn = createRequire ? createRequire(import.meta.url) : (module as any).createRequire?.(import.meta.url);
+      const require = requireFn ?? (globalThis as any).require;
       const mod = require("../wasm-node.cjs");
       return mod as WasmModule;
     }
