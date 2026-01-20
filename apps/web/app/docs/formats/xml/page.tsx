@@ -13,13 +13,23 @@ export default function Page() {
       <h2>Minimal example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const output = await convertToString(file, { inputFormat: "xml", outputFormat: "json" });
+const input = ${JSON.stringify('<rows><row><name>Ada</name><age>36</age></row><row><name>Linus</name><age>54</age></row></rows>')};
+
+async function run() {
+  const output = await convertToString(input, {
+    inputFormat: "xml",
+    outputFormat: "json"
+  });
+  console.log("output:", output);
+}
+
+run().catch(console.error);
 `,
         }}
       />
@@ -27,17 +37,28 @@ const output = await convertToString(file, { inputFormat: "xml", outputFormat: "
       <h2>Advanced example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const output = await convertToString(file, {
-  inputFormat: "xml",
-  outputFormat: "json",
-  xml: { recordElement: "row" }
-});
+const input = ${JSON.stringify('<rows><row id="1"><name>Ada</name><age>36</age></row><row id="2"><name>Linus</name><age>54</age></row></rows>')};
+
+async function run() {
+  const output = await convertToString(input, {
+    inputFormat: "xml",
+    outputFormat: "json",
+    xmlConfig: {
+      recordElement: "row",
+      includeAttributes: true,
+      trimText: true
+    }
+  });
+  console.log("output:", output);
+}
+
+run().catch(console.error);
 `,
         }}
       />

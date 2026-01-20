@@ -13,13 +13,23 @@ export default function Page() {
       <h2>Minimal example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const output = await convertToString(file, { inputFormat: "ndjson", outputFormat: "json" });
+const input = ${JSON.stringify('{"name":"Ada","age":36}\n{"name":"Linus","age":54}')};
+
+async function run() {
+  const output = await convertToString(input, {
+    inputFormat: "ndjson",
+    outputFormat: "json"
+  });
+  console.log("output:", output);
+}
+
+run().catch(console.error);
 `,
         }}
       />
@@ -27,17 +37,27 @@ const output = await convertToString(file, { inputFormat: "ndjson", outputFormat
       <h2>Advanced example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const output = await convertToString(file, {
-  inputFormat: "ndjson",
-  outputFormat: "json",
-  ndjson: { allowTrailingComma: true }
-});
+const input = ${JSON.stringify('{"name":"Ada","age":36}\n{"name":"Linus","age":54}')};
+
+async function run() {
+  const output = await convertToString(input, {
+    inputFormat: "ndjson",
+    outputFormat: "csv",
+    csvConfig: {
+      delimiter: ";",
+      hasHeaders: true
+    }
+  });
+  console.log("output:", output);
+}
+
+run().catch(console.error);
 `,
         }}
       />

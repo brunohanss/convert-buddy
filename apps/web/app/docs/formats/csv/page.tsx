@@ -16,13 +16,23 @@ export default function Page() {
       <h2>Minimal example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const output = await convertToString(file, { inputFormat: "csv", outputFormat: "json" });
+const input = ${JSON.stringify('name,age\nAda,36\nLinus,54')};
+
+async function run() {
+  const output = await convertToString(input, {
+    inputFormat: "csv",
+    outputFormat: "json"
+  });
+  console.log("output:", output);
+}
+
+run().catch(console.error);
 `,
         }}
       />
@@ -30,17 +40,24 @@ const output = await convertToString(file, { inputFormat: "csv", outputFormat: "
       <h2>Advanced example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const output = await convertToString(file, {
-  inputFormat: "csv",
-  outputFormat: "json",
-  csv: { delimiter: ",", hasHeaders: true }
-});
+const input = ${JSON.stringify('name;age\nAda;36\nLinus;54')};
+
+async function run() {
+  const output = await convertToString(input, {
+    inputFormat: "csv",
+    outputFormat: "json",
+    csvConfig: { delimiter: ";", hasHeaders: true, trimWhitespace: true }
+  });
+  console.log("output:", output);
+}
+
+run().catch(console.error);
 `,
         }}
       />

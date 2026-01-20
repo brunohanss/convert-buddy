@@ -14,13 +14,20 @@ export default function Page() {
 
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
 import { detectStructure } from "convert-buddy-js";
 
-const structure = await detectStructure(stream);
+const input = ${JSON.stringify('name,age\nAda,36\nLinus,54')};
+
+async function run() {
+  const structure = await detectStructure(input, "csv");
+  console.log("structure:", structure);
+}
+
+run().catch(console.error);
 `,
         }}
       />
@@ -29,13 +36,20 @@ const structure = await detectStructure(stream);
 
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
 import { detectStructure } from "convert-buddy-js";
 
-const structure = await detectStructure(stream, { maxRecords: 5000 });
+const input = ${JSON.stringify('name,age\nAda,36\nLinus,54\nGrace,48\nAlan,41')};
+
+async function run() {
+  const structure = await detectStructure(input, "csv", { maxBytes: 1024 });
+  console.log("structure:", structure);
+}
+
+run().catch(console.error);
 `,
         }}
       />

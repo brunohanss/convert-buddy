@@ -13,13 +13,27 @@ export default function Page() {
       <h2>Minimal example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
-import { ConvertBuddy } from "convert-buddy-js";
+import { convertToString, detectFormat } from "convert-buddy-js";
 
-const buddy = new ConvertBuddy({ inputFormat: "csv", outputFormat: "json" });
+const input = ${JSON.stringify('name,age\nAda,36\nLinus,54')};
+
+async function run() {
+  const format = await detectFormat(input);
+  console.log("detected format:", format);
+
+  const output = await convertToString(input, {
+    inputFormat: format === "unknown" ? "csv" : format,
+    outputFormat: "json"
+  });
+
+  console.log("output:", output);
+}
+
+run().catch(console.error);
 `,
         }}
       />
@@ -27,20 +41,39 @@ const buddy = new ConvertBuddy({ inputFormat: "csv", outputFormat: "json" });
       <h2>Advanced example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
-import { ConvertBuddy, detectFormat, detectStructure } from "convert-buddy-js";
+import { convertToString, detectFormat, detectStructure } from "convert-buddy-js";
 
-const format = await detectFormat(stream);
-const structure = await detectStructure(stream);
-const buddy = new ConvertBuddy({
-  inputFormat: format,
-  outputFormat: "json",
-  structure,
-  transform: (r) => ({ ...r, normalized: true })
-});
+const input = ${JSON.stringify('name,age\nAda,36\nLinus,54')};
+
+async function run() {
+  const format = await detectFormat(input);
+  const structure = await detectStructure(input, format === "unknown" ? undefined : format);
+
+  console.log("detected:", { format, structure });
+
+  const csvConfig =
+    structure && structure.format === "csv"
+      ? { delimiter: structure.delimiter || ",", hasHeaders: true }
+      : undefined;
+
+  const output = await convertToString(input, {
+    inputFormat: format === "unknown" ? "csv" : format,
+    outputFormat: "json",
+    csvConfig,
+    transform: {
+      mode: "augment",
+      fields: [{ targetFieldName: "pipeline", defaultValue: "etl" }]
+    }
+  });
+
+  console.log("output:", output);
+}
+
+run().catch(console.error);
 `,
         }}
       />

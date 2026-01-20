@@ -16,14 +16,22 @@ export default function Page() {
       <h2>Minimal example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
 import { detectFormat, detectStructure } from "convert-buddy-js";
 
-const format = await detectFormat(stream);
-const structure = await detectStructure(stream);
+const input = ${JSON.stringify('name,age\nAda,36\nLinus,54')};
+
+async function run() {
+  const format = await detectFormat(input);
+  const structure = await detectStructure(input, format === "unknown" ? undefined : format);
+  console.log("format:", format);
+  console.log("structure:", structure);
+}
+
+run().catch(console.error);
 `,
         }}
       />
@@ -31,14 +39,25 @@ const structure = await detectStructure(stream);
       <h2>Advanced example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
 import { detectFormat, detectStructure } from "convert-buddy-js";
 
-const format = await detectFormat(stream, { sampleBytes: 4_000_000 });
-const structure = await detectStructure(stream, { maxRecords: 25_000 });
+const input = ${JSON.stringify('name,age\nAda,36\nLinus,54\nGrace,48\nAlan,41')};
+
+async function run() {
+  const format = await detectFormat(input, { maxBytes: 2048 });
+  const structure = await detectStructure(input, format === "unknown" ? undefined : format, {
+    maxBytes: 2048,
+    debug: true
+  });
+  console.log("format:", format);
+  console.log("structure:", structure);
+}
+
+run().catch(console.error);
 `,
         }}
       />

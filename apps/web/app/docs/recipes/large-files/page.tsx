@@ -13,13 +13,31 @@ export default function Page() {
       <h2>Minimal example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
-import { ConvertBuddy } from "convert-buddy-js";
+import { convertToString } from "convert-buddy-js";
 
-const buddy = new ConvertBuddy({ memoryLimitMb: 256 });
+const rows = Array.from({ length: 200 }, (_, i) => "row" + i + "," + i).join("\\n");
+const input = "name,value\\n" + rows;
+
+async function run() {
+  const output = await convertToString(input, {
+    inputFormat: "csv",
+    outputFormat: "json",
+    maxMemoryMB: 128,
+    chunkTargetBytes: 64 * 1024,
+    progressIntervalBytes: 1024,
+    onProgress: (stats) => {
+      console.log("bytes in:", stats.bytesIn, "max buffer:", stats.maxBufferSize);
+    }
+  });
+
+  console.log("output length:", output.length);
+}
+
+run().catch(console.error);
 `,
         }}
       />
@@ -27,17 +45,30 @@ const buddy = new ConvertBuddy({ memoryLimitMb: 256 });
       <h2>Advanced example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
-import { ConvertBuddy } from "convert-buddy-js";
+import { convertToString } from "convert-buddy-js";
 
-const buddy = new ConvertBuddy({
-  inputFormat: "csv",
-  outputFormat: "json",
-  chunkSizeBytes: 4 * 1024 * 1024
-});
+const rows = Array.from({ length: 1000 }, (_, i) => "row" + i + "," + (i * 2)).join("\\n");
+const input = "name,value\\n" + rows;
+
+async function run() {
+  console.time("convert");
+  const output = await convertToString(input, {
+    inputFormat: "csv",
+    outputFormat: "json",
+    maxMemoryMB: 256,
+    chunkTargetBytes: 128 * 1024,
+    parallelism: 2,
+    profile: true
+  });
+  console.timeEnd("convert");
+  console.log("output sample:", output.slice(0, 120) + "...");
+}
+
+run().catch(console.error);
 `,
         }}
       />

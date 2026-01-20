@@ -12,14 +12,27 @@ export default function Page() {
       <h2>Minimal example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
 import { ConvertBuddy } from "convert-buddy-js";
 
-const buddy = new ConvertBuddy({ inputFormat: "csv", outputFormat: "json" });
-const outputStream = await buddy.convert(file);
+const inputA = ${JSON.stringify('name,age\nAda,36\nLinus,54')};
+const inputB = ${JSON.stringify('name,age\nGrace,48\nAlan,41')};
+
+async function run() {
+  const buddy = new ConvertBuddy({ inputFormat: "csv", outputFormat: "json" });
+  const decoder = new TextDecoder();
+
+  const outA = await buddy.convert(inputA, { outputFormat: "json" });
+  const outB = await buddy.convert(inputB, { outputFormat: "json" });
+
+  console.log("first:", decoder.decode(outA));
+  console.log("second:", decoder.decode(outB));
+}
+
+run().catch(console.error);
 `,
         }}
       />
@@ -27,20 +40,37 @@ const outputStream = await buddy.convert(file);
       <h2>Advanced example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
 import { ConvertBuddy } from "convert-buddy-js";
 
-const buddy = new ConvertBuddy({
-  inputFormat: "json",
-  outputFormat: "csv",
-  transform: (r) => ({ ...r, exported_at: new Date().toISOString() })
-});
+const chunks = ["name,age\\n", "Ada,36\\n", "Linus,54\\n"];
 
-const controller = new AbortController();
-const outputStream = await buddy.convert(file, { signal: controller.signal });
+async function run() {
+  const buddy = await ConvertBuddy.create({
+    inputFormat: "csv",
+    outputFormat: "json"
+  });
+
+  const encoder = new TextEncoder();
+  const outputA = buddy.push(encoder.encode(chunks[0]));
+  buddy.pause();
+  console.log("paused after header");
+  buddy.resume();
+  const outputB = buddy.push(encoder.encode(chunks[1] + chunks[2]));
+  const outputC = buddy.finish();
+
+  const combined = new Uint8Array(outputA.length + outputB.length + outputC.length);
+  combined.set(outputA, 0);
+  combined.set(outputB, outputA.length);
+  combined.set(outputC, outputA.length + outputB.length);
+
+  console.log("output:", new TextDecoder().decode(combined));
+}
+
+run().catch(console.error);
 `,
         }}
       />

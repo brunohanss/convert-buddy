@@ -17,13 +17,20 @@ export default function Page() {
 
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
-import { convertToString } from "convert-buddy-js";
+import { convertAnyToString } from "convert-buddy-js";
 
-const output = await convertToString(file, { outputFormat: "json" });
+const input = ${JSON.stringify('name,age\nAda,36\nLinus,54')};
+
+async function run() {
+  const output = await convertAnyToString(input, { outputFormat: "json" });
+  console.log("output:", output);
+}
+
+run().catch(console.error);
 `,
         }}
       />
@@ -32,17 +39,27 @@ const output = await convertToString(file, { outputFormat: "json" });
 
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
 import { ConvertBuddy } from "convert-buddy-js";
 
-const buddy = new ConvertBuddy({
-  inputFormat: "csv",
-  outputFormat: "ndjson",
-  wasmUrl: "/wasm/convert-buddy.wasm"
-});
+const input = ${JSON.stringify('name,age\nAda,36\nLinus,54\nGrace,48')};
+
+async function run() {
+  const buddy = new ConvertBuddy({
+    inputFormat: "csv",
+    outputFormat: "ndjson",
+    progressIntervalBytes: 32,
+    onProgress: (stats) => console.log("records:", stats.recordsProcessed)
+  });
+
+  const output = await buddy.convert(input, { outputFormat: "ndjson" });
+  console.log("output:", new TextDecoder().decode(output));
+}
+
+run().catch(console.error);
 `,
         }}
       />

@@ -13,13 +13,20 @@ export default function Page() {
       <h2>Minimal example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
 import { detectFormat } from "convert-buddy-js";
 
-const format = await detectFormat(stream);
+const input = ${JSON.stringify('name,age\nAda,36\nLinus,54')};
+
+async function run() {
+  const format = await detectFormat(input);
+  console.log("detected format:", format);
+}
+
+run().catch(console.error);
 `,
         }}
       />
@@ -27,15 +34,24 @@ const format = await detectFormat(stream);
       <h2>Advanced example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
-import { ConvertBuddy, detectFormat, detectStructure } from "convert-buddy-js";
+import { convertAnyToString, detectFormat, detectStructure } from "convert-buddy-js";
 
-const format = await detectFormat(stream);
-const structure = await detectStructure(stream);
-const buddy = new ConvertBuddy({ inputFormat: format, outputFormat: "json", structure });
+const input = ${JSON.stringify('name,age\nAda,36\nLinus,54')};
+
+async function run() {
+  const format = await detectFormat(input);
+  const structure = await detectStructure(input, format === "unknown" ? undefined : format);
+  console.log("detected:", { format, structure });
+
+  const output = await convertAnyToString(input, { outputFormat: "json" });
+  console.log("output:", output);
+}
+
+run().catch(console.error);
 `,
         }}
       />

@@ -16,18 +16,30 @@ export default function Page() {
       <h2>Minimal example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
-import { ConvertBuddy } from "convert-buddy-js";
+import { convertToString } from "convert-buddy-js";
 
-const buddy = new ConvertBuddy({
-  transform: (r) => ({
-    id: r.id,
-    created_at: new Date(r.ts).toISOString()
-  })
-});
+const input = ${JSON.stringify('id,ts\n1,2024-05-02T10:30:00Z\n2,2024-05-03T12:15:00Z')};
+
+async function run() {
+  const output = await convertToString(input, {
+    inputFormat: "csv",
+    outputFormat: "json",
+    transform: {
+      mode: "replace",
+      fields: [
+        { targetFieldName: "id", originFieldName: "id", coerce: { type: "i64" } },
+        { targetFieldName: "created_at", originFieldName: "ts" }
+      ]
+    }
+  });
+  console.log("output:", output);
+}
+
+run().catch(console.error);
 `,
         }}
       />
@@ -35,19 +47,31 @@ const buddy = new ConvertBuddy({
       <h2>Advanced example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
-import { ConvertBuddy } from "convert-buddy-js";
+import { convertToString } from "convert-buddy-js";
 
-const buddy = new ConvertBuddy({
-  transform: (r) => ({
-    id: r.id,
-    created_at: new Date(r.ts).toISOString(),
-    age_group: r.age > 50 ? "senior" : "adult"
-  })
-});
+const input = ${JSON.stringify('id,age,ts\n1,36,2024-05-02T10:30:00Z\n2,61,2024-05-03T12:15:00Z')};
+
+async function run() {
+  const output = await convertToString(input, {
+    inputFormat: "csv",
+    outputFormat: "json",
+    transform: {
+      mode: "replace",
+      fields: [
+        { targetFieldName: "id", originFieldName: "id", coerce: { type: "i64" } },
+        { targetFieldName: "age", originFieldName: "age", coerce: { type: "i64" } },
+        { targetFieldName: "segment", defaultValue: "customer" }
+      ]
+    }
+  });
+  console.log("output:", output);
+}
+
+run().catch(console.error);
 `,
         }}
       />

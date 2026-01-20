@@ -16,13 +16,26 @@ export default function Page() {
       <h2>Minimal example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const output = await convertToString(file, { inputFormat: "json", outputFormat: "csv" });
+const input = JSON.stringify([
+  { name: "Ada", age: 36 },
+  { name: "Linus", age: 54 }
+]);
+
+async function run() {
+  const output = await convertToString(input, {
+    inputFormat: "json",
+    outputFormat: "csv"
+  });
+  console.log("output:", output);
+}
+
+run().catch(console.error);
 `,
         }}
       />
@@ -30,17 +43,30 @@ const output = await convertToString(file, { inputFormat: "json", outputFormat: 
       <h2>Advanced example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const output = await convertToString(file, {
-  inputFormat: "json",
-  outputFormat: "csv",
-  json: { recordPath: "items" }
-});
+const input = JSON.stringify(
+  Array.from({ length: 50 }, (_, i) => ({ name: "User" + i, age: 20 + i }))
+);
+
+async function run() {
+  const output = await convertToString(input, {
+    inputFormat: "json",
+    outputFormat: "csv",
+    progressIntervalBytes: 128,
+    profile: true,
+    onProgress: (stats) => {
+      console.log("records:", stats.recordsProcessed);
+    }
+  });
+  console.log("output sample:", output.slice(0, 120) + "...");
+}
+
+run().catch(console.error);
 `,
         }}
       />

@@ -16,26 +16,46 @@ export default function Page() {
       <h2>Minimal example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
-await convertToString(file, { outputFormat: "json" });`,
+const input = ${JSON.stringify('name,age\nAda,36\nLinus,54')};
+
+async function run() {
+  const output = await convertToString(input, {
+    inputFormat: "csv",
+    outputFormat: "json"
+  });
+  console.log("output:", output);
+}
+
+run().catch(console.error);`,
         }}
       />
 
       <h2>Advanced example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
-          '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
+          '/index.js': `import { convertToString } from "convert-buddy-js";
 
-const buddy = new ConvertBuddy({
-  onProgress: (stats) => console.log(stats.throughputMbPerSec)
-});`,
+const input = ${JSON.stringify('name,age\nAda,36\nLinus,54\nGrace,48\nAlan,41')};
+
+async function run() {
+  const output = await convertToString(input, {
+    inputFormat: "csv",
+    outputFormat: "json",
+    progressIntervalBytes: 32,
+    onProgress: (stats) => console.log("throughput:", stats.throughputMbPerSec.toFixed(2))
+  });
+  console.log("output:", output);
+}
+
+run().catch(console.error);`,
         }}
       />
     </div>

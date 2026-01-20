@@ -13,12 +13,34 @@ export default function Page() {
       <h2>Minimal example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
-const controller = new AbortController();
-await buddy.convert(stream, { signal: controller.signal });
+import { ConvertBuddy } from "convert-buddy-js";
+
+const chunks = ["name,age\\n", "Ada,36\\n", "Linus,54\\n"];
+
+async function run() {
+  const buddy = await ConvertBuddy.create({
+    inputFormat: "csv",
+    outputFormat: "json"
+  });
+
+  const encoder = new TextEncoder();
+
+  try {
+    const output = buddy.push(encoder.encode(chunks[0] + chunks[1]));
+    console.log("chunk output bytes:", output.length);
+
+    buddy.abort();
+    buddy.push(encoder.encode(chunks[2]));
+  } catch (err) {
+    console.log("conversion stopped:", err.message);
+  }
+}
+
+run().catch(console.error);
 `,
         }}
       />
@@ -26,14 +48,42 @@ await buddy.convert(stream, { signal: controller.signal });
       <h2>Advanced example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
-const controller = new AbortController();
-const promise = buddy.convert(stream, { signal: controller.signal });
-setTimeout(() => controller.abort(), 5000);
-await promise;
+import { ConvertBuddy } from "convert-buddy-js";
+
+const chunks = ["name,age\\n", "Ada,36\\n", "Linus,54\\n", "Grace,48\\n"];
+
+async function run() {
+  const buddy = await ConvertBuddy.create({
+    inputFormat: "csv",
+    outputFormat: "json"
+  });
+
+  const encoder = new TextEncoder();
+
+  try {
+    for (const chunk of chunks) {
+      const output = buddy.push(encoder.encode(chunk));
+      if (output.length > 0) {
+        console.log("chunk output bytes:", output.length);
+      }
+
+      if (buddy.stats().recordsProcessed >= 2) {
+        console.log("aborting after 2 records");
+        buddy.abort();
+      }
+    }
+
+    buddy.finish();
+  } catch (err) {
+    console.log("conversion stopped:", err.message);
+  }
+}
+
+run().catch(console.error);
 `,
         }}
       />

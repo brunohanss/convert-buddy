@@ -16,19 +16,31 @@ export default function Page() {
       <h2>Minimal example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
-import { ConvertBuddy } from "convert-buddy-js";
+import { convertToString } from "convert-buddy-js";
 
-const buddy = new ConvertBuddy({
-  onProgress: (stats) => {
-    console.log(stats.throughputMbPerSec);
-    console.log(stats.memoryMb);
-    console.log(stats.elapsedMs);
-  }
-});
+const rows = Array.from({ length: 80 }, (_, i) => "row" + i + "," + i).join("\\n");
+const input = "name,value\\n" + rows;
+
+async function run() {
+  const output = await convertToString(input, {
+    inputFormat: "csv",
+    outputFormat: "json",
+    progressIntervalBytes: 64,
+    onProgress: (stats) => {
+      console.log("throughput:", stats.throughputMbPerSec.toFixed(2));
+      console.log("bytes in:", stats.bytesIn);
+      console.log("records:", stats.recordsProcessed);
+    }
+  });
+
+  console.log("output length:", output.length);
+}
+
+run().catch(console.error);
 `,
         }}
       />
@@ -36,20 +48,31 @@ const buddy = new ConvertBuddy({
       <h2>Advanced example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
           '/index.js': `
-import { ConvertBuddy } from "convert-buddy-js";
+import { convertToString } from "convert-buddy-js";
 
-const buddy = new ConvertBuddy({
-  onProgress: (stats) => {
-    if (stats.memoryMb > 256) {
-      console.warn("Memory threshold exceeded");
+const rows = Array.from({ length: 160 }, (_, i) => "row" + i + "," + i).join("\\n");
+const input = "name,value\\n" + rows;
+
+async function run() {
+  const output = await convertToString(input, {
+    inputFormat: "csv",
+    outputFormat: "json",
+    progressIntervalBytes: 96,
+    onProgress: (stats) => {
+      if (stats.maxBufferSize > 256 * 1024) {
+        console.warn("Buffer threshold exceeded");
+      }
     }
-  },
-  progressIntervalMs: 250
-});
+  });
+
+  console.log("output length:", output.length);
+}
+
+run().catch(console.error);
 `,
         }}
       />

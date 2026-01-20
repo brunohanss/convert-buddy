@@ -10,25 +10,56 @@ export default function Page() {
       <h2>Minimal example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
-          '/index.js': `await runBenchmark({ inputFormat: "csv", outputFormat: "json" });`,
+          '/index.js': `
+import { convertToString } from "convert-buddy-js";
+
+const rows = Array.from({ length: 200 }, (_, i) => "row" + i + "," + i).join("\\n");
+const input = "name,value\\n" + rows;
+
+async function run() {
+  console.time("csv->json");
+  const output = await convertToString(input, {
+    inputFormat: "csv",
+    outputFormat: "json"
+  });
+  console.timeEnd("csv->json");
+  console.log("output length:", output.length);
+}
+
+run().catch(console.error);
+`,
         }}
       />
 
       <h2>Advanced example</h2>
       <SandpackExample
         template="node"
-        activeFile="/index.ts"
+        activeFile="/index.js"
         preview={false}
         files={{
-          '/index.js': `await runBenchmark({
-  inputFormat: "xml",
-  outputFormat: "json",
-  sizeGb: 5,
-  includeTransforms: true
-});`,
+          '/index.js': `
+import { convertToString } from "convert-buddy-js";
+
+const rows = Array.from({ length: 1000 }, (_, i) => "row" + i + "," + i).join("\\n");
+const input = "name,value\\n" + rows;
+
+async function run() {
+  console.time("csv->json (parallel)");
+  const output = await convertToString(input, {
+    inputFormat: "csv",
+    outputFormat: "json",
+    parallelism: 2,
+    profile: true
+  });
+  console.timeEnd("csv->json (parallel)");
+  console.log("output sample:", output.slice(0, 120) + "...");
+}
+
+run().catch(console.error);
+`,
         }}
       />
     </div>
