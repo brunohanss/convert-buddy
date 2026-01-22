@@ -4,6 +4,7 @@ import React from 'react';
 import SandpackExample from '@/components/mdx/Sandpack';
 
 export default function Page() {
+
   return (
     <div>
       <h1>Browser API</h1>
@@ -19,15 +20,21 @@ export default function Page() {
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
         files={{
           '/index.js': `
 import { convertAnyToString } from "convert-buddy-js";
 
-const input = ${JSON.stringify('name,age\nAda,36\nLinus,54')};
+const fileUrl = "";
 
 async function run() {
-  const output = await convertAnyToString(input, { outputFormat: "json" });
-  console.log("output:", output);
+  const response = await fetch(fileUrl);
+  const sampleData = await response.text();
+  
+  console.log("File preview:", sampleData.substring(0, 200));
+  
+  const output = await convertAnyToString(sampleData, { outputFormat: "json" });
+  console.log("Output:", output);
 }
 
 run().catch(console.error);
@@ -41,22 +48,28 @@ run().catch(console.error);
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
         files={{
           '/index.js': `
 import { ConvertBuddy } from "convert-buddy-js";
 
-const input = ${JSON.stringify('name,age\nAda,36\nLinus,54\nGrace,48')};
+const fileUrl = "";
 
 async function run() {
+  const response = await fetch(fileUrl);
+  const sampleData = await response.text();
+  
+  console.log("File preview:", sampleData.substring(0, 200));
+  
   const buddy = new ConvertBuddy({
     inputFormat: "csv",
     outputFormat: "ndjson",
     progressIntervalBytes: 32,
-    onProgress: (stats) => console.log("records:", stats.recordsProcessed)
+    onProgress: (stats) => console.log("Records:", stats.recordsProcessed)
   });
 
-  const output = await buddy.convert(input, { outputFormat: "ndjson" });
-  console.log("output:", new TextDecoder().decode(output));
+  const output = await buddy.convert(sampleData, { outputFormat: "ndjson" });
+  console.log("Output:", new TextDecoder().decode(output));
 }
 
 run().catch(console.error);

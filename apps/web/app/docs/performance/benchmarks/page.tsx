@@ -16,12 +16,11 @@ export default function Page() {
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const rows = Array.from({ length: 200 }, (_, i) => "row" + i + "," + i).join("\\n");
-const input = "name,value\\n" + rows;
+const sampleData = "name,value\n" + Array.from({ length: 50 }, (_, i) => "row" + i + "," + i).join("\\n");
 
 async function run() {
   console.time("csv->json");
-  const output = await convertToString(input, {
+  const output = await convertToString(sampleData, {
     inputFormat: "csv",
     outputFormat: "json"
   });
@@ -43,19 +42,18 @@ run().catch(console.error);
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const rows = Array.from({ length: 1000 }, (_, i) => "row" + i + "," + i).join("\\n");
-const input = "name,value\\n" + rows;
+const sampleData = "name,value\n" + Array.from({ length: 100 }, (_, i) => "row" + i + "," + i).join("\\n");
 
 async function run() {
   console.time("csv->json (parallel)");
-  const output = await convertToString(input, {
+  const output = await convertToString(sampleData, {
     inputFormat: "csv",
     outputFormat: "json",
     parallelism: 2,
     profile: true
   });
   console.timeEnd("csv->json (parallel)");
-  console.log("output sample:", output.slice(0, 120) + "...");
+  console.log("output length:", output.length);
 }
 
 run().catch(console.error);

@@ -14,22 +14,24 @@ export default function Page() {
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
         files={{
           '/index.js': `
 import { ConvertBuddy } from "convert-buddy-js";
 
-const inputA = ${JSON.stringify('name,age\nAda,36\nLinus,54')};
-const inputB = ${JSON.stringify('name,age\nGrace,48\nAlan,41')};
+const fileUrl = "";
 
 async function run() {
-  const buddy = new ConvertBuddy({ inputFormat: "csv", outputFormat: "json" });
+  const response = await fetch(fileUrl);
+  const sampleData = await response.text();
+  
+  console.log("File preview:", sampleData.substring(0, 200));
+  
+  const buddy = new ConvertBuddy({ inputFormat: "json", outputFormat: "csv" });
   const decoder = new TextDecoder();
 
-  const outA = await buddy.convert(inputA, { outputFormat: "json" });
-  const outB = await buddy.convert(inputB, { outputFormat: "json" });
-
-  console.log("first:", decoder.decode(outA));
-  console.log("second:", decoder.decode(outB));
+  const outA = await buddy.convert(sampleData, { outputFormat: "csv" });
+  console.log("Output:", decoder.decode(outA));
 }
 
 run().catch(console.error);
@@ -42,6 +44,7 @@ run().catch(console.error);
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
         files={{
           '/index.js': `
 import { ConvertBuddy } from "convert-buddy-js";
@@ -57,7 +60,7 @@ async function run() {
   const encoder = new TextEncoder();
   const outputA = buddy.push(encoder.encode(chunks[0]));
   buddy.pause();
-  console.log("paused after header");
+  console.log("Paused after header");
   buddy.resume();
   const outputB = buddy.push(encoder.encode(chunks[1] + chunks[2]));
   const outputC = buddy.finish();
@@ -67,7 +70,7 @@ async function run() {
   combined.set(outputB, outputA.length);
   combined.set(outputC, outputA.length + outputB.length);
 
-  console.log("output:", new TextDecoder().decode(combined));
+  console.log("Output:", new TextDecoder().decode(combined));
 }
 
 run().catch(console.error);

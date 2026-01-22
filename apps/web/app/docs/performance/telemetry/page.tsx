@@ -15,11 +15,10 @@ export default function Page() {
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
-const rows = Array.from({ length: 50 }, (_, i) => "row" + i + "," + (i + 20)).join("\\n");
-const input = "name,age\\n" + rows;
+const sampleData = "name,age\n" + Array.from({ length: 50 }, (_, i) => "row" + i + "," + (i + 20)).join("\\n");
 
 async function run() {
-  const output = await convertToString(input, {
+  const output = await convertToString(sampleData, {
     inputFormat: "csv",
     outputFormat: "json",
     progressIntervalBytes: 64,
@@ -45,11 +44,10 @@ run().catch(console.error);`,
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
-const rows = Array.from({ length: 200 }, (_, i) => "row" + i + "," + (i + 20)).join("\\n");
-const input = "name,age\\n" + rows;
+const sampleData = "name,age\n" + Array.from({ length: 100 }, (_, i) => "row" + i + "," + (i + 20)).join("\\n");
 
 async function run() {
-  const output = await convertToString(input, {
+  const output = await convertToString(sampleData, {
     inputFormat: "csv",
     outputFormat: "json",
     progressIntervalBytes: 128,

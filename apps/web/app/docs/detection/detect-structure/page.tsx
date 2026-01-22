@@ -16,15 +16,18 @@ export default function Page() {
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
         files={{
           '/index.js': `
 import { detectStructure } from "convert-buddy-js";
 
-const input = ${JSON.stringify('name,age\nAda,36\nLinus,54')};
-
 async function run() {
-  const structure = await detectStructure(input, "csv");
-  console.log("structure:", structure);
+  const sampleData = "";
+  
+  console.log("File preview:", sampleData.substring(0, 200));
+  
+  const structure = await detectStructure(sampleData, "csv");
+  console.log("Structure:", structure);
 }
 
 run().catch(console.error);
@@ -38,15 +41,21 @@ run().catch(console.error);
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
         files={{
           '/index.js': `
 import { detectStructure } from "convert-buddy-js";
 
-const input = ${JSON.stringify('name,age\nAda,36\nLinus,54\nGrace,48\nAlan,41')};
+const fileUrl = "";
 
 async function run() {
-  const structure = await detectStructure(input, "csv", { maxBytes: 1024 });
-  console.log("structure:", structure);
+  const response = await fetch(fileUrl);
+  const sampleData = await response.text();
+  
+  console.log("File preview:", sampleData.substring(0, 200));
+  
+  const structure = await detectStructure(sampleData, "csv", { maxBytes: 1024 });
+  console.log("Structure:", structure);
 }
 
 run().catch(console.error);

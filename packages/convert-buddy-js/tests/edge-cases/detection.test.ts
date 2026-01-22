@@ -2,8 +2,24 @@ import { describe, it } from "node:test";
 import {
   detectFormat,
   detectCsvFieldsAndDelimiter,
+  detectStructure,
+  detectXmlElements,
+  getMimeType,
+  getExtension,
+  getSuggestedFilename,
+  getFileTypeConfig,
+  getThreadingInfo,
+  getOptimalThreadCount,
+  isWasmThreadingSupported,
 } from "../../index.js";
 import { strict as assert } from "node:assert";
+
+async function* toAsyncChunks(input: string, chunkSize = 5): AsyncIterable<Uint8Array> {
+  const bytes = new TextEncoder().encode(input);
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    yield bytes.slice(i, i + chunkSize);
+  }
+}
 
 /**
  * CSV Format Detection Test Suite
@@ -104,6 +120,17 @@ row2_a|row2_b|row2_c|row2_d|row2_e|row2_f|row2_g|row2_h|row2_i|row2_j|row2_k|row
       const format = await detectFormat(xml);
       assert.strictEqual(format, "xml");
     });
+
+    it("should detect CSV format", async () => {
+      const csv = "name,age\nAlice,30\nBob,25\n";
+      const format = await detectFormat(csv);
+      assert.strictEqual(format, "csv");
+    });
+
+    it("should return unknown for plain text", async () => {
+      const format = await detectFormat("just some text");
+      assert.strictEqual(format, "unknown");
+    });
   });
 
   describe("Edge Cases", () => {
@@ -159,5 +186,91 @@ row2_a|row2_b|row2_c|row2_d|row2_e|row2_f|row2_g|row2_h|row2_i|row2_j|row2_k|row
       const detection = await detectCsvFieldsAndDelimiter(csv);
       assert.strictEqual(detection?.delimiter, "|");
     });
+  });
+});
+
+describe("Structure Detection", () => {
+  it("should detect JSON fields", async () => {
+    const json = '[{"name":"Alice","age":30},{"name":"Bob","age":25}]';
+    const structure = await detectStructure(json);
+    assert.strictEqual(structure?.format, "json");
+    assert.ok(structure?.fields.includes("name"));
+    assert.ok(structure?.fields.includes("age"));
+  });
+
+  it("should detect NDJSON fields", async () => {
+    const ndjson = '{"name":"Alice","age":30}\n{"name":"Bob","age":25}\n';
+    const structure = await detectStructure(ndjson);
+    assert.strictEqual(structure?.format, "ndjson");
+    assert.ok(structure?.fields.includes("name"));
+    assert.ok(structure?.fields.includes("age"));
+  });
+
+  it("should detect CSV structure with format hint", async () => {
+    const csv = "name,age,city\nAlice,30,NYC\nBob,25,LA\n";
+    const structure = await detectStructure(csv, "csv");
+    assert.strictEqual(structure?.format, "csv");
+    assert.strictEqual(structure?.delimiter, ",");
+    assert.deepStrictEqual(structure?.fields, ["name", "age", "city"]);
+  });
+
+  it("should detect XML structure and record element", async () => {
+    const xml = "<items><item><id>1</id></item><item><id>2</id></item></items>";
+    const structure = await detectStructure(xml, "xml");
+    assert.strictEqual(structure?.format, "xml");
+    assert.ok(structure?.fields.includes("items"));
+    assert.ok(structure?.fields.includes("item"));
+    assert.strictEqual(structure?.recordElement, "item");
+  });
+
+  it("should support async iterable inputs", async () => {
+    const csv = "name,age\nAlice,30\nBob,25\n";
+    const structure = await detectStructure(toAsyncChunks(csv), "csv");
+    assert.strictEqual(structure?.format, "csv");
+    assert.strictEqual(structure?.delimiter, ",");
+    assert.strictEqual(structure?.fields.length, 2);
+  });
+
+  it("should support legacy XML detection", async () => {
+    const xml = "<items><item><id>1</id></item><item><id>2</id></item></items>";
+    const detection = await detectXmlElements(xml);
+    assert.ok(detection?.elements.includes("items"));
+    assert.ok(detection?.elements.includes("item"));
+    assert.strictEqual(detection?.recordElement, "item");
+  });
+});
+
+describe("Format Helpers", () => {
+  it("should provide mime types and extensions", () => {
+    assert.strictEqual(getMimeType("json"), "application/json");
+    assert.strictEqual(getMimeType("ndjson"), "application/x-ndjson");
+    assert.strictEqual(getMimeType("csv"), "text/csv");
+    assert.strictEqual(getMimeType("xml"), "application/xml");
+    assert.strictEqual(getExtension("csv"), "csv");
+    assert.strictEqual(getExtension("ndjson"), "ndjson");
+  });
+
+  it("should build suggested filenames", () => {
+    assert.strictEqual(getSuggestedFilename("data.csv", "json"), "data.json");
+    assert.strictEqual(getSuggestedFilename("data.tar.csv", "ndjson"), "data.tar.ndjson");
+    const timestamped = getSuggestedFilename("data.csv", "json", true);
+    assert.ok(timestamped.startsWith("data_converted_"));
+    assert.ok(timestamped.endsWith(".json"));
+  });
+
+  it("should provide file type config", () => {
+    const types = getFileTypeConfig("json");
+    assert.strictEqual(types.length, 1);
+    assert.ok(types[0].accept["application/json"].includes(".json"));
+  });
+
+  it("should report threading capability info", () => {
+    const info = getThreadingInfo();
+    assert.strictEqual(typeof info.wasmThreadingSupported, "boolean");
+    assert.strictEqual(typeof info.recommendedThreads, "number");
+    assert.ok(info.recommendedThreads >= 1);
+    assert.strictEqual(typeof info.approach, "string");
+    assert.strictEqual(typeof getOptimalThreadCount(), "number");
+    assert.strictEqual(typeof isWasmThreadingSupported(), "boolean");
   });
 });

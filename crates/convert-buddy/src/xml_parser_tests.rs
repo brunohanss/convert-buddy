@@ -196,4 +196,129 @@ mod xml_parser_tests {
         let output = writer.finish().unwrap();
         assert!(output.is_empty());
     }
+
+        #[wasm_bindgen_test]
+        fn test_wrapper_contains_record_name_substring() {
+                // This reproduces the real-world case where the wrapper tag name
+                // contains the record element name as a substring, e.g.:
+                // <characters> ... <character>...</character> ... </characters>
+                let config = XmlConfig {
+                        record_element: "character".to_string(),
+                        include_attributes: false,
+                        ..Default::default()
+                };
+
+                let mut parser = XmlParser::new(config, 4096);
+
+                let xml = br#"<?xml version="1.0" encoding="UTF-8"?>
+<characters>
+    <character>
+        <name>Gorwin \"Grog\" Oakenshield</name>
+        <race>Human</race>
+        <class>Barbarian</class>
+        <quirk>Collects spoons from every tavern</quirk>
+    </character>
+    <character>
+        <name>Zilaen Whisperleaf</name>
+        <race>Elf</race>
+        <class>Rogue</class>
+        <quirk>Talks to shadows, claims they're shy</quirk>
+    </character>
+    <character>
+        <name>Pip Thistlewhisk</name>
+        <race>Halfling</race>
+        <class>Bard</class>
+        <quirk>Plays the lute with carrots</quirk>
+    </character>
+    <character>
+        <name>Thraxxus Bonegrinder</name>
+        <race>Orc</race>
+        <class>Cleric</class>
+        <quirk>Prays to a rock named Doris</quirk>
+    </character>
+    <character>
+        <name>Elaria Moonbeam</name>
+        <race>Half-Elf</race>
+        <class>Wizard</class>
+        <quirk>Writes shopping lists in ancient runes</quirk>
+    </character>
+</characters>"#;
+
+                // Diagnostics: inspect what fragments the string-scanning extraction finds
+                let fragments = crate::xml_parser::XmlParser::debug_extract_fragments_from_bytes(xml, "character");
+                // At minimum we should find five fragments
+                assert_eq!(fragments.len(), 5, "expected 5 fragments, found {}: {:?}", fragments.len(), fragments);
+
+                let out = parser.push_to_ndjson(xml).unwrap();
+                let out_str = String::from_utf8_lossy(&out);
+                // Print diagnostic output to help debug test failures
+                println!("[test debug] extracted fragments = {:?}", fragments);
+                println!("[test debug] ndjson output:\n{}", out_str);
+
+                // There should be five records and the first name must appear
+                // The NDJSON output serializes embedded quotes as \" so match that.
+                assert!(out_str.contains("Gorwin \\\"Grog\\\" Oakenshield"));
+                assert!(out_str.contains("Zilaen Whisperleaf"));
+                assert_eq!(parser.record_count(), 5);
+        }
+
+            // Native test variant to allow running diagnostics with `cargo test -- --nocapture`
+            #[test]
+            fn test_wrapper_contains_record_name_substring_native() {
+                let config = XmlConfig {
+                    record_element: "character".to_string(),
+                    include_attributes: false,
+                    ..Default::default()
+                };
+
+                let mut parser = XmlParser::new(config, 4096);
+
+                let xml = br#"<?xml version="1.0" encoding="UTF-8"?>
+        <characters>
+            <character>
+                <name>Gorwin \"Grog\" Oakenshield</name>
+                <race>Human</race>
+                <class>Barbarian</class>
+                <quirk>Collects spoons from every tavern</quirk>
+            </character>
+            <character>
+                <name>Zilaen Whisperleaf</name>
+                <race>Elf</race>
+                <class>Rogue</class>
+                <quirk>Talks to shadows, claims they're shy</quirk>
+            </character>
+            <character>
+                <name>Pip Thistlewhisk</name>
+                <race>Halfling</race>
+                <class>Bard</class>
+                <quirk>Plays the lute with carrots</quirk>
+            </character>
+            <character>
+                <name>Thraxxus Bonegrinder</name>
+                <race>Orc</race>
+                <class>Cleric</class>
+                <quirk>Prays to a rock named Doris</quirk>
+            </character>
+            <character>
+                <name>Elaria Moonbeam</name>
+                <race>Half-Elf</race>
+                <class>Wizard</class>
+                <quirk>Writes shopping lists in ancient runes</quirk>
+            </character>
+        </characters>"#;
+
+                let fragments = crate::xml_parser::XmlParser::debug_extract_fragments_from_bytes(xml, "character");
+                println!("[native debug] fragments.len={} fragments={:?}", fragments.len(), fragments);
+
+                let out = parser.push_to_ndjson(xml).unwrap();
+                let out_str = String::from_utf8_lossy(&out);
+                println!("[native debug] ndjson output:\n{}", out_str);
+
+                assert!(out_str.contains("Gorwin \"Grog\" Oakenshield"));
+                assert!(out_str.contains("Zilaen Whisperleaf"));
+                assert_eq!(parser.record_count(), 5);
+            }
+
+
+        
 }

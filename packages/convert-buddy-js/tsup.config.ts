@@ -29,6 +29,7 @@ export default defineConfig({
     "tests/edge-cases/detection.test": "tests/edge-cases/detection.test.ts",
     "tests/edge-cases/control-features.test": "tests/edge-cases/control-features.test.ts",
     "tests/edge-cases/node-helpers.test": "tests/edge-cases/node-helpers.test.ts",
+    "tests/edge-cases/roundtrip.test": "tests/edge-cases/roundtrip.test.ts",
   },
   format: ["esm"],
   dts: {

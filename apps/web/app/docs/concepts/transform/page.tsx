@@ -18,16 +18,19 @@ export default function Page() {
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
         files={{
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const input = ${JSON.stringify('id,ts\n1,2024-05-02T10:30:00Z\n2,2024-05-03T12:15:00Z')};
-
 async function run() {
-  const output = await convertToString(input, {
-    inputFormat: "csv",
-    outputFormat: "json",
+  const sampleData = "";
+  
+  console.log("File preview:", sampleData.substring(0, 200));
+  
+  const output = await convertToString(sampleData, {
+    inputFormat: "json",
+    outputFormat: "csv",
     transform: {
       mode: "replace",
       fields: [
@@ -36,7 +39,7 @@ async function run() {
       ]
     }
   });
-  console.log("output:", output);
+  console.log("Output:", output);
 }
 
 run().catch(console.error);
@@ -49,16 +52,22 @@ run().catch(console.error);
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
         files={{
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const input = ${JSON.stringify('id,age,ts\n1,36,2024-05-02T10:30:00Z\n2,61,2024-05-03T12:15:00Z')};
+const fileUrl = "";
 
 async function run() {
-  const output = await convertToString(input, {
-    inputFormat: "csv",
-    outputFormat: "json",
+  const response = await fetch(fileUrl);
+  const sampleData = await response.text();
+  
+  console.log("File preview:", sampleData.substring(0, 200));
+  
+  const output = await convertToString(sampleData, {
+    inputFormat: "json",
+    outputFormat: "csv",
     transform: {
       mode: "replace",
       fields: [
@@ -68,7 +77,7 @@ async function run() {
       ]
     }
   });
-  console.log("output:", output);
+  console.log("Output:", output);
 }
 
 run().catch(console.error);

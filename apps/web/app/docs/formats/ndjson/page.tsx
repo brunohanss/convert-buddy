@@ -4,6 +4,7 @@ import React from 'react';
 import SandpackExample from '@/components/mdx/Sandpack';
 
 export default function Page() {
+
   return (
     <div>
       <h1>NDJSON</h1>
@@ -15,18 +16,25 @@ export default function Page() {
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
+        sampleDataUrl={sampleDataUrls.ndjson}
         files={{
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const input = ${JSON.stringify('{"name":"Ada","age":36}\n{"name":"Linus","age":54}')};
+const fileUrl = "";
 
 async function run() {
-  const output = await convertToString(input, {
+  const response = await fetch(fileUrl);
+  const sampleData = await response.text();
+  
+  console.log("File preview:", sampleData.substring(0, 200));
+  
+  const output = await convertToString(sampleData, {
     inputFormat: "ndjson",
     outputFormat: "json"
   });
-  console.log("output:", output);
+  console.log("Output:", output);
 }
 
 run().catch(console.error);
@@ -39,22 +47,28 @@ run().catch(console.error);
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
+        sampleDataUrl={sampleDataUrls.ndjson}
         files={{
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const input = ${JSON.stringify('{"name":"Ada","age":36}\n{"name":"Linus","age":54}')};
+const fileUrl = "";
 
 async function run() {
-  const output = await convertToString(input, {
+  const response = await fetch(fileUrl);
+  const sampleData = await response.text();
+  
+  console.log("File preview:", sampleData.substring(0, 200));
+  
+  const output = await convertToString(sampleData, {
     inputFormat: "ndjson",
     outputFormat: "csv",
     csvConfig: {
-      delimiter: ";",
       hasHeaders: true
     }
   });
-  console.log("output:", output);
+  console.log("Output:", output);
 }
 
 run().catch(console.error);

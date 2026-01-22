@@ -6,7 +6,8 @@ import {
   convertFileToBuffer,
   convertFileToFile,
   convertBuffer,
-  convertStream
+  convertStream,
+  createNodeTransform
 } from "../../node.js";
 import { Readable } from "node:stream";
 
@@ -138,5 +139,47 @@ describe("Node.js High-Level Helpers", () => {
     } finally {
       unlinkSync(TEST_FILE);
     }
+  });
+
+  it("should auto-detect format for buffer conversion", async () => {
+    const buffer = Buffer.from(TEST_CSV);
+    
+    const result = await convertBuffer(buffer, {
+      inputFormat: "auto",
+      outputFormat: "json",
+    });
+    
+    const parsed = JSON.parse(result.toString("utf-8"));
+    assert.strictEqual(parsed.length, 3);
+  });
+
+  it("should auto-detect format for stream conversion", async () => {
+    const stream = Readable.from([Buffer.from(TEST_CSV)]);
+    
+    const result = await convertStream(stream, {
+      inputFormat: "auto",
+      outputFormat: "json",
+    });
+    
+    const parsed = JSON.parse(result.toString("utf-8"));
+    assert.strictEqual(parsed.length, 3);
+  });
+
+  it("should convert using createNodeTransform", async () => {
+    const transform = await createNodeTransform({
+      inputFormat: "csv",
+      outputFormat: "json",
+    });
+
+    const source = Readable.from([Buffer.from(TEST_CSV)]);
+    const chunks: Buffer[] = [];
+    
+    for await (const chunk of source.pipe(transform)) {
+      chunks.push(Buffer.from(chunk));
+    }
+    
+    const result = Buffer.concat(chunks).toString("utf-8");
+    const parsed = JSON.parse(result);
+    assert.strictEqual(parsed.length, 3);
   });
 });

@@ -19,11 +19,10 @@ export default function Page() {
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const rows = Array.from({ length: 200 }, (_, i) => "row" + i + "," + i).join("\\n");
-const input = "name,value\\n" + rows;
+const sampleData = "name,value\n" + Array.from({ length: 50 }, (_, i) => "row" + i + "," + i).join("\\n");
 
 async function run() {
-  const output = await convertToString(input, {
+  const output = await convertToString(sampleData, {
     inputFormat: "csv",
     outputFormat: "json",
     maxMemoryMB: 128,
@@ -51,12 +50,11 @@ run().catch(console.error);
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const rows = Array.from({ length: 1000 }, (_, i) => "row" + i + "," + (i * 2)).join("\\n");
-const input = "name,value\\n" + rows;
+const sampleData = "name,value\n" + Array.from({ length: 100 }, (_, i) => "row" + i + "," + (i * 2)).join("\\n");
 
 async function run() {
   console.time("convert");
-  const output = await convertToString(input, {
+  const output = await convertToString(sampleData, {
     inputFormat: "csv",
     outputFormat: "json",
     maxMemoryMB: 256,
@@ -65,7 +63,7 @@ async function run() {
     profile: true
   });
   console.timeEnd("convert");
-  console.log("output sample:", output.slice(0, 120) + "...");
+  console.log("output length:", output.length);
 }
 
 run().catch(console.error);

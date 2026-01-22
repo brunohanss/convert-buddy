@@ -4,6 +4,7 @@ import React from 'react';
 import SandpackExample from '@/components/mdx/Sandpack';
 
 export default function Page() {
+
   return (
     <div>
       <h1>XML</h1>
@@ -15,18 +16,25 @@ export default function Page() {
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
+        sampleDataUrl={sampleDataUrls.xml}
         files={{
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const input = ${JSON.stringify('<rows><row><name>Ada</name><age>36</age></row><row><name>Linus</name><age>54</age></row></rows>')};
+const fileUrl = "";
 
 async function run() {
-  const output = await convertToString(input, {
+  const response = await fetch(fileUrl);
+  const sampleData = await response.text();
+  
+  console.log("File preview:", sampleData.substring(0, 200));
+  
+  const output = await convertToString(sampleData, {
     inputFormat: "xml",
     outputFormat: "json"
   });
-  console.log("output:", output);
+  console.log("Output:", output);
 }
 
 run().catch(console.error);
@@ -39,23 +47,29 @@ run().catch(console.error);
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
+        sampleDataUrl={sampleDataUrls.xml}
         files={{
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const input = ${JSON.stringify('<rows><row id="1"><name>Ada</name><age>36</age></row><row id="2"><name>Linus</name><age>54</age></row></rows>')};
+const fileUrl = "";
 
 async function run() {
-  const output = await convertToString(input, {
+  const response = await fetch(fileUrl);
+  const sampleData = await response.text();
+  
+  console.log("File preview:", sampleData.substring(0, 200));
+  
+  const output = await convertToString(sampleData, {
     inputFormat: "xml",
     outputFormat: "json",
     xmlConfig: {
-      recordElement: "row",
       includeAttributes: true,
       trimText: true
     }
   });
-  console.log("output:", output);
+  console.log("Output:", output);
 }
 
 run().catch(console.error);

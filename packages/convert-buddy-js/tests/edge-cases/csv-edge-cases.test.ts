@@ -270,6 +270,57 @@ describe("CSV Edge Cases - Comprehensive Safety Tests", () => {
     });
   });
 
+  // ========== CSV CONFIG OPTIONS ==========
+  describe("CSV Config Options", () => {
+    it("should honor custom delimiters", async () => {
+      const csv = "name;age\nAlice;30\nBob;25\n";
+      const result = await convertToString(csv, {
+        inputFormat: "csv",
+        outputFormat: "ndjson",
+        csvConfig: {
+          delimiter: ";",
+        },
+      });
+      const lines = result.trim().split("\n");
+      assert.strictEqual(lines.length, 2);
+      const first = JSON.parse(lines[0]);
+      assert.strictEqual(first.name, "Alice");
+      assert.strictEqual(first.age, "30");
+    });
+
+    it("should trim whitespace when configured", async () => {
+      const csv = "name,age\n Alice , 30 \n Bob , 25 \n";
+      const result = await convertToString(csv, {
+        inputFormat: "csv",
+        outputFormat: "ndjson",
+        csvConfig: {
+          trimWhitespace: true,
+        },
+      });
+      const lines = result.trim().split("\n");
+      const first = JSON.parse(lines[0]);
+      assert.strictEqual(first.name, "Alice");
+      assert.strictEqual(first.age, "30");
+    });
+
+    it("should generate field names when headers are disabled", async () => {
+      const csv = "Alice,30\nBob,25\n";
+      const result = await convertToString(csv, {
+        inputFormat: "csv",
+        outputFormat: "ndjson",
+        csvConfig: {
+          hasHeaders: false,
+        },
+      });
+      const lines = result.trim().split("\n");
+      assert.strictEqual(lines.length, 2);
+      const first = JSON.parse(lines[0]);
+      assert.ok(Object.prototype.hasOwnProperty.call(first, "field_0"));
+      assert.strictEqual(first.field_0, "Alice");
+      assert.strictEqual(first.field_1, "30");
+    });
+  });
+
   // ========== DATA TYPES AND VALUES ==========
   describe("Data Types and Values", () => {
     it("should handle integer numbers", async () => {

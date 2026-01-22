@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<characters>
+  <character>
+    <name>Gorwin "Grog" Oakenshield</name>
+    <race>Human</race>
+    <class>Barbarian</class>
+    <quirk>Collects spoons from every tavern</quirk>
+  </character>
+  <character>
+    <name>Zilaen Whisperleaf</name>
+    <race>Elf</race>
+    <class>Rogue</class>
+    <quirk>Talks to shadows, claims they're shy</quirk>
+  </character>
+  <character>
+    <name>Pip Thistlewhisk</name>
+    <race>Halfling</race>
+    <class>Bard</class>
+    <quirk>Plays the lute with carrots</quirk>
+  </character>
+  <character>
+    <name>Thraxxus Bonegrinder</name>
+    <race>Orc</race>
+    <class>Cleric</class>
+    <quirk>Prays to a rock named Doris</quirk>
+  </character>
+  <character>
+    <name>Elaria Moonbeam</name>
+    <race>Half-Elf</race>
+    <class>Wizard</class>
+    <quirk>Writes shopping lists in ancient runes</quirk>
+  </character>
+</characters>

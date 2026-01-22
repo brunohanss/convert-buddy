@@ -82,7 +82,7 @@ export async function createNodeTransform(
 
   const Transform = await loadNodeTransform();
   const transform = new Transform({
-    async transform(chunk: Buffer, encoding: string, callback: Function) {
+    transform(chunk: Buffer, encoding: string, callback: Function) {
       try {
         if (!buddy) {
           if (!initPromise) {
@@ -90,36 +90,58 @@ export async function createNodeTransform(
               buddy = b;
             });
           }
-          await initPromise;
         }
 
-        const input = new Uint8Array(chunk);
-        const output = buddy!.push(input);
+        const handle = (err?: any) => {
+          if (err) return callback(err);
+          try {
+            const input = new Uint8Array(chunk);
+            const output = buddy!.push(input);
+            if (output.length > 0) {
+              this.push(Buffer.from(output));
+            }
+            callback();
+          } catch (e) {
+            callback(e);
+          }
+        };
 
-        if (output.length > 0) {
-          this.push(Buffer.from(output));
+        if (initPromise) {
+          initPromise.then(() => handle()).catch(handle);
+        } else {
+          handle();
         }
-
-        callback();
       } catch (err) {
         callback(err);
       }
     },
 
-    async flush(callback: Function) {
+    flush(callback: Function) {
       try {
-        if (buddy) {
-          const output = buddy.finish();
-          if (output.length > 0) {
-            this.push(Buffer.from(output));
-          }
+        const finalize = () => {
+          try {
+            if (buddy) {
+              const output = buddy.finish();
+              if (output.length > 0) {
+                this.push(Buffer.from(output));
+              }
 
-          if (opts.profile) {
-            const stats = buddy.stats();
-            console.log("[convert-buddy] Performance Stats:", stats);
+              if (opts.profile) {
+                const stats = buddy.stats();
+                console.log("[convert-buddy] Performance Stats:", stats);
+              }
+            }
+            callback();
+          } catch (err) {
+            callback(err);
           }
+        };
+
+        if (initPromise) {
+          initPromise.then(() => finalize()).catch((err) => callback(err));
+        } else {
+          finalize();
         }
-        callback();
       } catch (err) {
         callback(err);
       }
@@ -451,6 +473,20 @@ export async function convertStream(
         }
       } catch (error) {
         return reject(error);
+      }
+    }
+
+    // If the stream has already ended (e.g. Readable.from small inputs), finalize now
+    if (firstChunk && 'readableEnded' in inputStream && (inputStream as any).readableEnded) {
+      try {
+        const final = buddy.finish();
+        if (final.length > 0) chunks.push(Buffer.from(final));
+        if (opts.profile) {
+          console.log("[convert-buddy] Performance Stats:", buddy.stats());
+        }
+        return resolve(Buffer.concat(chunks));
+      } catch (err) {
+        return reject(err);
       }
     }
     

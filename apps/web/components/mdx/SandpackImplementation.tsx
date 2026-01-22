@@ -11,6 +11,20 @@ import {
 } from "@codesandbox/sandpack-react";
 import * as SandpackReact from "@codesandbox/sandpack-react";
 
+// Import sample data files directly using raw-loader
+import csvSample from "!!raw-loader!../../public/samples/dnd_characters.csv";
+import jsonSample from "!!raw-loader!../../public/samples/dnd_characters.json";
+import ndjsonSample from "!!raw-loader!../../public/samples/dnd_characters.ndjson";
+import xmlSample from "!!raw-loader!../../public/samples/dnd_characters.xml";
+
+// Sample data mapping
+const SAMPLE_DATA: Record<string, string> = {
+  json: jsonSample,
+  ndjson: ndjsonSample,
+  csv: csvSample,
+  xml: xmlSample,
+};
+
 type SandpackFile = {
   code: string;
   active?: boolean;
@@ -36,12 +50,31 @@ export type Props = {
   editorHeight?: number;
   consoleHeight?: number;
   previewHeight?: number;
+  enableFilePicker?: boolean;
+  filePickerVariable?: string;
 };
 
-function normalizeFiles(files: Props["files"]) {
+function normalizeFiles(files: Props["files"], selectedFormat: string = "json") {
   const out: Record<string, SandpackFile> = {};
   for (const [path, value] of Object.entries(files)) {
-    out[path] = typeof value === "string" ? { code: value } : value;
+    let code = typeof value === "string" ? value : value.code;
+    // Replace empty fileUrl placeholder with embedded sample data
+    const sampleData = SAMPLE_DATA[selectedFormat] || SAMPLE_DATA.json;
+    
+    // Replace fileUrl declaration and fetch pattern with direct sampleData usage
+    code = code.replace(/const fileUrl = "";/, `const sampleData = ${JSON.stringify(sampleData)};`);
+    
+    // Replace fetch pattern with direct data usage 
+    code = code.replace(/const response = await fetch\(fileUrl\);[\s\S]*?const sampleData = await response\.text\(\);/g, 
+      '// Sample data is embedded directly\n  // const sampleData is already available above');
+
+    // Also handle other fetch patterns
+    code = code.replace(/fetch\(fileUrl\)/g, 'Promise.resolve({ text: () => Promise.resolve(sampleData) })');
+
+    // If the example hard-codes an inputFormat value, update it to the selected format
+    code = code.replace(/inputFormat\s*[:=]\s*(['"`])\w+\1/g, `inputFormat: '${selectedFormat}'`);
+    
+    out[path] = { code, active: typeof value === "string" ? undefined : value.active };
   }
   return out;
 }
@@ -61,8 +94,12 @@ export function SandpackExampleImpl({
   editorHeight = 360,
   consoleHeight = 220,
   previewHeight = 360,
+  enableFilePicker = false,
+  filePickerVariable = "sampleData",
 }: Props) {
-  const normalized = normalizeFiles(files);
+  // State for selected sample file format
+  const [selectedFormat, setSelectedFormat] = React.useState<string>("json");
+  const normalized = normalizeFiles(files, selectedFormat);
 
   if (template === "node" && !normalized["/index.js"]) {
     throw new Error('The "node" template requires a "/index.js" entry file.');
@@ -77,8 +114,13 @@ export function SandpackExampleImpl({
   const filesStateRef = React.useRef(filesState);
   React.useEffect(() => {
     filesStateRef.current = filesState;
-    console.log('[Sandpack Debug] filesState updated:', filesState);
   }, [filesState]);
+
+  // Update files when selected format changes
+  React.useEffect(() => {
+    const newNormalized = normalizeFiles(files, selectedFormat);
+    setFilesState({ ...newNormalized });
+  }, [selectedFormat, files]);
 
   const resolvedPreviewProp = preview ?? !isNodeTemplate(template);
 
@@ -117,13 +159,71 @@ export function SandpackExampleImpl({
     return () => observer.disconnect();
   }, []);
 
-  // Inject a small "Run" button into Sandpack's preview toolbar so users can
-  // explicitly run the sandbox. We insert it before the Server button when
-  // available. The button dispatches a DOM event that the editor logic listens
-  // for to apply current files (or remount as a fallback).
+  // Inject file picker buttons into the tabs header (if enabled) and run/reset into console
   React.useEffect(() => {
-    function injectRunButton() {
+    let injectionTimeout: NodeJS.Timeout | null = null;
+
+    function injectFilePickerAndButtons() {
       try {
+        // Inject file picker buttons into tabs header
+        if (enableFilePicker) {
+          const tabsContainers = document.querySelectorAll<HTMLElement>('.sp-tabs-scrollable-container');
+          tabsContainers.forEach((tabsContainer) => {
+            // Check if already injected in this container
+            const parentContainer = tabsContainer.parentElement;
+            if (!parentContainer || parentContainer.querySelector('[data-cb-file-picker]')) {
+              return;
+            }
+
+            // Create wrapper for file picker buttons - append directly to tabs container
+            const wrapper = document.createElement('div');
+            wrapper.setAttribute('data-cb-file-picker', '1');
+            wrapper.style.cssText = 'display: flex; gap: 6px; align-items: center; margin-left: auto; padding: 0 12px;';
+
+            // Create format buttons
+            const fileTypes = [
+              { ext: 'json', label: 'JSON' },
+              { ext: 'ndjson', label: 'NDJSON' },
+              { ext: 'csv', label: 'CSV' },
+              { ext: 'xml', label: 'XML' }
+            ];
+
+            fileTypes.forEach(({ ext, label }) => {
+              const btn = document.createElement('button');
+              btn.setAttribute('type', 'button');
+              btn.setAttribute('aria-label', `Use ${label} sample`);
+              btn.setAttribute('data-cb-file', ext);
+              btn.className = 'sp-c-bxeRRt sp-c-dEbKhQ sp-c-eyPpSQ sp-tab-button';
+              btn.style.cssText = 'font-size: 11px; padding: 6px 10px; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; cursor: pointer;';
+              btn.textContent = label;
+              
+              btn.addEventListener('click', () => {
+                window.dispatchEvent(new CustomEvent('convert-buddy-file-select', {
+                  detail: { fileType: ext, origin: btn }
+                }));
+              });
+
+              // Update button style when selected
+              const updateButtonStyle = (e: Event) => {
+                const ce = e as CustomEvent;
+                const isSelected = ext === ce.detail?.fileType;
+                if (isSelected) {
+                  btn.style.cssText = 'font-size: 11px; padding: 6px 10px; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; cursor: pointer; background: rgba(255,255,255,0.15); font-weight: 600;';
+                } else {
+                  btn.style.cssText = 'font-size: 11px; padding: 6px 10px; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; cursor: pointer;';
+                }
+              };
+              
+              window.addEventListener('convert-buddy-file-select', updateButtonStyle);
+              wrapper.appendChild(btn);
+            });
+
+            // Append directly inside the tabs container so it stays on same line
+            tabsContainer.appendChild(wrapper);
+          });
+        }
+
+        // Inject run and reset buttons into console header
         const actions = document.querySelectorAll<HTMLElement>('.sp-console-header .sp-console-header-actions');
         actions.forEach((action) => {
           if (action.querySelector('[data-cb-run]')) return; // already injected
@@ -178,14 +278,22 @@ export function SandpackExampleImpl({
       }
     }
 
-    injectRunButton();
-    const obs = new MutationObserver(injectRunButton);
-    obs.observe(document.body, { childList: true, subtree: true });
-    return () => obs.disconnect();
-  }, []);
+    // Inject immediately
+    injectFilePickerAndButtons();
 
-  // Always autorun so code executes on load.
-  const computedAutorun = true;
+    // Debounce observer to prevent freeze
+    const obs = new MutationObserver(() => {
+      if (injectionTimeout) clearTimeout(injectionTimeout);
+      injectionTimeout = setTimeout(injectFilePickerAndButtons, 500);
+    });
+
+    obs.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      obs.disconnect();
+      if (injectionTimeout) clearTimeout(injectionTimeout);
+    };
+  }, [enableFilePicker]);
 
   // Always keep the preview hidden (we still mount a hidden iframe so logs
   // and runtime errors appear in the Sandpack console). This avoids showing
@@ -206,9 +314,6 @@ export function SandpackExampleImpl({
   }) {
     const sandpackApi = (SandpackReact as any).useSandpack ? (SandpackReact as any).useSandpack() : ({} as any);
     const { sandpack, openFile } = sandpackApi;
-    
-    console.log('[Sandpack Debug] Full sandpackApi:', sandpackApi);
-    console.log('[Sandpack Debug] sandpack object:', sandpack);
 
     const activePath = activeFile ?? Object.keys(filesState)[0];
 
@@ -233,10 +338,6 @@ export function SandpackExampleImpl({
 
         // Get the current files from Sandpack - try multiple paths
         const sandpackFiles = sandpackApi.files || sandpack?.files || sandpackApi.sandpack?.files;
-        console.log('[Sandpack Debug] Trying to get files from sandpackApi.files:', sandpackApi.files);
-        console.log('[Sandpack Debug] Trying to get files from sandpack.files:', sandpack?.files);
-        console.log('[Sandpack Debug] Trying to get files from sandpackApi.sandpack.files:', sandpackApi.sandpack?.files);
-        console.log('[Sandpack Debug] Final sandpackFiles:', sandpackFiles);
         
         // Update filesState with what Sandpack actually has
         if (sandpackFiles && typeof sandpackFiles === 'object') {
@@ -248,8 +349,6 @@ export function SandpackExampleImpl({
               hidden: file.hidden
             };
           });
-          
-          console.log('[Sandpack Debug] Updated filesState with Sandpack files:', updatedFiles);
           filesStateRef.current = updatedFiles;
           setFilesState(updatedFiles);
         } else {
@@ -271,22 +370,83 @@ export function SandpackExampleImpl({
           return;
         }
 
-        console.log('[Sandpack Debug] Resetting to original files:', normalized);
+        console.log('[Sandpack Debug] Resetting to original files');
         
-        // Reset to original normalized files
-        filesStateRef.current = { ...normalized };
-        setFilesState({ ...normalized });
+        // Reset to original normalized files with current format
+        const resetFiles = normalizeFiles(files, selectedFormat);
+        filesStateRef.current = { ...resetFiles };
+        setFilesState({ ...resetFiles });
         
         // Force remount to reload with original code
         setRunKey((k) => k + 1);
       }
 
+      async function onFileSelect(e: Event) {
+        const ce = e as CustomEvent;
+        const origin = ce?.detail?.origin as HTMLElement | undefined;
+        const fileType = ce?.detail?.fileType as string | undefined;
+
+        // If this event didn't originate from a button inside our wrapper, ignore it
+        if (origin && wrapperRef.current && !wrapperRef.current.contains(origin)) {
+          return;
+        }
+
+        if (!fileType) return;
+
+        setSelectedFormat(fileType);
+
+        // Get the embedded sample data for this format
+        const sampleData = SAMPLE_DATA[fileType] || SAMPLE_DATA.json;
+
+        // Update the code to inject the sample data variable
+        const updatedFiles = { ...filesStateRef.current };
+        Object.keys(updatedFiles).forEach(path => {
+          if (path.endsWith('.js') || path.endsWith('.ts')) {
+            let code = updatedFiles[path].code;
+            
+            // Replace the sampleData variable value (handles both fileUrl and sampleData patterns)
+            const urlPattern = /const fileUrl = [`'"][\s\S]*?[`'"];/;
+            const dataPattern = /const sampleData = [`'"][\s\S]*?[`'"];/;
+            
+            if (urlPattern.test(code)) {
+              code = code.replace(
+                urlPattern,
+                `const sampleData = ${JSON.stringify(sampleData)};`
+              );
+            } else if (dataPattern.test(code)) {
+              code = code.replace(
+                dataPattern,
+                `const sampleData = ${JSON.stringify(sampleData)};`
+              );
+            }
+            
+            // Also replace fetch patterns 
+            code = code.replace(/const response = await fetch\(fileUrl\);[\s\S]*?const sampleData = await response\.text\(\);/g, 
+              '// Sample data is embedded directly\n  // const sampleData is already available above');
+            code = code.replace(/fetch\(fileUrl\)/g, 'Promise.resolve({ text: () => Promise.resolve(sampleData) })');
+
+            // Update any hard-coded inputFormat to the newly selected fileType
+            code = code.replace(/inputFormat\s*[:=]\s*(['"`])\w+\1/g, `inputFormat: '${fileType}'`);
+
+            updatedFiles[path] = { ...updatedFiles[path], code };
+          }
+        });
+
+        filesStateRef.current = updatedFiles;
+        setFilesState(updatedFiles);
+
+          // Force remount to execute with new sample data
+          setRunKey((k) => k + 1);
+      }
+
       window.addEventListener('convert-buddy-run', onRun as EventListener);
       window.addEventListener('convert-buddy-reset', onReset as EventListener);
+      window.addEventListener('convert-buddy-file-select', onFileSelect as EventListener);
 
       return () => {
         window.removeEventListener('convert-buddy-run', onRun as EventListener);
         window.removeEventListener('convert-buddy-reset', onReset as EventListener);
+        window.removeEventListener('convert-buddy-file-select', onFileSelect as EventListener);
       };
     }, [sandpackApi, sandpack]);
 
@@ -361,8 +521,10 @@ export function SandpackExampleImpl({
         options={{
           activeFile,
           visibleFiles: Object.keys(filesState),
-          autorun: computedAutorun,
+          autorun: true,
           autoReload: true,
+          recompileMode: "immediate",
+          recompileDelay: 0,
         }}
         theme="dark"
       >

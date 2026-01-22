@@ -4,6 +4,7 @@ import React from 'react';
 import SandpackExample from '@/components/mdx/Sandpack';
 
 export default function Page() {
+
   return (
     <div>
       <h1>Detection</h1>
@@ -18,17 +19,22 @@ export default function Page() {
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
         files={{
           '/index.js': `
 import { detectFormat, detectStructure } from "convert-buddy-js";
 
-const input = ${JSON.stringify('name,age\nAda,36\nLinus,54')};
+const fileUrl = "";
 
 async function run() {
-  const format = await detectFormat(input);
-  const structure = await detectStructure(input, format === "unknown" ? undefined : format);
-  console.log("format:", format);
-  console.log("structure:", structure);
+  const response = await fetch(fileUrl);
+  const sampleData = await response.text();
+  console.log("File preview:", sampleData.substring(0, 200));
+  
+  const format = await detectFormat(sampleData);
+  const structure = await detectStructure(sampleData, format === "unknown" ? undefined : format);
+  console.log("Detected format:", format);
+  console.log("Detected structure:", structure);
 }
 
 run().catch(console.error);
@@ -41,20 +47,25 @@ run().catch(console.error);
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
         files={{
           '/index.js': `
 import { detectFormat, detectStructure } from "convert-buddy-js";
 
-const input = ${JSON.stringify('name,age\nAda,36\nLinus,54\nGrace,48\nAlan,41')};
+const fileUrl = "";
 
 async function run() {
-  const format = await detectFormat(input, { maxBytes: 2048 });
-  const structure = await detectStructure(input, format === "unknown" ? undefined : format, {
+  const response = await fetch(fileUrl);
+  const sampleData = await response.text();
+  console.log("File preview:", sampleData.substring(0, 200));
+  
+  const format = await detectFormat(sampleData, { maxBytes: 2048 });
+  const structure = await detectStructure(sampleData, format === "unknown" ? undefined : format, {
     maxBytes: 2048,
     debug: true
   });
-  console.log("format:", format);
-  console.log("structure:", structure);
+  console.log("Detected format:", format);
+  console.log("Detected structure:", structure);
 }
 
 run().catch(console.error);

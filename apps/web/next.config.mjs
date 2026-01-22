@@ -19,6 +19,14 @@ const nextConfig = {
       os: false,
       path: false,
     };
+
+    // Add raw-loader specifically for sample files only (not all JSON/CSV/XML files)
+    config.module.rules.push({
+      test: /\.(csv|json|xml|ndjson)$/,
+      include: /public[\\/]samples/,
+      use: 'raw-loader',
+    });
+
     return config;
   },
 };

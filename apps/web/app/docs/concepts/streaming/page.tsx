@@ -18,6 +18,7 @@ export default function Page() {
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
         files={{
           '/index.js': `
 import { ConvertBuddyTransformStream } from "convert-buddy-js";
@@ -69,6 +70,7 @@ run().catch(console.error);
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
         files={{
           '/index.js': `
 import { ConvertBuddyTransformStream } from "convert-buddy-js";

@@ -2,6 +2,7 @@ import React from 'react';
 import SandpackExample from '@/components/mdx/Sandpack';
 
 export default function DocsPage() {
+
   return (
     <div>
       <h1>Introduction</h1>
@@ -21,7 +22,7 @@ export default function DocsPage() {
       </ul>
 
       <h2>Minimal example</h2>
-<SandpackExample
+{/* <SandpackExample
   template="node"
   preview={false}
   console={true}
@@ -36,20 +37,24 @@ console.log("Result:", sum(2, 3));
       active: true
     }
   }}
-/>
+/> */}
       <SandpackExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
         files={{
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const file = ${JSON.stringify('name,age\nAda,36\nLinus,54')};
+const fileUrl = "";
 
 async function run() {
-  const out = await convertToString(file, { inputFormat: 'csv', outputFormat: 'json' });
+  const response = await fetch(fileUrl);
+  const data = await response.text();
+  
+  const out = await convertToString(data, { inputFormat: 'json', outputFormat: 'csv' });
   console.log('convertToString output:', out);
 }
 

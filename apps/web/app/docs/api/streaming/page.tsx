@@ -51,7 +51,7 @@ async function run() {
     offset += chunk.length;
   }
 
-  console.log("output:", new TextDecoder().decode(output));
+  console.log("Output:", new TextDecoder().decode(output));
 }
 
 run().catch(console.error);
@@ -85,7 +85,7 @@ async function run() {
     inputFormat: "csv",
     outputFormat: "json",
     progressIntervalBytes: 16,
-    onProgress: (stats) => console.log("records:", stats.recordsProcessed)
+    onProgress: (stats) => console.log("Records:", stats.recordsProcessed)
   });
 
   const buffers = [];
@@ -107,7 +107,7 @@ async function run() {
     offset += chunk.length;
   }
 
-  console.log("output:", new TextDecoder().decode(output));
+  console.log("Output:", new TextDecoder().decode(output));
 }
 
 run().catch(console.error);

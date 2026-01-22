@@ -1172,26 +1172,38 @@ export async function convert(
   input: Uint8Array | string,
   opts: ConvertBuddyOptions = {}
 ): Promise<Uint8Array> {
-  const buddy = await ConvertBuddy.create(opts);
+  try {
+    const buddy = await ConvertBuddy.create(opts);
 
-  const inputBytes = typeof input === "string" 
-    ? new TextEncoder().encode(input)
-    : input;
+    const inputBytes = typeof input === "string" 
+      ? new TextEncoder().encode(input)
+      : input;
 
-  const output = buddy.push(inputBytes);
-  const final = buddy.finish();
+    const output = buddy.push(inputBytes);
+    const final = buddy.finish();
 
-  // Combine outputs
-  const result = new Uint8Array(output.length + final.length);
-  result.set(output, 0);
-  result.set(final, output.length);
+    // Combine outputs
+    const result = new Uint8Array(output.length + final.length);
+    result.set(output, 0);
+    result.set(final, output.length);
 
-  if (opts.profile) {
-    const stats = buddy.stats();
-    console.log("[convert-buddy] Performance Stats:", stats);
+    if (opts.profile) {
+      const stats = buddy.stats();
+      console.log("[convert-buddy] Performance Stats:", stats);
+    }
+
+    return result;
+  } catch (err: any) {
+    // Normalize non-Error throws (e.g., wasm JsValue) into Error with message
+    if (err instanceof Error) throw err;
+    try {
+      // Try to stringify common structures
+      const msg = typeof err === 'string' ? err : (err && err.message) ? err.message : JSON.stringify(err);
+      throw new Error(String(msg));
+    } catch (_) {
+      throw new Error(String(err));
+    }
   }
-
-  return result;
 }
 
 // Utility: Convert and return as string

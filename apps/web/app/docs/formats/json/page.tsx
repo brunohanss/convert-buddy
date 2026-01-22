@@ -4,6 +4,7 @@ import React from 'react';
 import SandpackExample from '@/components/mdx/Sandpack';
 
 export default function Page() {
+
   return (
     <div>
       <h1>JSON</h1>
@@ -18,21 +19,25 @@ export default function Page() {
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
+        sampleDataUrl={sampleDataUrls.json}
         files={{
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const input = JSON.stringify([
-  { name: "Ada", age: 36 },
-  { name: "Linus", age: 54 }
-]);
+const fileUrl = "";
 
 async function run() {
-  const output = await convertToString(input, {
+  const response = await fetch(fileUrl);
+  const sampleData = await response.text();
+  
+  console.log("File preview:", sampleData.substring(0, 200));
+  
+  const output = await convertToString(sampleData, {
     inputFormat: "json",
     outputFormat: "csv"
   });
-  console.log("output:", output);
+  console.log("Output:", output);
 }
 
 run().catch(console.error);
@@ -45,25 +50,30 @@ run().catch(console.error);
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
+        sampleDataUrl={sampleDataUrls.json}
         files={{
           '/index.js': `
 import { convertToString } from "convert-buddy-js";
 
-const input = JSON.stringify(
-  Array.from({ length: 50 }, (_, i) => ({ name: "User" + i, age: 20 + i }))
-);
+const fileUrl = "";
 
 async function run() {
-  const output = await convertToString(input, {
+  const response = await fetch(fileUrl);
+  const sampleData = await response.text();
+  
+  console.log("File preview:", sampleData.substring(0, 200));
+  
+  const output = await convertToString(sampleData, {
     inputFormat: "json",
     outputFormat: "csv",
     progressIntervalBytes: 128,
     profile: true,
     onProgress: (stats) => {
-      console.log("records:", stats.recordsProcessed);
+      console.log("Records processed:", stats.recordsProcessed);
     }
   });
-  console.log("output sample:", output.slice(0, 120) + "...");
+  console.log("Output:", output);
 }
 
 run().catch(console.error);

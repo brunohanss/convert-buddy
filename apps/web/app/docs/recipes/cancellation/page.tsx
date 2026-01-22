@@ -31,12 +31,12 @@ async function run() {
 
   try {
     const output = buddy.push(encoder.encode(chunks[0] + chunks[1]));
-    console.log("chunk output bytes:", output.length);
+    console.log("Chunk output bytes:", output.length);
 
     buddy.abort();
     buddy.push(encoder.encode(chunks[2]));
   } catch (err) {
-    console.log("conversion stopped:", err.message);
+    console.log("Conversion stopped:", err.message);
   }
 }
 
@@ -68,18 +68,18 @@ async function run() {
     for (const chunk of chunks) {
       const output = buddy.push(encoder.encode(chunk));
       if (output.length > 0) {
-        console.log("chunk output bytes:", output.length);
+        console.log("Chunk output bytes:", output.length);
       }
 
       if (buddy.stats().recordsProcessed >= 2) {
-        console.log("aborting after 2 records");
+        console.log("Aborting after 2 records");
         buddy.abort();
       }
     }
 
     buddy.finish();
   } catch (err) {
-    console.log("conversion stopped:", err.message);
+    console.log("Conversion stopped:", err.message);
   }
 }
 

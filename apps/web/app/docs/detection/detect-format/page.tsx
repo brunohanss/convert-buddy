@@ -14,15 +14,18 @@ export default function Page() {
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
         files={{
           '/index.js': `
 import { detectFormat } from "convert-buddy-js";
 
-const input = ${JSON.stringify('name,age\nAda,36\nLinus,54')};
-
 async function run() {
-  const format = await detectFormat(input);
-  console.log("detected format:", format);
+  const sampleData = "";
+  
+  console.log("File preview:", sampleData.substring(0, 200));
+  
+  const format = await detectFormat(sampleData);
+  console.log("Detected format:", format);
 }
 
 run().catch(console.error);
@@ -36,15 +39,21 @@ run().catch(console.error);
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
         files={{
           '/index.js': `
 import { detectFormat } from "convert-buddy-js";
 
-const input = ${JSON.stringify('name,age\nAda,36\nLinus,54\nGrace,48\nAlan,41')};
+const fileUrl = "";
 
 async function run() {
-  const format = await detectFormat(input, { maxBytes: 1024 });
-  console.log("detected format:", format);
+  const response = await fetch(fileUrl);
+  const sampleData = await response.text();
+  
+  console.log("File preview:", sampleData.substring(0, 200));
+  
+  const format = await detectFormat(sampleData, { maxBytes: 1024 });
+  console.log("Detected format:", format);
 }
 
 run().catch(console.error);
