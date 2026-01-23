@@ -223,6 +223,7 @@ pub fn detect_structure(sample: &[u8], format_hint: Option<String>) -> JsValue {
 
 /// Internal converter state
 enum ConverterState {
+    CsvPassthrough(CsvParser, csv_writer::CsvWriter),
     CsvToNdjson(CsvParser),
     CsvToNdjsonTransform(CsvParser, TransformEngine),
     CsvToJson(CsvParser, NdjsonParser, bool), // (csv_parser, ndjson_parser, is_first_chunk)
@@ -259,6 +260,7 @@ enum ConverterState {
 
 fn converter_state_name(state: &ConverterState) -> &'static str {
     match state {
+        ConverterState::CsvPassthrough(_, _) => "CsvPassthrough",
         ConverterState::CsvToNdjson(_) => "CsvToNdjson",
         ConverterState::CsvToNdjsonTransform(_, _) => "CsvToNdjsonTransform",
         ConverterState::CsvToJson(_, _, _) => "CsvToJson",
@@ -491,6 +493,7 @@ impl Converter {
             
             // Update buffer sizes
             let partial_size = match self.state.as_ref() {
+                Some(ConverterState::CsvPassthrough(p, _)) => p.partial_size(),
                 Some(ConverterState::CsvToNdjson(p)) => p.partial_size(),
                 Some(ConverterState::CsvToNdjsonTransform(p, engine)) => {
                     p.partial_size() + engine.partial_size()
@@ -561,6 +564,30 @@ impl Converter {
         )?;
         
         let (result, new_state) = match state {
+            ConverterState::CsvPassthrough(mut parser, mut csv_writer) => {
+                // Parse CSV to NDJSON, then immediately convert back to CSV
+                let ndjson = {
+                    #[cfg(feature = "threads")]
+                    {
+                        parser.push_to_ndjson_parallel(chunk).map_err(JsValue::from)?
+                    }
+                    #[cfg(not(feature = "threads"))]
+                    {
+                        parser.push_to_ndjson(chunk).map_err(JsValue::from)?
+                    }
+                };
+                // Process each line of NDJSON
+                let ndjson_str = std::str::from_utf8(&ndjson)
+                    .map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let mut result = Vec::new();
+                for line in ndjson_str.lines() {
+                    let trimmed = line.trim();
+                    if !trimmed.is_empty() {
+                        result.extend(csv_writer.process_json_line(line).map_err(JsValue::from)?);
+                    }
+                }
+                (result, ConverterState::CsvPassthrough(parser, csv_writer))
+            }
             ConverterState::CsvToNdjson(mut parser) => {
                 let result = {
                     #[cfg(feature = "threads")]
@@ -862,6 +889,24 @@ impl Converter {
         }
 
         let result = match self.state.take() {
+            Some(ConverterState::CsvPassthrough(mut parser, mut csv_writer)) => {
+                // Finish CSV parsing
+                let ndjson = parser.finish()?;
+                // Convert final NDJSON to CSV
+                let ndjson_str = std::str::from_utf8(&ndjson)
+                    .map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let mut output = Vec::new();
+                for line in ndjson_str.lines() {
+                    let trimmed = line.trim();
+                    if !trimmed.is_empty() {
+                        output.extend(csv_writer.process_json_line(line).map_err(JsValue::from)?);
+                    }
+                }
+                // Finalize CSV writer
+                let final_output = csv_writer.finish().map_err(JsValue::from)?;
+                output.extend_from_slice(&final_output);
+                output
+            }
             Some(ConverterState::CsvToNdjson(mut parser)) => {
                 parser.finish()?
             }
@@ -1370,7 +1415,7 @@ impl Converter {
                 }
             }
             (Format::Csv, Format::Csv) => {
-                // CSV passthrough
+                // CSV to CSV
                 let csv_config = config.csv_config.clone().unwrap_or_default();
                 if let Some(plan) = transform_plan {
                     ConverterState::CsvToCsvTransform(
@@ -1379,7 +1424,11 @@ impl Converter {
                         csv_writer::CsvWriter::new(),
                     )
                 } else {
-                    ConverterState::CsvToNdjson(CsvParser::new(csv_config, config.chunk_target_bytes))
+                    // For CSV to CSV without transform, use passthrough via CSV parser + writer
+                    ConverterState::CsvPassthrough(
+                        CsvParser::new(csv_config.clone(), config.chunk_target_bytes),
+                        csv_writer::CsvWriter::new()
+                    )
                 }
             }
             (Format::Csv, Format::Xml) => {

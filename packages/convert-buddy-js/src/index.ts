@@ -1092,16 +1092,17 @@ export async function detectXmlElements(
   return null;
 }
 
-// Helper to auto-detect format and CSV configuration from sample data
+// Helper to auto-detect format and CSV/XML configuration from sample data
 export async function autoDetectConfig(
-  sample: Uint8Array,
-  opts: { debug?: boolean } = {}
+  input: DetectInput,
+  opts: DetectOptions = {}
 ): Promise<{ 
   format: Format | "unknown"; 
   csvConfig?: CsvConfig;
   xmlConfig?: XmlConfig;
 }> {
   const wasmModule = await loadDetectionWasm(!!opts.debug);
+  const sample = await readSample(input, opts.maxBytes);
   
   const format = (wasmModule.detectFormat?.(sample) as Format) ?? "unknown";
   
@@ -1173,11 +1174,39 @@ export async function convert(
   opts: ConvertBuddyOptions = {}
 ): Promise<Uint8Array> {
   try {
-    const buddy = await ConvertBuddy.create(opts);
-
     const inputBytes = typeof input === "string" 
       ? new TextEncoder().encode(input)
       : input;
+
+    // If inputFormat is not specified or is "auto", perform auto-detection
+    let actualOpts = opts;
+    if (!opts.inputFormat || opts.inputFormat === "auto") {
+      const sample = inputBytes.length > 256 * 1024 
+        ? inputBytes.slice(0, 256 * 1024) 
+        : inputBytes;
+      
+      const detected = await autoDetectConfig(sample, { debug: opts.debug });
+      
+      if (detected.format !== "unknown") {
+        actualOpts = { ...opts, inputFormat: detected.format as Format };
+        
+        if (detected.csvConfig && !opts.csvConfig) {
+          actualOpts.csvConfig = detected.csvConfig;
+        }
+        
+        if (detected.xmlConfig && !opts.xmlConfig) {
+          actualOpts.xmlConfig = detected.xmlConfig;
+        }
+        
+        if (opts.debug) {
+          console.log("[convert-buddy] Auto-detected format:", detected.format);
+        }
+      } else {
+        throw new Error("Could not auto-detect input format. Please specify inputFormat explicitly.");
+      }
+    }
+
+    const buddy = await ConvertBuddy.create(actualOpts);
 
     const output = buddy.push(inputBytes);
     const final = buddy.finish();

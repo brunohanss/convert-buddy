@@ -1,3 +1,359 @@
+> ⚠️ **Experimental / In Development**  
+> This project is under active development and may introduce breaking changes without notice.
+
+# convert-buddy-js
+
+A **high-performance, streaming-first** parser and converter for **CSV, XML, NDJSON, and JSON**.  
+`convert-buddy-js` is a **TypeScript wrapper around a Rust → WASM core**, designed for throughput and low memory overhead on large files, with unified APIs for **Node.js and modern browsers**.
+
+---
+
+## Status & Quality
+
+[![Known Vulnerabilities](https://snyk.io/test/github/brunohanss/convert-buddy/badge.svg)](https://snyk.io/test/github/brunohanss/convert-buddy)
+[![CI/CD Pipeline](https://github.com/brunohanss/convert-buddy/actions/workflows/test.yml/badge.svg)](https://github.com/brunohanss/convert-buddy/actions)
+[![Coverage Status](https://img.shields.io/codecov/c/github/brunohanss/convert-buddy?label=coverage)](https://codecov.io/gh/brunohanss/convert-buddy)
+[![npm version](https://img.shields.io/npm/v/convert-buddy-js.svg)](https://www.npmjs.com/package/convert-buddy-js)
+[![Bundle Size](https://img.shields.io/bundlephobia/minzip/convert-buddy-js.svg)](https://bundlephobia.com/package/convert-buddy-js)
+
+---
+
+## Why Convert Buddy
+
+**What it optimizes for**
+- Performance: Rust/WASM fast-path parsing and conversion
+- Streaming-first: convert without loading entire inputs into memory
+- Unified multi-format API: one interface for CSV / XML / NDJSON / JSON
+- Cross-platform: Node.js and modern browsers
+
+**When you might not want it**
+- Tiny inputs where WASM initialization overhead dominates
+- Highly specialized format features
+- Environments where WASM is restricted
+
+---
+
+## Install
+
+```bash
+npm install convert-buddy-js
+```
+
+## Quick Start
+
+The simplest way: auto-detect input type + format
+
+```ts
+import { convert, convertToString } from "convert-buddy-js";
+
+// From URL
+const json = await convertToString("https://example.com/data.csv", {
+  outputFormat: "json",
+});
+
+// From File (browser)
+const file = fileInput.files![0];
+const ndjson = await convertToString(file, { outputFormat: "ndjson" });
+
+// From string data
+const csv = "name,age\nAda,36";
+const out = await convertToString(csv, { outputFormat: "json" });
+
+// Returns Uint8Array instead of string
+const bytes = await convert(file, { outputFormat: "json" });
+```
+
+### Instance-based API (reuse global config)
+
+```ts
+import { ConvertBuddy } from "convert-buddy-js";
+
+const buddy = new ConvertBuddy({
+  debug: true,
+  maxMemoryMB: 512,
+  onProgress: (stats) =>
+    console.log(`${stats.recordsProcessed} records processed`),
+});
+
+const result = await buddy.convert("https://example.com/data.csv", {
+  outputFormat: "json",
+});
+```
+
+### Platform entrypoints (recommended)
+
+**Browser**
+
+```ts
+import { convertFileToString } from "convert-buddy-js/browser";
+
+const file =
+  document.querySelector<HTMLInputElement>('input[type="file"]')!
+    .files![0];
+
+const json = await convertFileToString(file, {
+  inputFormat: "auto",
+  outputFormat: "json",
+});
+```
+
+**Node.js**
+
+```ts
+import { convertToString } from "convert-buddy-js/node";
+
+const json = await convertToString("input.csv", {
+  outputFormat: "json",
+});
+```
+
+---
+
+## API Overview
+
+Convert Buddy offers four layers of control, from one-liners to fully manual streaming.
+
+1. Ultra-simple API
+
+```ts
+import { convert, convertToString } from "convert-buddy-js";
+
+const json = await convertToString(input, { outputFormat: "json" });
+```
+
+Supported input types
+
+- URLs
+- Browser `File`
+- `Uint8Array` / Node `Buffer`
+- Raw strings
+- `ReadableStream<Uint8Array>`
+- Node file paths
+
+2. Instance-based API
+
+```ts
+import { ConvertBuddy } from "convert-buddy-js";
+
+const buddy = new ConvertBuddy({
+  profile: true,
+  progressIntervalBytes: 1024 * 1024,
+  onProgress: (s) => console.log(s.throughputMbPerSec),
+});
+
+const out = await buddy.convert(file, { outputFormat: "ndjson" });
+```
+
+3. High-level helpers
+
+**Browser helpers**
+
+```ts
+import {
+  convertFileToString,
+  convertFileToFile,
+  convertAndSave,
+  convertFileStream,
+  convertStreamToWritable,
+  autoConvertStream,
+  isFileSystemAccessSupported,
+  getMimeType,
+  getExtension,
+  getSuggestedFilename,
+} from "convert-buddy-js/browser";
+
+const json = await convertFileToString(file, { outputFormat: "json" });
+```
+
+**Node helpers**
+
+```ts
+import {
+  convertFileToString,
+  convertFileToFile,
+  convertStream,
+} from "convert-buddy-js/node";
+
+const json = await convertFileToString("input.csv", {
+  inputFormat: "csv",
+  outputFormat: "json",
+});
+```
+
+4. Low-level API
+
+Manual chunked streaming
+
+```ts
+import { ConvertBuddy } from "convert-buddy-js";
+
+const converter = await ConvertBuddy.create({
+  inputFormat: "xml",
+  outputFormat: "ndjson",
+  xmlConfig: { recordElement: "row", includeAttributes: true },
+});
+
+converter.push(new Uint8Array([/* bytes */]));
+converter.push(new Uint8Array([/* bytes */]));
+
+const final = converter.finish();
+console.log(converter.stats());
+```
+
+Node.js Transform stream
+
+```ts
+import { createNodeTransform } from "convert-buddy-js/node";
+import { createReadStream, createWriteStream } from "node:fs";
+
+const transform = await createNodeTransform({
+  inputFormat: "csv",
+  outputFormat: "ndjson",
+  csvConfig: { hasHeaders: true },
+  profile: true,
+});
+
+createReadStream("input.csv")
+  .pipe(transform)
+  .pipe(createWriteStream("output.ndjson"));
+```
+
+Web Streams
+
+```ts
+import { ConvertBuddyTransformStream } from "convert-buddy-js";
+
+const transform = new ConvertBuddyTransformStream({
+  inputFormat: "csv",
+  outputFormat: "ndjson",
+});
+
+const response = await fetch("/data.csv");
+const output = response.body?.pipeThrough(transform);
+```
+
+---
+
+## Formats
+
+Supported
+
+- `csv`
+- `xml`
+- `ndjson`
+- `json`
+- `auto`
+
+### CSV options
+
+```ts
+{
+  csvConfig: {
+    delimiter: ",",
+    quote: '"',
+    hasHeaders: true,
+    trimWhitespace: false,
+  }
+}
+```
+
+### XML options
+
+```ts
+{
+  xmlConfig: {
+    recordElement: "row",
+    trimText: true,
+    includeAttributes: true,
+  }
+}
+```
+
+### Performance options
+
+```ts
+{
+  chunkTargetBytes: 1024 * 1024,
+  parallelism: 4,
+  profile: true,
+  debug: false,
+}
+```
+
+---
+
+## Transformations & Field Mapping
+
+Convert Buddy supports field-level transformations during conversion via the `transform` option. Example:
+
+```ts
+const out = await buddy.convert(csvString, {
+  outputFormat: "json",
+  transform: {
+    mode: "augment",
+    fields: [
+      { targetFieldName: "full_name", compute: "concat(first, ' ', last)" },
+      { targetFieldName: "age", coerce: { type: "i64" }, defaultValue: 0 },
+    ],
+    onMissingField: "null",
+    onCoerceError: "null",
+  },
+});
+```
+
+Runtime compute helpers depend on the Rust/WASM core build. For complex transforms consider pre/post-processing in JS.
+
+---
+
+## Auto-detection & inspection
+
+Detect format
+
+```ts
+import { detectFormat } from "convert-buddy-js";
+
+const format = await detectFormat(stream, { maxBytes: 256 * 1024 });
+```
+
+Detect structure
+
+```ts
+import { detectStructure } from "convert-buddy-js";
+
+const structure = await detectStructure(stream);
+```
+
+---
+
+## How it works
+
+- Rust core implements streaming parsers and conversion
+- WASM bindings generated via `wasm-bindgen`
+- TypeScript wrapper exposes high-level APIs and stream adapters
+
+## What ships in the npm package
+
+- Prebuilt WASM binaries
+- Compiled JS / TypeScript output
+
+Rust sources, demos, and benchmarks live in the repository but are not published in the npm package.
+
+---
+
+## Benchmarks (repository)
+
+```bash
+cd packages/convert-buddy-js
+npm run bench
+npm run bench:check
+npm run bench:competitors
+```
+
+---
+
+## License
+
+MIT
 > ⚠️ **In Development** - This project is currently under active development and subject to breaking changes. Experimental state, could change heavily.
 
 # convert-buddy-js
@@ -22,6 +378,7 @@ npm install convert-buddy-js
 
 ### The Simplest Way - Auto-Detect Everything
 
+```
 ```ts
 import { convert, convertToString } from "convert-buddy-js";
 
@@ -404,6 +761,63 @@ const handle = await window.showSaveFilePicker({
   types
 });
 ```
+
+---
+
+### Transformations & Field Mapping
+
+Convert Buddy supports field-level transformations during conversion via the `transform` option. This lets you rename fields, provide defaults, coerce types, compute derived values, and choose whether to replace or augment existing records.
+
+Key concepts:
+- **`TransformConfig`**: top-level transform config with `mode` (`"replace" | "augment"`) and a `fields` array.
+- **`FieldMap`**: maps one output field to an input field and supports `required`, `defaultValue`, `coerce`, and `compute`.
+- **`Coerce`**: supported coercions include `string`, `i64`, `f64`, `bool`, and `timestamp_ms` (with formats `iso8601`, `unix_ms`, `unix_s`).
+- **Error handling**: control missing/invalid data with `onMissingField`, `onMissingRequired`, and `onCoerceError`.
+
+Computed fields let you derive values from other fields or runtime data. The `compute` property is a short expression string evaluated by the conversion runtime (WASM core). Below are common usage patterns; actual available functions/operators depend on the runtime build.
+
+Basic examples:
+
+```ts
+// Derive a full name from first/last
+{ targetFieldName: "full_name", compute: "concat(first, ' ', last)" }
+
+// Current epoch milliseconds
+{ targetFieldName: "ingest_ts", compute: "now()" }
+
+// Multiply numeric fields
+{ targetFieldName: "total_price", compute: "price * quantity", coerce: { type: "f64" } }
+
+// Safe lookup with default (example expression syntax may vary)
+{ targetFieldName: "country", compute: "coalesce(country, 'unknown')" }
+```
+
+Runtime helpers & guidance:
+
+- `compute` expression availability depends on the Rust/WASM core compiled into the package. Check the package `wasm/` runtime docs or the project `crates/convert-buddy` README for the exact helper list.
+- Typical helpers you may find in supported builds: `now()`, `concat()`, `coalesce()`, basic arithmetic and string functions, and simple date parsing/formatting helpers.
+- If a compute expression is not supported by the runtime, the conversion will follow the `onCoerceError` / `onMissingField` policy you configured (e.g., return `null`, drop the record, or error).
+- For complex transformations that are not available in-WASM, you can:
+  - Preprocess input with a small JS step to add computed fields before passing to `convert`, or
+  - Post-process the converted output in JS (useful when runtime compute helpers are intentionally minimal for performance/size).
+
+Example - `augment` mode with computed field and default handling:
+
+```ts
+const out = await buddy.convert(csvString, {
+  outputFormat: "json",
+  transform: {
+    mode: "augment",
+    fields: [
+      { targetFieldName: "full_name", compute: "concat(first, ' ', last)" },
+      { targetFieldName: "age", coerce: { type: "i64" }, defaultValue: 0 }
+    ],
+    onMissingField: "null",
+    onCoerceError: "null"
+  }
+});
+```
+
 
 #### Advanced Browser Streaming
 

@@ -52,7 +52,7 @@
     "bench:compare-baseline": "node ./dist/bench/compare-benchmarks.js --current bench-results.json --baseline",
     "bench:update-baselines": "node ./scripts/update-baselines.mjs bench-results.json",
     "lint": "node ./scripts/lint-placeholder.mjs",
-    "test:rust": "cargo test --lib --manifest-path ../../crates/convert-buddy/Cargo.toml --release",
+    "test:rust": "cd ../../crates/convert-buddy && wasm-pack test --node",
     "prepack": "npm run test:rust && npm run build && npm run check:wasm"
   },
   "devDependencies": {

@@ -499,6 +499,7 @@ fn looks_like_xml(sample: &[u8]) -> bool {
 
 fn looks_like_ndjson(sample: &[u8], parser: &JsonParser) -> bool {
     let mut json_lines = 0;
+    let mut non_empty_lines = 0;
 
     for line in sample.split(|&b| b == b'\n').take(32) {
         let line = trim_line(line);
@@ -506,22 +507,83 @@ fn looks_like_ndjson(sample: &[u8], parser: &JsonParser) -> bool {
             continue;
         }
 
+        non_empty_lines += 1;
+
         // NDJSON lines must be JSON objects or arrays, not plain strings or numbers
-        if line.is_empty() || (line[0] != b'{' && line[0] != b'[') {
+        // Each line must be complete and self-contained
+        if line[0] != b'{' && line[0] != b'[' {
             return false;
         }
 
+        // Check that the line is a complete JSON object/array
+        // by validating that braces/brackets are balanced
+        if !is_complete_json_line(line) {
+            return false;
+        }
+
+        // Additional validation - try to parse as JSON
         if !parser.quick_validate(line) {
             return false;
         }
 
         json_lines += 1;
+        
+        // We need at least 2 valid JSON lines to confidently say it's NDJSON
+        // (a single line could also be regular JSON)
         if json_lines >= 2 {
             return true;
         }
     }
 
+    // If we only have one JSON line, it's not NDJSON
     false
+}
+
+// Check if a line contains a complete JSON object or array
+// by ensuring all brackets/braces are balanced and closed
+fn is_complete_json_line(line: &[u8]) -> bool {
+    let mut depth = 0;
+    let mut in_string = false;
+    let mut escape_next = false;
+    let mut i = 0;
+
+    while i < line.len() {
+        let byte = line[i];
+
+        if escape_next {
+            escape_next = false;
+            i += 1;
+            continue;
+        }
+
+        if byte == b'\\' && in_string {
+            escape_next = true;
+            i += 1;
+            continue;
+        }
+
+        if byte == b'"' {
+            in_string = !in_string;
+            i += 1;
+            continue;
+        }
+
+        if !in_string {
+            if byte == b'{' || byte == b'[' {
+                depth += 1;
+            } else if byte == b'}' || byte == b']' {
+                depth -= 1;
+                if depth < 0 {
+                    return false; // More closing than opening
+                }
+            }
+        }
+
+        i += 1;
+    }
+
+    // Must not be in a string and all brackets must be closed
+    !in_string && depth == 0
 }
 
 fn looks_like_csv(sample: &[u8]) -> bool {
