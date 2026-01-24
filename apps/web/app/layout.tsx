@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from 'next/font/google';
 
 import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
+import { GridAnimator } from '@/components/GridAnimator';
 
 import './globals.css';
 
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={`${inter.variable} ${jetBrainsMono.variable} relative font-sans`}>
         <div className="grid-background" aria-hidden="true" />
+        <GridAnimator />
         <SiteHeader />
         <main className="min-h-screen bg-transparent">{children}</main>
         <SiteFooter />

@@ -368,7 +368,7 @@ export function SandpackExampleImpl({
           console.log('[Sandpack Debug] Could not get sandpackFiles, will use current filesState');
         }
 
-        console.log('[Sandpack Debug] Running with files:', filesStateRef.current);
+        // console.log('[Sandpack Debug] Running with files:', filesStateRef.current);
 
         // Force remount with current filesState to execute updated code
         setRunKey((k) => k + 1);

@@ -170,6 +170,11 @@ export function ConverterWidget({ inputFormat, outputFormat, conversionLabel }: 
       bytesOut: stats.bytesOut,
       transformCost: stats.transformTimeMs ? (stats.transformTimeMs / Math.max(stats.parseTimeMs + stats.transformTimeMs + stats.writeTimeMs, 1)) * 100 : 0
     });
+    
+    // Trigger grid animation based on records processed
+    window.dispatchEvent(new CustomEvent('grid-animate-progress', {
+      detail: { recordsProcessed: stats.recordsProcessed }
+    }));
   };
 
   const handleConvert = async () => {

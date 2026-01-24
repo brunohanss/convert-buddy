@@ -262,7 +262,7 @@ impl CsvParser {
         Ok(output)
     }
 
-    /// Find the end of a CSV line (handles quoted newlines)
+    /// Find the end of a CSV line (handles quoted newlines and backslash escaping)
     fn find_line_end(&self, data: &[u8]) -> Option<usize> {
         let mut pos = 0;
         let mut in_quotes = false;
@@ -270,8 +270,12 @@ impl CsvParser {
         while pos < data.len() {
             let byte = data[pos];
 
-            if byte == self.config.quote {
-                // Check for escaped quote
+            if byte == b'\\' && in_quotes && pos + 1 < data.len() {
+                // Skip backslash-escaped character
+                pos += 2;
+                continue;
+            } else if byte == self.config.quote {
+                // Check for escaped quote (RFC 4180 style: doubled quote)
                 if let Some(escape) = self.config.escape {
                     if pos + 1 < data.len() && data[pos + 1] == escape {
                         pos += 2; // Skip escaped quote
@@ -352,9 +356,43 @@ impl CsvParser {
         while pos < line.len() {
             let byte = line[pos];
 
-            if byte == self.config.quote {
+            if byte == b'\\' && in_quotes && pos + 1 < line.len() {
+                // Handle backslash escaping (supports \", \\, \n, \r, \t, etc.)
+                let next_byte = line[pos + 1];
+                match next_byte {
+                    b'"' => {
+                        field.push(b'"');  // Keep the quote
+                        pos += 2;
+                        continue;
+                    }
+                    b'\\' => {
+                        field.push(b'\\');  // Keep the backslash
+                        pos += 2;
+                        continue;
+                    }
+                    b'n' => {
+                        field.push(b'\n');
+                        pos += 2;
+                        continue;
+                    }
+                    b'r' => {
+                        field.push(b'\r');
+                        pos += 2;
+                        continue;
+                    }
+                    b't' => {
+                        field.push(b'\t');
+                        pos += 2;
+                        continue;
+                    }
+                    _ => {
+                        // Unknown escape sequence - keep both characters
+                        field.push(byte);
+                    }
+                }
+            } else if byte == self.config.quote {
                 if in_quotes {
-                    // Check for escaped quote
+                    // Check for escaped quote (RFC 4180 style: doubled quote)
                     if let Some(escape) = self.config.escape {
                         if pos + 1 < line.len() && line[pos + 1] == escape {
                             field.push(escape);
@@ -409,7 +447,41 @@ impl CsvParser {
 
         while pos < line.len() {
             let byte = line[pos];
-            if byte == config.quote {
+            if byte == b'\\' && in_quotes && pos + 1 < line.len() {
+                // Handle backslash escaping (supports \", \\, \n, \r, \t, etc.)
+                let next_byte = line[pos + 1];
+                match next_byte {
+                    b'"' => {
+                        field.push(b'"');  // Keep the quote
+                        pos += 2;
+                        continue;
+                    }
+                    b'\\' => {
+                        field.push(b'\\');  // Keep the backslash
+                        pos += 2;
+                        continue;
+                    }
+                    b'n' => {
+                        field.push(b'\n');
+                        pos += 2;
+                        continue;
+                    }
+                    b'r' => {
+                        field.push(b'\r');
+                        pos += 2;
+                        continue;
+                    }
+                    b't' => {
+                        field.push(b'\t');
+                        pos += 2;
+                        continue;
+                    }
+                    _ => {
+                        // Unknown escape sequence - keep the backslash
+                        field.push(byte);
+                    }
+                }
+            } else if byte == config.quote {
                 if in_quotes {
                     if let Some(escape) = config.escape {
                         if pos + 1 < line.len() && line[pos + 1] == escape {

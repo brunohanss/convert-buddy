@@ -67,6 +67,35 @@ mod csv_parser_tests {
     }
 
     #[wasm_bindgen_test]
+    fn test_backslash_escaped_quotes() {
+        let config = CsvConfig::default();
+        let mut parser = CsvParser::new(config, 1024);
+
+        // Test backslash-escaped quotes
+        let input = b"name,quote\n\"Gorwin \\\"Grog\\\" Oakenshield\",\"Value\"\n";
+        let result = parser.push_to_ndjson(input).unwrap();
+        let output = String::from_utf8_lossy(&result);
+
+        // The output should preserve the quoted content with the inner escaped quotes
+        assert!(output.contains("Gorwin"));
+        assert!(output.contains("Grog"));
+        assert!(output.contains("Oakenshield"));
+    }
+
+    #[wasm_bindgen_test]
+    fn test_backslash_escaped_quotes_with_special_chars() {
+        let config = CsvConfig::default();
+        let mut parser = CsvParser::new(config, 1024);
+
+        // Test backslash-escaped special characters: \n, \r, \t, \\
+        let input = b"name,value\n\"test\\nline\",\"value\"\n";
+        let result = parser.push_to_ndjson(input).unwrap();
+        let output = String::from_utf8_lossy(&result);
+
+        assert!(output.contains("test") && output.contains("line"));
+    }
+
+    #[wasm_bindgen_test]
     fn test_partial_line_and_finish() {
         let config = CsvConfig::default();
         let mut parser = CsvParser::new(config, 1024);

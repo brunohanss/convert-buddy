@@ -157,7 +157,7 @@ console.log("  Records processed:", stats.recordsProcessed);
         template="node"
         activeFile="/index.js"
         preview={false}
-        dependencyVersion="latest"
+        dependencyVersion="0.10.5"
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
 
