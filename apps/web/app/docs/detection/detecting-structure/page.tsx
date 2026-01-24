@@ -18,10 +18,24 @@ export default function DetectingStructurePage() {
         This function performs unified detection and returns comprehensive metadata:
       </p>
 
-      <pre><code>{`import { detectStructure } from "convert-buddy-js";
+      <SandpackExample
+        template="node"
+        activeFile="/index.js"
+        preview={false}
+        files={{
+          '/index.js': `import { detectStructure } from "convert-buddy-js";
 
-const structure = await detectStructure(data);
-// Returns: { format, fields, csv?, xml?, ... }`}</code></pre>
+const data = \`name,age\nAlice,30\nBob,25\`;
+
+async function run() {
+  const structure = await detectStructure(data);
+  // Returns: { format, fields, delimiter?, recordElement? }
+  console.log(JSON.stringify(structure, null, 2));
+}
+
+run().catch(console.error);`,
+        }}
+      />
 
       <SandpackExample
         template="node"
@@ -39,8 +53,8 @@ async function run() {
   
   console.log("Format:", structure.format);
   console.log("\\nFields:");
-  structure.fields.forEach(field => {
-    console.log(\`  - \${field.name} (\${field.type})\`);
+  structure.fields.forEach(fieldName => {
+    console.log(\`  - \${fieldName}\`);
   });
   
   console.log("\\nFull structure:");
@@ -73,26 +87,26 @@ run().catch(console.error);`,
           </tr>
           <tr>
             <td><code>fields</code></td>
-            <td>array</td>
-            <td>List of detected fields with name and inferred type</td>
+            <td>string[]</td>
+            <td>Array of detected field names</td>
           </tr>
           <tr>
-            <td><code>csv</code></td>
-            <td>object</td>
-            <td>CSV-specific info (delimiter, hasHeaders, quote)</td>
+            <td><code>delimiter</code></td>
+            <td>string</td>
+            <td>CSV delimiter character (comma, tab, pipe, semicolon)</td>
           </tr>
           <tr>
-            <td><code>xml</code></td>
-            <td>object</td>
-            <td>XML-specific info (recordElement)</td>
+            <td><code>recordElement</code></td>
+            <td>string</td>
+            <td>XML record element name (for repeating elements)</td>
           </tr>
         </tbody>
       </table>
 
-      <h2>Field Extraction</h2>
+      <h2>Field Detection</h2>
 
       <p>
-        <code>detectStructure()</code> identifies field names and infers their types:
+        <code>detectStructure()</code> identifies all field names from your data:
       </p>
 
       <SandpackExample
@@ -110,30 +124,17 @@ async function run() {
   const structure = await detectStructure(data);
   
   console.log("Detected fields:");
-  structure.fields.forEach(field => {
-    console.log(\`  \${field.name}:\`);
-    console.log(\`    Type: \${field.type}\`);
-    console.log(\`    Sample: \${field.sample || 'N/A'}\`);
+  structure.fields.forEach((fieldName, index) => {
+    console.log(\`  \${index + 1}. \${fieldName}\`);
   });
+  
+  console.log(\`\nTotal: \${structure.fields.length} fields\`);
+  console.log(\`Delimiter: "\${structure.delimiter}"\`);
 }
 
 run().catch(console.error);`,
         }}
       />
-
-      <h3>Type Inference</h3>
-
-      <p>
-        Types are inferred from sample values:
-      </p>
-
-      <ul>
-        <li><code>string</code> - Text data</li>
-        <li><code>number</code> - Integers or decimals</li>
-        <li><code>boolean</code> - true/false values</li>
-        <li><code>date</code> - ISO date strings</li>
-        <li><code>null</code> - Empty or null values</li>
-      </ul>
 
       <h2>CSV Delimiter Detection</h2>
 
@@ -159,13 +160,13 @@ Bob\\t25\\tLos Angeles\`;
 async function run() {
   const struct1 = await detectStructure(pipeDelimited);
   console.log("Pipe-delimited:");
-  console.log("  Delimiter:", struct1.csv?.delimiter);
-  console.log("  Has headers:", struct1.csv?.hasHeaders);
+  console.log("  Delimiter:", struct1.delimiter);
+  console.log("  Fields:", struct1.fields.join(", "));
   
   const struct2 = await detectStructure(tabDelimited);
-  console.log("\\nTab-delimited:");
-  console.log("  Delimiter:", struct2.csv?.delimiter === '\\t' ? 'TAB' : struct2.csv?.delimiter);
-  console.log("  Has headers:", struct2.csv?.hasHeaders);
+  console.log("Tab-delimited:");
+  console.log("  Delimiter:", struct2.delimiter === '\t' ? 'TAB' : struct2.delimiter);
+  console.log("  Fields:", struct2.fields.join(", "));
 }
 
 run().catch(console.error);`,
@@ -202,10 +203,10 @@ async function run() {
   const structure = await detectStructure(xmlData);
   
   console.log("Format:", structure.format);
-  console.log("Record element:", structure.xml?.recordElement);
-  console.log("\\nFields:");
-  structure.fields.forEach(field => {
-    console.log(\`  - \${field.name}\`);
+  console.log("Record element:", structure.recordElement);
+  console.log("Detected elements:");
+  structure.fields.forEach(fieldName => {
+    console.log(\`  - \${fieldName}\`);
   });
 }
 
@@ -239,16 +240,15 @@ async function smartConvert(data, outputFormat) {
   };
   
   // Add format-specific config if needed
-  if (structure.csv) {
+  if (structure.delimiter) {
     config.csvConfig = {
-      delimiter: structure.csv.delimiter,
-      hasHeaders: structure.csv.hasHeaders
+      delimiter: structure.delimiter
     };
   }
   
-  if (structure.xml) {
+  if (structure.recordElement) {
     config.xmlConfig = {
-      recordElement: structure.xml.recordElement
+      recordElement: structure.recordElement
     };
   }
   
@@ -287,20 +287,18 @@ async function generatePreview(data) {
   console.log("=== DATA PREVIEW ===");
   console.log(\`Format: \${structure.format.toUpperCase()}\`);
   console.log(\`Fields: \${structure.fields.length}\`);
-  console.log("");
   
   console.log("Schema:");
-  structure.fields.forEach((field, i) => {
-    console.log(\`  \${i + 1}. \${field.name} (\${field.type})\`);
+  structure.fields.forEach((fieldName, i) => {
+    console.log(\`  \${i + 1}. \${fieldName}\`);
   });
   
-  if (structure.csv) {
-    console.log(\`\\nDelimiter: "\${structure.csv.delimiter}"\`);
-    console.log(\`Headers: \${structure.csv.hasHeaders ? 'Yes' : 'No'}\`);
+  if (structure.delimiter) {
+    console.log(\`\\nDelimiter: "\${structure.delimiter}"\`);
   }
   
-  if (structure.xml) {
-    console.log(\`\\nRecord element: <\${structure.xml.recordElement}>\`);
+  if (structure.recordElement) {
+    console.log(\`\\nRecord element: <\${structure.recordElement}>\`);
   }
 }
 
@@ -330,10 +328,10 @@ run().catch(console.error);`,
           '/index.js': `import { detectStructure } from "convert-buddy-js";
 
 const formats = {
-  csv: "name,age\\nAlice,30",
-  json: '[{"name":"Alice","age":30}]',
-  ndjson: '{"name":"Alice","age":30}',
-  xml: "<items><item><name>Alice</name><age>30</age></item></items>"
+  csv: "name,age\\nAlice,30\\nBob,25",
+  json: '[{"name":"Alice","age":30},{"name":"Bob","age":25}]',
+  ndjson: '{"name":"Alice","age":30}\\n{"name":"Bob","age":25}',
+  xml: "<items><item><name>Alice</name><age>30</age></item><item><name>Bob</name><age>25</age></item></items>"
 };
 
 async function run() {
@@ -341,7 +339,7 @@ async function run() {
     const structure = await detectStructure(data);
     console.log(\`\${label.toUpperCase()}:\`);
     console.log(\`  Detected as: \${structure.format}\`);
-    console.log(\`  Fields: \${structure.fields.map(f => f.name).join(', ')}\`);
+    console.log(\`  Fields: \${structure.fields.join(', ')}\`);
     console.log("");
   }
 }

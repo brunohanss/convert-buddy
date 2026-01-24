@@ -94,14 +94,16 @@ run().catch(console.error);`,
         template="node"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
         files={{
           '/index.js': `import { detectStructure } from "convert-buddy-js";
 
-const ambiguousData = \`user,data
-alice,{"value":100}
-bob,{"value":200}\`;
+const fileUrl = "";
 
 async function run() {
+  const response = await fetch(fileUrl);
+  const ambiguousData = await response.text();
+  
   const structure = await detectStructure(ambiguousData);
   
   console.log("Detected format:", structure.format);
@@ -128,12 +130,13 @@ run().catch(console.error);`,
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
-const unknownData = \`name,age,city
-Alice,30,New York
-Bob,25,Los Angeles\`;
+const fileUrl = "";
 
 async function run() {
-  // No inputFormat specified - auto-detected as CSV
+  const response = await fetch(fileUrl);
+  const unknownData = await response.text();
+  
+  // No inputFormat specified - auto-detected
   const json = await convertToString(unknownData, {
     outputFormat: "json"
   });

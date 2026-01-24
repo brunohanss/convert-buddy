@@ -47,8 +47,10 @@ async function run() {
     outputFormat: 'json'
   });
   
-  console.log('\\nConverted to JSON:');
-  console.log(json);
+  // Parse and display
+  const parsed = JSON.parse(json);
+  console.log(\`\n✓ Converted \${parsed.length} records\`);
+  console.log('First record:', JSON.stringify(parsed[0], null, 2));
 }
 
 run().catch(console.error);
@@ -104,8 +106,9 @@ Charlie,35,Seattle\`;
     outputFormat: 'json'
   });
   
-  console.log('Converted to JSON:');
-  console.log(json);
+  const parsed = JSON.parse(json);
+  console.log(\`✓ Converted \${parsed.length} records to JSON\`);
+  console.log('Sample:', JSON.stringify(parsed[0], null, 2));
   
   // In Node.js, you could write the output to a file:
   // await writeFile('./output.json', json);
@@ -161,8 +164,9 @@ async function run() {
     outputFormat: 'json'
   });
   
-  console.log('Fetched and converted:');
-  console.log(json);
+  const parsed = JSON.parse(json);
+  console.log(✓ Fetched and converted \${parsed.length} records`);
+  console.log('Sample:', JSON.stringify(parsed[0], null, 2));
   
   // Method 2: In Node.js only, you can pass URL directly
   // (Note: This requires Node.js fetch or a URL polyfill)
@@ -210,12 +214,9 @@ async function run() {
     outputFormat: 'json'
   });
   
-  console.log('\\nConverted from stream:');
-  console.log(json);
-  
-  // This is memory-efficient for large files
   const parsed = JSON.parse(json);
-  console.log(\`Processed \${parsed.length} records via stream\`);
+  console.log(\`\n✓ Stream conversion: \${parsed.length} records\`);
+  console.log('Sample:', JSON.stringify(parsed[0], null, 2));
 }
 
 run().catch(console.error);`,

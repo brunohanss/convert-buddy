@@ -54,8 +54,10 @@ async function run() {
     outputFormat: 'json'
   });
   
-  console.log('Converted to JSON:');
-  console.log(json);
+  // Parse and show formatted output
+  const parsed = JSON.parse(json);
+  console.log(\`✓ Converted \${parsed.length} records\`);
+  console.log('Sample:', JSON.stringify(parsed[0], null, 2));
 }
 
 run().catch(console.error);`,

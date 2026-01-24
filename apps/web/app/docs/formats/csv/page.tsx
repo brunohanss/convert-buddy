@@ -46,11 +46,10 @@ async function run() {
     outputFormat: "json"
   });
   
-  console.log("Converted to JSON:");
-  console.log(json);
-  
   const parsed = JSON.parse(json);
-  console.log(\`\\nProcessed \${parsed.length} records\`);
+  console.log(\`✓ Converted \${parsed.length} records to JSON\`);
+  console.log('\\nSample record:');
+  console.log(JSON.stringify(parsed[0], null, 2));
 }
 
 run().catch(console.error);`,
@@ -126,8 +125,9 @@ async function run() {
     }
   });
   
-  console.log("Pipe-delimited conversion:");
-  console.log(json);
+  const parsed = JSON.parse(json);
+  console.log(\`✓ Pipe-delimited: \${parsed.length} records\`);
+  console.log(JSON.stringify(parsed[0], null, 2));
 }
 
 run().catch(console.error);`,
@@ -195,8 +195,9 @@ async function run() {
     }
   });
   
-  console.log("Transformed output:");
-  console.log(json);
+  const parsed = JSON.parse(json);
+  console.log(✓ Transformed \${parsed.length} records`);
+  console.log('\nSample:', JSON.stringify(parsed[0], null, 2));
 }
 
 run().catch(console.error);`,
@@ -252,8 +253,9 @@ async function run() {
     }
   });
   
-  console.log("Auto-generated column names:");
-  console.log(json);
+  const parsed = JSON.parse(json);
+  console.log(✓ Auto-generated column names`);
+  console.log(JSON.stringify(parsed[0], null, 2));
 }
 
 run().catch(console.error);`,
@@ -284,8 +286,9 @@ async function run() {
     outputFormat: "json"
   });
   
-  console.log("Parsed quoted fields:");
-  console.log(json);
+  const parsed = JSON.parse(json);
+  console.log(✓ Parsed \${parsed.length} records with quoted fields`);
+  console.log(JSON.stringify(parsed[0], null, 2));
 }
 
 run().catch(console.error);`,
@@ -316,8 +319,9 @@ async function run() {
     outputFormat: "json"
   });
   
-  console.log("Tab-delimited conversion:");
-  console.log(json);
+  const parsed = JSON.parse(json);
+  console.log(✓ Tab-delimited: \${parsed.length} records`);
+  console.log(JSON.stringify(parsed[0], null, 2));
 }
 
 run().catch(console.error);`,

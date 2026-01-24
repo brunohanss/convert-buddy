@@ -250,6 +250,23 @@ async function initWasm(debug: boolean): Promise<void> {
   }
 }
 
+/**
+ * Warn if using non-streaming approach with large files
+ */
+function warnIfLargeFile(sizeBytes: number, methodName: string = "convert"): void {
+  const SIZE_THRESHOLD = 10 * 1024 * 1024; // 10MB
+  
+  if (sizeBytes >= SIZE_THRESHOLD) {
+    const sizeMB = (sizeBytes / 1024 / 1024).toFixed(1);
+    console.warn(
+      `[convert-buddy-js] WARNING: Using ${methodName}() with a large file (${sizeMB}MB). ` +
+      `This method is intended for small files and may cause memory issues with large files. ` +
+      `For better performance and memory management with files of any size, use the streaming API: ` +
+      `ConvertBuddy.create() with push()/finish() methods.`
+    );
+  }
+}
+
 export class ConvertBuddy {
   private converter: any;
   private debug: boolean;
@@ -347,10 +364,15 @@ export class ConvertBuddy {
 
   private async convertFromString(input: string, opts: ConvertBuddyOptions): Promise<Uint8Array> {
     const inputBytes = new TextEncoder().encode(input);
+    // Don't warn here - will warn in convertFromBuffer
     return this.convertFromBuffer(inputBytes, opts);
   }
 
-  private async convertFromBuffer(input: Uint8Array, opts: ConvertBuddyOptions): Promise<Uint8Array> {
+  private async convertFromBuffer(input: Uint8Array, opts: ConvertBuddyOptions, skipWarning = false): Promise<Uint8Array> {
+    if (!skipWarning) {
+      warnIfLargeFile(input.length, "convert");
+    }
+    
     // Use WASM threading for large inputs when available
     const useWasmThreading = wasmThreadingSupported && input.length > 256 * 1024; // 256KB threshold
     
@@ -419,7 +441,7 @@ export class ConvertBuddy {
     );
     
     if (input.length < parallelThreshold || !opts.parallelism || opts.parallelism < 2) {
-      return this.convertFromBuffer(input, { ...opts, parallelism: 1 });
+      return this.convertFromBuffer(input, { ...opts, parallelism: 1 }, true); // Skip warning on recursive call
     }
 
     // Extended support for parallel processing
@@ -655,6 +677,8 @@ export class ConvertBuddy {
   }
 
   private async convertFromBlob(blob: Blob, opts: ConvertBuddyOptions): Promise<Uint8Array> {
+    warnIfLargeFile(blob.size, "convert");
+    
     // Handle auto-detection
     let actualOpts = { ...opts };
     
@@ -868,7 +892,7 @@ export class ConvertBuddy {
         inputFormat,
         opts.outputFormat,
         chunkTargetBytes,
-        profile,
+        profile, // Enable stats tracking when profile is enabled
         csvConfig || null,
         opts.xmlConfig || null,
         opts.transform || null
@@ -932,7 +956,64 @@ export class ConvertBuddy {
   }
 
   stats(): Stats {
-    return this.converter.getStats();
+    if (!this.converter || typeof this.converter.getStats !== 'function') {
+      // Converter not initialized yet
+      return {
+        bytesIn: 0,
+        bytesOut: 0,
+        chunksIn: 0,
+        recordsProcessed: 0,
+        parseTimeMs: 0,
+        transformTimeMs: 0,
+        writeTimeMs: 0,
+        maxBufferSize: 0,
+        currentPartialSize: 0,
+        throughputMbPerSec: 0,
+      };
+    }
+
+    try {
+      const wasmStats = this.converter.getStats();
+      
+      // WASM object properties are snake_case (Rust convention)
+      // Access them directly as they're exposed via wasm_bindgen getters
+      const stats = {
+        bytesIn: wasmStats.bytes_in,
+        bytesOut: wasmStats.bytes_out,
+        chunksIn: wasmStats.chunks_in,
+        recordsProcessed: wasmStats.records_processed,
+        parseTimeMs: wasmStats.parse_time_ms,
+        transformTimeMs: wasmStats.transform_time_ms,
+        writeTimeMs: wasmStats.write_time_ms,
+        maxBufferSize: wasmStats.max_buffer_size,
+        currentPartialSize: wasmStats.current_partial_size,
+        throughputMbPerSec: wasmStats.throughput_mb_per_sec,
+      };
+
+      // Warn if stats tracking is not enabled (profile: false)
+      if (!this.profile && stats.bytesIn === 0 && stats.chunksIn === 0) {
+        console.warn(
+          "[convert-buddy-js] WARNING: stats() called but profiling is disabled. " +
+          "Enable profiling by setting { profile: true } in ConvertBuddy.create() options to get accurate statistics."
+        );
+      }
+
+      return stats;
+    } catch (e) {
+      if (this.debug) console.error("[convert-buddy-js] Error getting stats:", e);
+      return {
+        bytesIn: 0,
+        bytesOut: 0,
+        chunksIn: 0,
+        recordsProcessed: 0,
+        parseTimeMs: 0,
+        transformTimeMs: 0,
+        writeTimeMs: 0,
+        maxBufferSize: 0,
+        currentPartialSize: 0,
+        throughputMbPerSec: 0,
+      };
+    }
   }
 
   abort(): void {
@@ -1416,3 +1497,9 @@ export function getThreadingInfo(): {
     approach: isNodejs ? 'nodejs_enhanced_threading' : 'browser_custom_threading'
   };
 }
+
+/**
+ * Backward compatibility alias for ConvertBuddy
+ * @deprecated Use ConvertBuddy instead
+ */
+export const Converter = ConvertBuddy;

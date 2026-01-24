@@ -64,8 +64,9 @@ async function run() {
     outputFormat: "json"
   });
   
-  console.log("Converted to JSON:");
-  console.log(json);
+  const parsed = JSON.parse(json);
+  console.log(✓ XML → JSON: \${parsed.length} records`);
+  console.log('\nSample:', JSON.stringify(parsed[0], null, 2));
 }
 
 run().catch(console.error);`,
@@ -183,8 +184,9 @@ async function run() {
     }
   });
   
-  console.log("With attributes:");
-  console.log(json);
+  const parsed = JSON.parse(json);
+  console.log(✓ With attributes: \${parsed.length} records`);
+  console.log(JSON.stringify(parsed[0], null, 2));
 }
 
 run().catch(console.error);`,
@@ -304,8 +306,9 @@ async function run() {
     outputFormat: "json"
   });
   
-  console.log("Nested XML to JSON:");
-  console.log(json);
+  const parsed = JSON.parse(json);
+  console.log(✓ Nested XML: \${parsed.length} books`);
+  console.log('\nFirst book:', JSON.stringify(parsed[0], null, 2));
 }
 
 run().catch(console.error);`,

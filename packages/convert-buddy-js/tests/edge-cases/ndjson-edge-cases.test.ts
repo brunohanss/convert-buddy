@@ -537,6 +537,54 @@ describe("NDJSON Edge Cases - Comprehensive Safety Tests", () => {
       assert.strictEqual(parsed.length, 1);
     });
   });
+
+  // ========== REAL WORLD DATA ==========
+  describe("Real World Data - DND Characters", () => {
+    it("should convert DND characters NDJSON to JSON correctly", async () => {
+      const ndjsonData = `{"name":"Gorwin \\"Grog\\" Oakenshield","race":"Human","class":"Barbarian","quirk":"Collects spoons from every tavern"}
+{"name":"Zilaen Whisperleaf","race":"Elf","class":"Rogue","quirk":"Talks to shadows, claims they're shy"}
+{"name":"Pip Thistlewhisk","race":"Halfling","class":"Bard","quirk":"Plays the lute with carrots"}
+{"name":"Thraxxus Bonegrinder","race":"Orc","class":"Cleric","quirk":"Prays to a rock named Doris"}
+{"name":"Elaria Moonbeam","race":"Half-Elf","class":"Wizard","quirk":"Writes shopping lists in ancient runes"}`;
+
+      const result = await convertToString(ndjsonData, {
+        inputFormat: "ndjson",
+        outputFormat: "json",
+      });
+
+      // Verify it's valid JSON
+      const parsed = JSON.parse(result);
+      
+      // Verify count
+      assert.strictEqual(parsed.length, 5, "Should have 5 characters");
+      
+      // Verify first record
+      assert.strictEqual(parsed[0].name, 'Gorwin "Grog" Oakenshield');
+      assert.strictEqual(parsed[0].race, 'Human');
+      assert.strictEqual(parsed[0].class, 'Barbarian');
+      
+      // Verify last record
+      assert.strictEqual(parsed[4].name, 'Elaria Moonbeam');
+      assert.strictEqual(parsed[4].race, 'Half-Elf');
+      assert.strictEqual(parsed[4].class, 'Wizard');
+      assert.strictEqual(parsed[4].quirk, 'Writes shopping lists in ancient runes');
+    });
+
+    it("should auto-detect DND characters NDJSON format", async () => {
+      const ndjsonData = `{"name":"Gorwin \\"Grog\\" Oakenshield","race":"Human","class":"Barbarian","quirk":"Collects spoons from every tavern"}
+{"name":"Zilaen Whisperleaf","race":"Elf","class":"Rogue","quirk":"Talks to shadows, claims they're shy"}
+{"name":"Pip Thistlewhisk","race":"Halfling","class":"Bard","quirk":"Plays the lute with carrots"}`;
+
+      // Don't specify inputFormat - let it auto-detect
+      const result = await convertToString(ndjsonData, {
+        outputFormat: "json",
+      });
+
+      const parsed = JSON.parse(result);
+      assert.strictEqual(parsed.length, 3, "Should auto-detect and parse 3 characters");
+      assert.strictEqual(parsed[0].name, 'Gorwin "Grog" Oakenshield');
+    });
+  });
 });
 
 console.log("✓ NDJSON Edge Case Test Suite loaded");

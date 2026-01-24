@@ -37,12 +37,11 @@ async function run() {
     outputFormat: 'json' 
   });
   
-  console.log('Converted to JSON:');
-  console.log(json);
-  
-  // Parse to verify
+  // Parse and display nicely
   const parsed = JSON.parse(json);
-  console.log(\`Successfully converted \${parsed.length} records\`);
+  console.log(\`✓ Auto-detected and converted \${parsed.length} records\`);
+  console.log('\nSample record:');
+  console.log(JSON.stringify(parsed[0], null, 2));
 }
 
 run().catch(console.error);`,
@@ -77,8 +76,9 @@ async function run() {
     outputFormat: 'json' 
   });
   
-  console.log('CSV to JSON conversion:');
-  console.log(json);
+  const parsed = JSON.parse(json);
+  console.log(\`CSV → JSON: \${parsed.length} records\`);
+  console.log(JSON.stringify(parsed[0], null, 2));
   
   // Convert JSON back to CSV
   const csvOutput = await convertToString(json, {
@@ -86,8 +86,8 @@ async function run() {
     outputFormat: 'csv'
   });
   
-  console.log('\\nJSON to CSV conversion:');
-  console.log(csvOutput);
+  console.log('\nJSON → CSV (first 200 chars):');
+  console.log(csvOutput.substring(0, 200) + '...');
 }
 
 run().catch(console.error);`,

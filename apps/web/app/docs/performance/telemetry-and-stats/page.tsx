@@ -22,6 +22,7 @@ export default function TelemetryAndStatsPage() {
         template="node"
         activeFile="/index.js"
         preview={false}
+        dependencyVersion="latest"
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -120,6 +121,7 @@ run().catch(console.error);`,
         template="node"
         activeFile="/index.js"
         preview={false}
+        dependencyVersion="latest"
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -181,6 +183,7 @@ run().catch(console.error);`,
         template="node"
         activeFile="/index.js"
         preview={false}
+        dependencyVersion="latest"
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -223,6 +226,7 @@ run().catch(console.error);`,
         template="node"
         activeFile="/index.js"
         preview={false}
+        dependencyVersion="latest"
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -278,6 +282,7 @@ run().catch(console.error);`,
         template="node"
         activeFile="/index.js"
         preview={false}
+        dependencyVersion="latest"
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -322,6 +327,7 @@ run().catch(console.error);`,
         template="node"
         activeFile="/index.js"
         preview={false}
+        dependencyVersion="latest"
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -360,6 +366,7 @@ run().catch(console.error);`,
         template="node"
         activeFile="/index.js"
         preview={false}
+        dependencyVersion="latest"
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 

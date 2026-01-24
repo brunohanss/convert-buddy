@@ -1,5 +1,6 @@
 import React from 'react';
 import SandpackExample from '@/components/mdx/Sandpack';
+import { CodeBlock } from '@/components/mdx/CodeBlock';
 
 export default function GettingStartedPage() {
   return (
@@ -14,7 +15,14 @@ export default function GettingStartedPage() {
 
       <p>Install via npm, yarn, or pnpm:</p>
 
-      <pre><code>npm install convert-buddy-js</code></pre>
+      <h3>npm</h3>
+      <CodeBlock code="npm install convert-buddy-js" />
+
+      <h3>yarn</h3>
+      <CodeBlock code="yarn add convert-buddy-js" />
+
+      <h3>pnpm</h3>
+      <CodeBlock code="pnpm add convert-buddy-js" />
 
       <p>
         Convert Buddy works in both browser and Node.js environments with zero configuration.
@@ -37,23 +45,25 @@ export default function GettingStartedPage() {
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
+// This will be replaced with actual sample data
 const fileUrl = "";
 
 async function run() {
   const response = await fetch(fileUrl);
-  const csvData = await response.text();
+  const data = await response.text();
   
-  // Convert CSV to JSON - format is auto-detected
-  const json = await convertToString(csvData, { 
+  // Convert to JSON - format is auto-detected
+  const json = await convertToString(data, { 
     outputFormat: 'json' 
   });
   
-  console.log('Converted to JSON:');
-  console.log(json);
-  
-  // Parse and inspect the result
+  // Parse and display nicely
   const parsed = JSON.parse(json);
-  console.log(\`Converted \${parsed.length} records\`);
+  console.log(\`✓ Successfully converted \${parsed.length} records to JSON\`);
+  console.log('\\nFirst record:');
+  console.log(JSON.stringify(parsed[0], null, 2));
+  console.log('\\nLast record:');
+  console.log(JSON.stringify(parsed[parsed.length - 1], null, 2));
 }
 
 run().catch(console.error);`,
@@ -68,17 +78,75 @@ run().catch(console.error);`,
 
       <h3>Browser example (with File object)</h3>
 
-      <pre><code>{`import { convertToString } from "convert-buddy-js";
+      <p>
+        In the browser, you can use File objects from file inputs. 
+        Try selecting a file using the picker button below:
+      </p>
 
-// In a file input handler
-async function handleFile(file) {
-  const result = await convertToString(file, {
-    outputFormat: "json"
+      <SandpackExample
+        template="node"
+        dependencyVersion="latest"
+        activeFile="/index.js"
+        preview={false}
+        enableFilePicker={true}
+        files={{
+          '/index.js': `import { convertToString } from "convert-buddy-js";
+
+const fileUrl = "";
+
+async function run() {
+  const response = await fetch(fileUrl);
+  const blob = await response.blob();
+  
+  // In real browser code, you'd get this from:
+  // <input type="file" onChange={handleFileSelect} />
+  const file = new File([blob], "data.csv", { type: "text/csv" });
+  
+  console.log('Converting file:', file.name);
+  console.log('File size:', file.size, 'bytes');
+  
+  // Convert File to JSON
+  const json = await convertToString(file, {
+    outputFormat: 'json'
   });
-  console.log(result);
-}`}</code></pre>
+  
+  // Parse and display nicely
+  const parsed = JSON.parse(json);
+  console.log(\`\n✓ Converted \${parsed.length} records to JSON\`);
+  console.log('\nFirst record:');
+  console.log(JSON.stringify(parsed[0], null, 2));
+  console.log('\nLast record:');
+  console.log(JSON.stringify(parsed[parsed.length - 1], null, 2));
+}
+
+run().catch(console.error);`,
+        }}
+      />
+
+      <p className="mt-6 text-sm text-text-secondary">
+        <strong>Browser example for reference:</strong>
+      </p>
+      <CodeBlock
+        code={`function handleFileSelect(event) {
+  const file = event.target.files[0];
+  
+  convertToString(file, { outputFormat: 'json' })
+    .then(result => {
+      console.log('Converted:', result);
+    })
+    .catch(err => {
+      console.error('Conversion failed:', err);
+    });
+}`}
+      />
 
       <h3>Node.js example (with file path)</h3>
+
+      <p>
+        In Node.js, you can use the filesystem API to read and write files. 
+        The example below uses a virtual file system (not your local computer) - 
+        the <code>input.csv</code> file is defined within the sandbox.
+      </p>
 
       <SandpackExample
         template="node"
@@ -90,7 +158,7 @@ async function handleFile(file) {
 import { readFile, writeFile } from "fs/promises";
 
 async function convertFile() {
-  // Read input file
+  // Read input file (this is a virtual file in the sandbox, not on your computer)
   const csvData = await readFile("./input.csv", "utf-8");
   
   // Convert to JSON
@@ -98,11 +166,16 @@ async function convertFile() {
     outputFormat: "json"
   });
   
-  // Write output
+  // Write output (also a virtual file in the sandbox)
   await writeFile("./output.json", json);
   
   console.log("Conversion complete!");
   console.log(\`Output: \${json.substring(0, 200)}...\`);
+  
+  // Let's also read and display the output file
+  const outputData = await readFile("./output.json", "utf-8");
+  console.log("\\nFull output from file:");
+  console.log(outputData);
 }
 
 convertFile().catch(console.error);`,

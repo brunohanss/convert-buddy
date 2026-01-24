@@ -61,15 +61,28 @@ function normalizeFiles(files: Props["files"], selectedFormat: string = "json") 
     // Replace empty fileUrl placeholder with embedded sample data
     const sampleData = SAMPLE_DATA[selectedFormat] || SAMPLE_DATA.json;
     
-    // Replace fileUrl declaration and fetch pattern with direct sampleData usage
-    code = code.replace(/const fileUrl = "";/, `const sampleData = ${JSON.stringify(sampleData)};`);
+    // Properly escape the sample data for use in JavaScript string literal
+    // Don't use JSON.stringify as it will double-escape already-escaped quotes
+    const escapedData = sampleData
+      .replace(/\\/g, '\\\\')  // Escape backslashes first
+      .replace(/`/g, '\\`')     // Escape backticks for template literal
+      .replace(/\$/g, '\\$');   // Escape dollar signs for template literal
     
-    // Replace fetch pattern with direct data usage 
-    code = code.replace(/const response = await fetch\(fileUrl\);[\s\S]*?const sampleData = await response\.text\(\);/g, 
-      '// Sample data is embedded directly\n  // const sampleData is already available above');
-
-    // Also handle other fetch patterns
-    code = code.replace(/fetch\(fileUrl\)/g, 'Promise.resolve({ text: () => Promise.resolve(sampleData) })');
+    // Replace fileUrl declaration and create a mock response object
+    code = code.replace(/const fileUrl = "";/, 
+      `const sampleData = \`${escapedData}\`;\nconst response = { \n  text: () => Promise.resolve(sampleData),\n  blob: () => Promise.resolve(new Blob([sampleData]))\n};`);
+    
+    // Replace fetch calls with the response object
+    code = code.replace(/const response = await fetch\(fileUrl\);/g, '// Using embedded sample data with mock response');
+    code = code.replace(/await fetch\(fileUrl\)/g, 'response');
+    
+    // Replace variable assignments from response.text() to use sampleData directly
+    code = code.replace(/const (\w+) = await response\.text\(\);/g, (match, varName) => {
+      if (varName === 'sampleData') {
+        return '// sampleData already defined above';
+      }
+      return `const ${varName} = sampleData;`;
+    });
 
     // If the example hard-codes an inputFormat value, update it to the selected format
     code = code.replace(/inputFormat\s*[:=]\s*(['"`])\w+\1/g, `inputFormat: '${selectedFormat}'`);

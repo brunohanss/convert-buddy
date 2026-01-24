@@ -576,6 +576,11 @@ impl Converter {
                         parser.push_to_ndjson(chunk).map_err(JsValue::from)?
                     }
                 };
+                
+                // Count records (newlines in NDJSON output)
+                let record_count = ndjson.iter().filter(|&&b| b == b'\n').count();
+                self.stats.record_records(record_count);
+                
                 // Process each line of NDJSON
                 let ndjson_str = std::str::from_utf8(&ndjson)
                     .map_err(|e| JsValue::from(ConvertError::from(e)))?;
@@ -599,6 +604,11 @@ impl Converter {
                         parser.push_to_ndjson(chunk).map_err(JsValue::from)?
                     }
                 };
+                
+                // Count records (newlines in NDJSON output)
+                let record_count = result.iter().filter(|&&b| b == b'\n').count();
+                self.stats.record_records(record_count);
+                
                 (result, ConverterState::CsvToNdjson(parser))
             }
             ConverterState::CsvToNdjsonTransform(mut parser, mut engine) => {
@@ -626,6 +636,11 @@ impl Converter {
                         parser.push_to_ndjson(chunk).map_err(JsValue::from)?
                     }
                 };
+                
+                // Count records (newlines in NDJSON intermediate)
+                let record_count = ndjson_chunk.iter().filter(|&&b| b == b'\n').count();
+                self.stats.record_records(record_count);
+                
                 let is_first_chunk = is_first;
                 is_first = false;
                 let result = ndjson_parser.to_json_array(&ndjson_chunk, is_first_chunk, false).map_err(JsValue::from)?;
@@ -642,6 +657,11 @@ impl Converter {
                         parser.push_to_ndjson(chunk).map_err(JsValue::from)?
                     }
                 };
+                
+                // Count records (newlines in NDJSON intermediate)
+                let record_count = ndjson_chunk.iter().filter(|&&b| b == b'\n').count();
+                self.stats.record_records(record_count);
+                
                 let transformed = self.apply_transform_push(&mut engine, &ndjson_chunk)?;
                 let is_first_chunk = is_first;
                 is_first = false;
@@ -659,6 +679,11 @@ impl Converter {
                         parser.push(chunk).map_err(JsValue::from)?
                     }
                 };
+                
+                // Count records for passthrough (count newlines as records)
+                let record_count = chunk.iter().filter(|&&b| b == b'\n').count();
+                self.stats.record_records(record_count);
+                
                 (result, ConverterState::NdjsonPassthrough(parser))
             }
             ConverterState::NdjsonTransform(mut engine) => {
@@ -666,12 +691,20 @@ impl Converter {
                 (result, ConverterState::NdjsonTransform(engine))
             }
             ConverterState::NdjsonToJson(mut parser, mut is_first) => {
+                // Count records (newlines in input NDJSON)
+                let record_count = chunk.iter().filter(|&&b| b == b'\n').count();
+                self.stats.record_records(record_count);
+                
                 let is_first_chunk = is_first;
                 is_first = false;
                 let result = parser.to_json_array(chunk, is_first_chunk, false).map_err(JsValue::from)?;
                 (result, ConverterState::NdjsonToJson(parser, is_first))
             }
             ConverterState::NdjsonToJsonTransform(mut engine, mut parser, mut is_first) => {
+                // Count records (newlines in input NDJSON)
+                let record_count = chunk.iter().filter(|&&b| b == b'\n').count();
+                self.stats.record_records(record_count);
+                
                 let transformed = self.apply_transform_push(&mut engine, chunk)?;
                 let is_first_chunk = is_first;
                 is_first = false;
@@ -680,6 +713,11 @@ impl Converter {
             }
             ConverterState::XmlToNdjson(mut parser) => {
                 let result = parser.push_to_ndjson(chunk).map_err(JsValue::from)?;
+                
+                // Count records (newlines in NDJSON output)
+                let record_count = result.iter().filter(|&&b| b == b'\n').count();
+                self.stats.record_records(record_count);
+                
                 (result, ConverterState::XmlToNdjson(parser))
             }
             ConverterState::XmlToNdjsonTransform(mut parser, mut engine) => {
@@ -689,6 +727,11 @@ impl Converter {
             }
             ConverterState::XmlToJson(mut xml_parser, mut ndjson_parser, mut is_first) => {
                 let ndjson_chunk = xml_parser.push_to_ndjson(chunk).map_err(JsValue::from)?;
+                
+                // Count records (newlines in NDJSON intermediate)
+                let record_count = ndjson_chunk.iter().filter(|&&b| b == b'\n').count();
+                self.stats.record_records(record_count);
+                
                 let is_first_chunk = is_first;
                 is_first = false;
                 let result = ndjson_parser.to_json_array(&ndjson_chunk, is_first_chunk, false).map_err(JsValue::from)?;
@@ -696,6 +739,11 @@ impl Converter {
             }
             ConverterState::XmlToJsonTransform(mut xml_parser, mut engine, mut ndjson_parser, mut is_first) => {
                 let ndjson_chunk = xml_parser.push_to_ndjson(chunk).map_err(JsValue::from)?;
+                
+                // Count records (newlines in NDJSON intermediate)
+                let record_count = ndjson_chunk.iter().filter(|&&b| b == b'\n').count();
+                self.stats.record_records(record_count);
+                
                 let transformed = self.apply_transform_push(&mut engine, &ndjson_chunk)?;
                 let is_first_chunk = is_first;
                 is_first = false;
@@ -735,12 +783,34 @@ impl Converter {
             }
             ConverterState::JsonPassthrough(_parser) => {
                 let result = chunk.to_vec();
+                
+                // Count records for JSON passthrough
+                // Parse to count top-level array elements or single object
+                if let Ok(s) = std::str::from_utf8(chunk) {
+                    if let Ok(value) = serde_json::from_str::<serde_json::Value>(s) {
+                        let count = match value {
+                            serde_json::Value::Array(ref arr) => arr.len(),
+                            _ => 1, // Single object counts as 1 record
+                        };
+                        self.stats.record_records(count);
+                    }
+                }
+                
                 (result, ConverterState::JsonPassthrough(_parser))
             }
             ConverterState::JsonToNdjson(mut parser) => {
                 let s = std::str::from_utf8(chunk).map_err(|e| JsValue::from(ConvertError::from(e)))?;
                 let value: serde_json::Value = serde_json::from_str(s).map_err(|e| JsValue::from(ConvertError::JsonParse(e.to_string())))?;
                 let mut output = Vec::new();
+                
+                // Count records
+                let count = match &value {
+                    serde_json::Value::Array(arr) => arr.len(),
+                    serde_json::Value::Object(_) => 1,
+                    _ => 0,
+                };
+                self.stats.record_records(count);
+                
                 match value {
                     serde_json::Value::Array(arr) => {
                         for v in arr.iter() {
@@ -761,6 +831,15 @@ impl Converter {
             ConverterState::JsonToCsv(mut parser, mut csv_writer) => {
                 let s = std::str::from_utf8(chunk).map_err(|e| JsValue::from(ConvertError::from(e)))?;
                 let value: serde_json::Value = serde_json::from_str(s).map_err(|e| JsValue::from(ConvertError::JsonParse(e.to_string())))?;
+                
+                // Count records
+                let count = match &value {
+                    serde_json::Value::Array(arr) => arr.len(),
+                    serde_json::Value::Object(_) => 1,
+                    _ => 0,
+                };
+                self.stats.record_records(count);
+                
                 // Convert to NDJSON lines then to CSV
                 let mut output = Vec::new();
                 match value {
@@ -793,6 +872,11 @@ impl Converter {
                         ndjson_parser.push(chunk).map_err(JsValue::from)?
                     }
                 };
+                
+                // Count records (newlines in NDJSON)
+                let record_count = chunk.iter().filter(|&&b| b == b'\n').count();
+                self.stats.record_records(record_count);
+                
                 let ndjson_str = std::str::from_utf8(&ndjson_chunk).map_err(|e| JsValue::from(ConvertError::from(e)))?;
                 let mut output = Vec::new();
                 for line in ndjson_str.lines() {

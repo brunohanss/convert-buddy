@@ -30,6 +30,9 @@ export default defineConfig({
     "tests/edge-cases/control-features.test": "tests/edge-cases/control-features.test.ts",
     "tests/edge-cases/node-helpers.test": "tests/edge-cases/node-helpers.test.ts",
     "tests/edge-cases/roundtrip.test": "tests/edge-cases/roundtrip.test.ts",
+    "tests/streaming/large-file-stream.test": "tests/streaming/large-file-stream.test.ts",
+    "tests/streaming/stats-object.test": "tests/streaming/stats-object.test.ts",
+    "tests/streaming/record-counting.test": "tests/streaming/record-counting.test.ts",
   },
   format: ["esm"],
   dts: {

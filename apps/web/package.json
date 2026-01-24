@@ -19,6 +19,7 @@
     "@opennextjs/cloudflare": "^1.14.10",
     "clsx": "2.1.1",
     "convert-buddy-js": "file:../../packages/convert-buddy-js",
+    "highlight.js": "^11.11.1",
     "next": "14.2.5",
     "react": "18.3.1",
     "react-dom": "18.3.1"

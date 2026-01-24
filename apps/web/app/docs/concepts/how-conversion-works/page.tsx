@@ -46,6 +46,7 @@ export default function HowConversionWorksPage() {
         dependencyVersion="latest"
         activeFile="/index.js"
         preview={false}
+        enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -54,16 +55,30 @@ async function convert(input) {
   return await convertToString(input, { outputFormat: 'json' });
 }
 
-// String input
+// 1. String input - simplest form
 const fromString = await convert('name,age\\nAlice,30');
+console.log('Converted from string:', fromString);
 
-// URL input (in browser/Node)
-// const fromUrl = await convert('https://example.com/data.csv');
+// 2. URL/fetch input - data from network
+const fileUrl = "";
+const response = await fetch(fileUrl);
+const data = await response.text();
+const fromUrl = await convert(data);
 
-// File input (browser)
-// const fromFile = await convert(fileInputElement.files[0]);
+// Parse and display nicely (avoid console display issues with long JSON strings)
+const parsed = JSON.parse(fromUrl);
+console.log(\`\\n✓ Converted from URL: \${parsed.length} records\`);
+console.log('First record:', JSON.stringify(parsed[0], null, 2));
+console.log('Last record:', JSON.stringify(parsed[parsed.length - 1], null, 2));
 
-console.log('Converted:', fromString);`,
+// 3. File object input - from file picker
+const blob = await response.blob();
+const fileInput = new File([blob], "data.csv", { type: "text/csv" });
+const fromFileInput = await convert(fileInput);
+
+const parsed2 = JSON.parse(fromFileInput);
+console.log(\`\\n✓ Converted from File: \${parsed2.length} records\`);
+console.log('First record:', JSON.stringify(parsed2[0], null, 2));`,
         }}
       />
 

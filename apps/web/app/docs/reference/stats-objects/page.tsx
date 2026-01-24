@@ -1,4 +1,5 @@
 import React from 'react';
+import SandpackExample from '@/components/mdx/Sandpack';
 
 export default function StatsObjectsPage() {
   return (
@@ -91,143 +92,311 @@ export default function StatsObjectsPage() {
       <h2>Accessing stats</h2>
 
       <h3>Via onProgress callback</h3>
-      <pre><code>{`const buddy = new ConvertBuddy({
-  outputFormat: 'json',
-  onProgress: (stats) => {
-    console.log('Progress:', {
-      bytesIn: stats.bytesIn,
-      recordsProcessed: stats.recordsProcessed,
-      throughputMbPerSec: stats.throughputMbPerSec
-    });
+      <SandpackExample
+        template="node"
+        activeFile="/index.js"
+        preview={false}
+        files={{
+          '/index.js': `
+import { ConvertBuddy } from "convert-buddy-js";
+
+async function run() {
+  const fileUrl = "";  // Will be replaced with sample data
+  const response = await fetch(fileUrl);
+  const data = await response.text();
+  
+  const buddy = await ConvertBuddy.create({
+    inputFormat: "csv",
+    outputFormat: "json",
+    progressIntervalBytes: 256,  // Report frequently for demo
+    onProgress: (stats) => {
+      console.log('Progress:', {
+        bytesIn: stats.bytesIn,
+        recordsProcessed: stats.recordsProcessed,
+        throughputMbPerSec: stats.throughputMbPerSec.toFixed(2)
+      });
+    }
+  });
+  
+  // Process in chunks
+  const encoder = new TextEncoder();
+  const buffer = encoder.encode(data);
+  const chunkSize = 512;
+  
+  for (let i = 0; i < buffer.length; i += chunkSize) {
+    const chunk = buffer.slice(i, Math.min(i + chunkSize, buffer.length));
+    buddy.push(chunk);
   }
-});`}</code></pre>
+  
+  buddy.finish();
+  console.log('Conversion complete!');
+}
+
+run().catch(console.error);
+`,
+        }}
+      />
 
       <h3>Via stats() method</h3>
-      <pre><code>{`const buddy = await ConvertBuddy.create({
-  outputFormat: 'json'
-});
+      <SandpackExample
+        template="node"
+        activeFile="/index.js"
+        preview={false}
+        files={{
+          '/index.js': `
+import { ConvertBuddy } from "convert-buddy-js";
 
-buddy.push(chunk1);
-const stats1 = buddy.stats();
+async function run() {
+  const fileUrl = "";  // Will be replaced with sample data
+  const response = await fetch(fileUrl);
+  const data = await response.text();
+  
+  const buddy = await ConvertBuddy.create({
+    inputFormat: "csv",
+    outputFormat: "json"
+  });
 
-buddy.push(chunk2);
-const stats2 = buddy.stats();
+  const encoder = new TextEncoder();
+  const buffer = encoder.encode(data);
+  
+  // Process first half
+  const midpoint = Math.floor(buffer.length / 2);
+  buddy.push(buffer.slice(0, midpoint));
+  const stats1 = buddy.stats();
+  console.log('After first half:', stats1);
 
-buddy.finish();
-const finalStats = buddy.stats();
+  // Process second half
+  buddy.push(buffer.slice(midpoint));
+  const stats2 = buddy.stats();
+  console.log('After second half:', stats2);
 
-console.log('Final stats:', finalStats);`}</code></pre>
+  buddy.finish();
+  const finalStats = buddy.stats();
+  console.log('Final stats:', finalStats);
+}
+
+run().catch(console.error);
+`,
+        }}
+      />
 
       <h2>Common calculations</h2>
 
       <h3>Progress percentage</h3>
-      <pre><code>{`const totalBytes = 10000000; // Known total size
+      <SandpackExample
+        template="node"
+        activeFile="/index.js"
+        preview={false}
+        files={{
+          '/index.js': `
+import { ConvertBuddy } from "convert-buddy-js";
 
-const buddy = new ConvertBuddy({
-  outputFormat: 'json',
-  onProgress: (stats) => {
-    const percentage = (stats.bytesIn / totalBytes) * 100;
-    console.log(\`Progress: \${percentage.toFixed(1)}%\`);
+async function run() {
+  const fileUrl = "";  // Will be replaced with sample data
+  const response = await fetch(fileUrl);
+  const data = await response.text();
+  const totalBytes = data.length;
+
+  const buddy = await ConvertBuddy.create({
+    inputFormat: "csv",
+    outputFormat: "json",
+    progressIntervalBytes: 200,
+    onProgress: (stats) => {
+      const percentage = (stats.bytesIn / totalBytes) * 100;
+      console.log(\`Progress: \${percentage.toFixed(1)}%\`);
+    }
+  });
+  
+  const encoder = new TextEncoder();
+  const buffer = encoder.encode(data);
+  const chunkSize = 400;
+  
+  for (let i = 0; i < buffer.length; i += chunkSize) {
+    const chunk = buffer.slice(i, Math.min(i + chunkSize, buffer.length));
+    buddy.push(chunk);
   }
-});`}</code></pre>
+  
+  buddy.finish();
+}
 
-      <h3>Estimated time remaining (ETA)</h3>
-      <pre><code>{`const startTime = Date.now();
-const totalBytes = 10000000;
-
-const buddy = new ConvertBuddy({
-  outputFormat: 'json',
-  onProgress: (stats) => {
-    const elapsedMs = Date.now() - startTime;
-    const bytesPerMs = stats.bytesIn / elapsedMs;
-    const remainingBytes = totalBytes - stats.bytesIn;
-    const etaMs = remainingBytes / bytesPerMs;
-    
-    console.log(\`ETA: \${(etaMs / 1000).toFixed(0)} seconds\`);
-  }
-});`}</code></pre>
+run().catch(console.error);
+`,
+        }}
+      />
 
       <h3>Compression ratio</h3>
-      <pre><code>{`const buddy = new ConvertBuddy({
-  outputFormat: 'json',
-  onProgress: (stats) => {
-    const ratio = stats.bytesOut / stats.bytesIn;
-    console.log(\`Compression ratio: \${ratio.toFixed(2)}x\`);
-    
-    // CSV to JSON is typically 1.5-2x larger
-    // JSON to CSV is typically 0.5-0.7x smaller
-  }
-});`}</code></pre>
+      <SandpackExample
+        template="node"
+        activeFile="/index.js"
+        preview={false}
+        files={{
+          '/index.js': `
+import { ConvertBuddy } from "convert-buddy-js";
+
+async function run() {
+  const fileUrl = "";  // Will be replaced with sample data
+  const response = await fetch(fileUrl);
+  const csvData = await response.text();
+  
+  const buddy = await ConvertBuddy.create({
+    inputFormat: "csv",
+    outputFormat: "json",
+    onProgress: (stats) => {
+      const ratio = stats.bytesOut / stats.bytesIn;
+      console.log(\`Compression ratio: \${ratio.toFixed(2)}x\`);
+      
+      // CSV to JSON is typically 1.5-2x larger
+      // JSON to CSV is typically 0.5-0.7x smaller
+    }
+  });
+  
+  const encoder = new TextEncoder();
+  const buffer = encoder.encode(csvData);
+  buddy.push(buffer);
+  buddy.finish();
+  
+  const finalStats = buddy.stats();
+  console.log(\`Final: \${finalStats.bytesIn} bytes ΓåÆ \${finalStats.bytesOut} bytes\`);
+}
+
+run().catch(console.error);
+`,
+        }}
+      />
 
       <h3>Processing rate (records per second)</h3>
-      <pre><code>{`const startTime = Date.now();
+      <SandpackExample
+        template="node"
+        activeFile="/index.js"
+        preview={false}
+        files={{
+          '/index.js': `
+import { ConvertBuddy } from "convert-buddy-js";
 
-const buddy = new ConvertBuddy({
-  outputFormat: 'json',
-  onProgress: (stats) => {
-    const elapsedSec = (Date.now() - startTime) / 1000;
-    const recordsPerSec = stats.recordsProcessed / elapsedSec;
-    
-    console.log(\`Processing: \${recordsPerSec.toFixed(0)} records/sec\`);
+async function run() {
+  const fileUrl = "";  // Will be replaced with sample data
+  const response = await fetch(fileUrl);
+  const data = await response.text();
+  
+  const startTime = Date.now();
+
+  const buddy = await ConvertBuddy.create({
+    inputFormat: "csv",
+    outputFormat: "json",
+    progressIntervalBytes: 256,
+    onProgress: (stats) => {
+      const elapsedSec = (Date.now() - startTime) / 1000;
+      const recordsPerSec = stats.recordsProcessed / elapsedSec;
+      
+      console.log(\`Processing: \${recordsPerSec.toFixed(0)} records/sec\`);
+    }
+  });
+  
+  const encoder = new TextEncoder();
+  const buffer = encoder.encode(data);
+  const chunkSize = 512;
+  
+  for (let i = 0; i < buffer.length; i += chunkSize) {
+    const chunk = buffer.slice(i, Math.min(i + chunkSize, buffer.length));
+    buddy.push(chunk);
   }
-});`}</code></pre>
+  
+  buddy.finish();
+}
+
+run().catch(console.error);
+`,
+        }}
+      />
 
       <h2>Performance analysis</h2>
 
       <h3>Time breakdown</h3>
-      <pre><code>{`const buddy = new ConvertBuddy({
-  outputFormat: 'json',
-  profile: true  // Enable detailed timing
-});
+      <SandpackExample
+        template="node"
+        activeFile="/index.js"
+        preview={false}
+        files={{
+          '/index.js': `
+import { ConvertBuddy } from "convert-buddy-js";
 
-// After conversion
-const stats = buddy.stats();
+async function run() {
+  const fileUrl = "";  // Will be replaced with sample data
+  const response = await fetch(fileUrl);
+  const data = await response.text();
+  
+  const buddy = await ConvertBuddy.create({
+    inputFormat: "csv",
+    outputFormat: "json",
+    profile: true  // Enable detailed timing
+  });
 
-const totalTime = stats.parseTimeMs + stats.transformTimeMs + stats.writeTimeMs;
-console.log('Time breakdown:');
-console.log(\`  Parse:     \${stats.parseTimeMs}ms (\${(stats.parseTimeMs/totalTime*100).toFixed(1)}%)\`);
-console.log(\`  Transform: \${stats.transformTimeMs}ms (\${(stats.transformTimeMs/totalTime*100).toFixed(1)}%)\`);
-console.log(\`  Write:     \${stats.writeTimeMs}ms (\${(stats.writeTimeMs/totalTime*100).toFixed(1)}%)\`);
+  const encoder = new TextEncoder();
+  buddy.push(encoder.encode(data));
+  buddy.finish();
 
-// If transform time is high, simplify transform config
-// If parse time is high, check input format complexity
-// If write time is high, output format may be expensive (e.g., XML)`}</code></pre>
+  // After conversion
+  const stats = buddy.stats();
+
+  const totalTime = stats.parseTimeMs + stats.transformTimeMs + stats.writeTimeMs;
+  console.log('Time breakdown:');
+  console.log(\`  Parse:     \${stats.parseTimeMs}ms (\${(stats.parseTimeMs/totalTime*100).toFixed(1)}%)\`);
+  console.log(\`  Transform: \${stats.transformTimeMs}ms (\${(stats.transformTimeMs/totalTime*100).toFixed(1)}%)\`);
+  console.log(\`  Write:     \${stats.writeTimeMs}ms (\${(stats.writeTimeMs/totalTime*100).toFixed(1)}%)\`);
+
+  // If transform time is high, simplify transform config
+  // If parse time is high, check input format complexity
+  // If write time is high, output format may be expensive (e.g., XML)
+}
+
+run().catch(console.error);
+`,
+        }}
+      />
 
       <h3>Memory usage</h3>
-      <pre><code>{`const buddy = new ConvertBuddy({
-  outputFormat: 'json',
-  onProgress: (stats) => {
-    console.log(\`Peak memory: \${(stats.maxBufferSize / 1024 / 1024).toFixed(2)}MB\`);
-    console.log(\`Current partial: \${(stats.currentPartialSize / 1024).toFixed(2)}KB\`);
-    
-    // If maxBufferSize grows unbounded, there may be a memory leak
-    // currentPartialSize shows size of incomplete record (useful for debugging)
+      <SandpackExample
+        template="node"
+        activeFile="/index.js"
+        preview={false}
+        files={{
+          '/index.js': `
+import { ConvertBuddy } from "convert-buddy-js";
+
+async function run() {
+  const fileUrl = "";  // Will be replaced with sample data
+  const response = await fetch(fileUrl);
+  const data = await response.text();
+  
+  const buddy = await ConvertBuddy.create({
+    inputFormat: "csv",
+    outputFormat: "json",
+    progressIntervalBytes: 128,
+    onProgress: (stats) => {
+      console.log(\`Peak memory: \${(stats.maxBufferSize / 1024 / 1024).toFixed(2)}MB\`);
+      console.log(\`Current partial: \${(stats.currentPartialSize / 1024).toFixed(2)}KB\`);
+      
+      // If maxBufferSize grows unbounded, there may be a memory leak
+      // currentPartialSize shows size of incomplete record (useful for debugging)
+    }
+  });
+  
+  const encoder = new TextEncoder();
+  const buffer = encoder.encode(data);
+  const chunkSize = 256;
+  
+  for (let i = 0; i < buffer.length; i += chunkSize) {
+    const chunk = buffer.slice(i, Math.min(i + chunkSize, buffer.length));
+    buddy.push(chunk);
   }
-});`}</code></pre>
+  
+  buddy.finish();
+}
 
-      <h2>Building progress UIs</h2>
-
-      <h3>Complete progress display</h3>
-      <pre><code>{`const startTime = Date.now();
-const totalBytes = 10000000;
-
-const buddy = new ConvertBuddy({
-  outputFormat: 'json',
-  progressIntervalBytes: 1024 * 1024,  // Update every 1MB
-  onProgress: (stats) => {
-    const percentage = (stats.bytesIn / totalBytes) * 100;
-    const elapsedSec = (Date.now() - startTime) / 1000;
-    const mbProcessed = stats.bytesIn / 1024 / 1024;
-    
-    console.log([
-      \`Progress: \${percentage.toFixed(1)}%\`,
-      \`Processed: \${mbProcessed.toFixed(1)}MB\`,
-      \`Records: \${stats.recordsProcessed}\`,
-      \`Throughput: \${stats.throughputMbPerSec.toFixed(1)} MB/s\`,
-      \`Elapsed: \${elapsedSec.toFixed(1)}s\`
-    ].join(' | '));
-  }
-});`}</code></pre>
+run().catch(console.error);
+`,
+        }}
+      />
 
       <h2>Understanding throughput</h2>
 
@@ -259,22 +428,49 @@ const buddy = new ConvertBuddy({
         <li><strong>After finish()</strong>: Final cumulative values</li>
       </ol>
 
-      <pre><code>{`const buddy = await ConvertBuddy.create({ outputFormat: 'json' });
+      <SandpackExample
+        template="node"
+        activeFile="/index.js"
+        preview={false}
+        files={{
+          '/index.js': `
+import { ConvertBuddy } from "convert-buddy-js";
 
-// Initial: all zeros
-console.log(buddy.stats().bytesIn);  // 0
+async function run() {
+  const fileUrl = "";  // Will be replaced with sample data
+  const response = await fetch(fileUrl);
+  const data = await response.text();
+  
+  const buddy = await ConvertBuddy.create({
+    inputFormat: "csv",
+    outputFormat: "json"
+  });
 
-// During: incrementing
-buddy.push(chunk1);
-console.log(buddy.stats().bytesIn);  // chunk1.length
+  // Initial: all zeros
+  console.log('Initial bytesIn:', buddy.stats().bytesIn);  // 0
 
-buddy.push(chunk2);
-console.log(buddy.stats().bytesIn);  // chunk1.length + chunk2.length
+  const encoder = new TextEncoder();
+  const buffer = encoder.encode(data);
+  
+  // During: incrementing
+  const chunk1 = buffer.slice(0, Math.floor(buffer.length / 2));
+  buddy.push(chunk1);
+  console.log('After chunk 1 bytesIn:', buddy.stats().bytesIn);  // chunk1.length
 
-// Final: cumulative
-buddy.finish();
-const final = buddy.stats();
-console.log(final);  // Complete stats for entire conversion`}</code></pre>
+  const chunk2 = buffer.slice(Math.floor(buffer.length / 2));
+  buddy.push(chunk2);
+  console.log('After chunk 2 bytesIn:', buddy.stats().bytesIn);  // chunk1.length + chunk2.length
+
+  // Final: cumulative
+  buddy.finish();
+  const final = buddy.stats();
+  console.log('Final stats:', final);  // Complete stats for entire conversion
+}
+
+run().catch(console.error);
+`,
+        }}
+      />
 
       <h2>See also</h2>
       <ul>
