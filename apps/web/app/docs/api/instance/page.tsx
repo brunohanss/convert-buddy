@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function Page() {
   return (
@@ -47,11 +47,11 @@ export default function Page() {
 
       <h4>Basic Instance Creation</h4>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
@@ -87,11 +87,11 @@ run().catch(console.error);`,
 
       <h3>Debug Mode</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
@@ -117,11 +117,11 @@ run().catch(console.error);`,
 
       <h3>Profiling</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
@@ -156,11 +156,11 @@ run().catch(console.error);`,
 
       <h3>Memory Limits</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
@@ -202,11 +202,11 @@ run().catch(console.error);`,
 
       <h3>Reusing One Instance</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
@@ -242,11 +242,11 @@ run().catch(console.error);`,
 
       <h3>Overriding Global Config</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
@@ -312,11 +312,11 @@ interface Stats {
 
       <h3>Statistics Example</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
@@ -362,11 +362,11 @@ run().catch(console.error);`,
         Use instance reuse for efficient batch processing of multiple files.
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
@@ -428,11 +428,11 @@ batchConvert(sampleFiles, 'json').catch(console.error);`,
         on multi-core systems.
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
 
@@ -470,11 +470,11 @@ run().catch(console.error);`,
         Track conversion progress with the <code>onProgress</code> callback.
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
@@ -516,11 +516,11 @@ run().catch(console.error);`,
 
       <h3>Simple API (creates new instance each call)</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -551,11 +551,11 @@ processMultiple().catch(console.error);`,
 
       <h3>Instance API (reuses one instance)</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
 

@@ -17,6 +17,7 @@
     "@mdx-js/react": "3.0.1",
     "@next/mdx": "14.2.5",
     "@opennextjs/cloudflare": "^1.14.10",
+    "@stackblitz/sdk": "^1.11.0",
     "clsx": "2.1.1",
     "convert-buddy-js": "file:../../packages/convert-buddy-js",
     "highlight.js": "^11.11.1",

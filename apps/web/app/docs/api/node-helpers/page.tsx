@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function NodeHelpersPage() {
   return (
@@ -21,11 +21,11 @@ export default function NodeHelpersPage() {
 
       <h3>Reading Files with fs/promises</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -59,11 +59,11 @@ readAndConvert().catch(console.error);`,
 
       <h3>Working with Buffers</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convert } from "convert-buddy-js";
 
@@ -111,11 +111,11 @@ convertBuffer().catch(console.error);`,
 
       <h3>Using Web Streams in Node.js</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { ConvertBuddyTransformStream } from "convert-buddy-js";
 
@@ -162,11 +162,11 @@ webStreamsExample().catch(console.error);`,
 
       <h3>Processing Large Files in Chunks</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
 
@@ -225,11 +225,11 @@ processLargeFile().catch(console.error);`,
 
       <h3>Simple CLI Converter</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -276,11 +276,11 @@ cliConvert().catch(console.error);`,
 
       <h3>Batch Processing CLI</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
 
@@ -345,11 +345,11 @@ batchConvert().catch(console.error);`,
 
       <h3>CLI with Progress Bar</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -395,11 +395,11 @@ convertWithProgress().catch(console.error);`,
 
       <h3>Graceful Error Handling</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -452,11 +452,11 @@ robustConvert('input.csv', 'output.json')
 
       <h3>Pipe-able CLI Tool</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -499,11 +499,11 @@ pipelineConvert().catch(console.error);`,
 
       <h2>Complete CLI Example</h2>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
 
@@ -593,11 +593,11 @@ main().catch(console.error);`,
 
       <h3>Reading Config from Environment</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
 

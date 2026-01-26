@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function JSONFormatPage() {
   return (
@@ -31,10 +31,10 @@ export default function JSONFormatPage() {
 
       <h2>Basic Example</h2>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -75,10 +75,10 @@ run().catch(console.error);`,
         JSON works perfectly with transforms for reshaping, filtering, and computing fields:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 import { CodeBlock } from '@/components/mdx/CodeBlock';
 
 export default function GettingStartedPage() {
@@ -36,11 +36,11 @@ export default function GettingStartedPage() {
         and returns converted output as a string:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -80,17 +80,18 @@ run().catch(console.error);`,
 
       <p>
         In the browser, you can use File objects from file inputs. 
+        Use <code>convertAnyToString()</code> for File, Blob, or URL inputs.
         Try selecting a file using the picker button below:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
-          '/index.js': `import { convertToString } from "convert-buddy-js";
+          '/index.js': `import { convertAnyToString } from "convert-buddy-js";
 
 const fileUrl = "";
 
@@ -105,17 +106,17 @@ async function run() {
   console.log('Converting file:', file.name);
   console.log('File size:', file.size, 'bytes');
   
-  // Convert File to JSON
-  const json = await convertToString(file, {
+  // Convert File to JSON using convertAnyToString (handles File, Blob, URL, etc.)
+  const json = await convertAnyToString(file, {
     outputFormat: 'json'
   });
   
   // Parse and display nicely
   const parsed = JSON.parse(json);
-  console.log(\`\n✓ Converted \${parsed.length} records to JSON\`);
-  console.log('\nFirst record:');
+  console.log(\`✓ Converted \${parsed.length} records to JSON\`);
+  console.log('First record:');
   console.log(JSON.stringify(parsed[0], null, 2));
-  console.log('\nLast record:');
+  console.log('Last record:');
   console.log(JSON.stringify(parsed[parsed.length - 1], null, 2));
 }
 
@@ -127,10 +128,12 @@ run().catch(console.error);`,
         <strong>Browser example for reference:</strong>
       </p>
       <CodeBlock
-        code={`function handleFileSelect(event) {
+        code={`import { convertAnyToString } from "convert-buddy-js";
+
+function handleFileSelect(event) {
   const file = event.target.files[0];
   
-  convertToString(file, { outputFormat: 'json' })
+  convertAnyToString(file, { outputFormat: 'json' })
     .then(result => {
       console.log('Converted:', result);
     })
@@ -148,11 +151,11 @@ run().catch(console.error);`,
         the <code>input.csv</code> file is defined within the sandbox.
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 import { readFile, writeFile } from "fs/promises";
@@ -189,7 +192,8 @@ Legolas,Ranger,17`,
       <h2>Key takeaways</h2>
 
       <ul>
-        <li><code>convertToString()</code> handles any input type and auto-detects format</li>
+        <li><code>convertToString()</code> handles string or Uint8Array input and auto-detects format</li>
+        <li><code>convertAnyToString()</code> handles any input type: File, Blob, URL, ReadableStream, string, or Uint8Array</li>
         <li>Just specify <code>outputFormat</code> - everything else is automatic</li>
         <li>Works identically in browser and Node.js</li>
         <li>No configuration needed for basic conversions</li>

@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function StatsObjectsPage() {
   return (
@@ -92,10 +92,10 @@ export default function StatsObjectsPage() {
       <h2>Accessing stats</h2>
 
       <h3>Via onProgress callback</h3>
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `
 import { ConvertBuddy } from "convert-buddy-js";
@@ -138,10 +138,10 @@ run().catch(console.error);
       />
 
       <h3>Via stats() method</h3>
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `
 import { ConvertBuddy } from "convert-buddy-js";
@@ -183,10 +183,10 @@ run().catch(console.error);
       <h2>Common calculations</h2>
 
       <h3>Progress percentage</h3>
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `
 import { ConvertBuddy } from "convert-buddy-js";
@@ -225,10 +225,10 @@ run().catch(console.error);
       />
 
       <h3>Compression ratio</h3>
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `
 import { ConvertBuddy } from "convert-buddy-js";
@@ -265,10 +265,10 @@ run().catch(console.error);
       />
 
       <h3>Processing rate (records per second)</h3>
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `
 import { ConvertBuddy } from "convert-buddy-js";
@@ -312,10 +312,10 @@ run().catch(console.error);
       <h2>Performance analysis</h2>
 
       <h3>Time breakdown</h3>
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `
 import { ConvertBuddy } from "convert-buddy-js";
@@ -355,10 +355,10 @@ run().catch(console.error);
       />
 
       <h3>Memory usage</h3>
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `
 import { ConvertBuddy } from "convert-buddy-js";
@@ -428,10 +428,10 @@ run().catch(console.error);
         <li><strong>After finish()</strong>: Final cumulative values</li>
       </ol>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `
 import { ConvertBuddy } from "convert-buddy-js";

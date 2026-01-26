@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function HowConversionWorksPage() {
   return (
@@ -41,11 +41,11 @@ export default function HowConversionWorksPage() {
         This abstraction means you write the same code regardless of input source:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -137,11 +137,11 @@ console.log('First record:', JSON.stringify(parsed2[0], null, 2));`,
         For large outputs, prefer streaming to avoid buffering the entire result:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
 

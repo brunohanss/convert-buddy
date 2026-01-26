@@ -1,5 +1,6 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
+import { CodeBlock } from '@/components/mdx/CodeBlock';
 
 export default function FormatDetectionPage() {
   return (
@@ -17,11 +18,11 @@ export default function FormatDetectionPage() {
         The <code>detectFormat</code> function analyzes a sample of input data and returns the detected format:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { detectFormat } from "convert-buddy-js";
@@ -59,11 +60,11 @@ run().catch(console.error);`,
         The <code>detectStructure</code> function goes deeper, extracting field names and configuration:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { detectStructure } from "convert-buddy-js";
@@ -109,11 +110,11 @@ run().catch(console.error);`,
         By default, conversion functions auto-detect format:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -150,11 +151,14 @@ run().catch(console.error);`,
         If you know the input format in advance, specify it explicitly to save ~10-20ms:
       </p>
 
-      <pre><code>{`// Skip detection, save ~10-20ms
+      <CodeBlock
+        code={`// Skip detection, save ~10-20ms
 const json = await convertToString(csvData, {
   inputFormat: 'csv',
   outputFormat: 'json'
-});`}</code></pre>
+});`}
+        language="javascript"
+      />
 
       <h3>When detection fails</h3>
       <p>

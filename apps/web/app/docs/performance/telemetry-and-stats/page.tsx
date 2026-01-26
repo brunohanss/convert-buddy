@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function TelemetryAndStatsPage() {
   return (
@@ -18,10 +18,10 @@ export default function TelemetryAndStatsPage() {
         Every conversion returns a converter object with a <code>stats()</code> method:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         dependencyVersion="latest"
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -117,10 +117,10 @@ run().catch(console.error);`,
         Use the <code>onProgress</code> callback to monitor conversion as it happens:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         dependencyVersion="latest"
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -179,10 +179,10 @@ run().catch(console.error);`,
         </tbody>
       </table>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         dependencyVersion="latest"
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -222,10 +222,10 @@ run().catch(console.error);`,
         Create a reusable progress monitor:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         dependencyVersion="latest"
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -278,10 +278,10 @@ run().catch(console.error);`,
         Monitor how many records are filtered out:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         dependencyVersion="latest"
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -323,10 +323,10 @@ run().catch(console.error);`,
         Track peak memory usage:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         dependencyVersion="latest"
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -362,10 +362,10 @@ run().catch(console.error);`,
         Calculate and display processing speed:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         dependencyVersion="latest"
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";

@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function WhenSlowerPage() {
   return (
@@ -19,10 +19,10 @@ export default function WhenSlowerPage() {
         slower than simple alternatives:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -78,10 +78,10 @@ run().catch(console.error);`,
         For small JSON (under 50 KB), <code>JSON.parse()</code> is faster:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `const smallJson = JSON.stringify([
   { name: "Alice", age: 30 },
@@ -107,10 +107,10 @@ run().catch(console.error);`,
         If your CSV is simple and you know the exact structure, a basic splitter is faster:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `// For this specific case, a simple parser is faster
 const simpleCsv = \`id,value

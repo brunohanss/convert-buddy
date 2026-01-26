@@ -1,7 +1,7 @@
 import dynamic from 'next/dynamic';
 
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function Page() {
   return (
@@ -11,10 +11,10 @@ export default function Page() {
       <p>Conversion can be cancelled via AbortController.</p>
 
       <h2>Minimal example</h2>
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `
 import { ConvertBuddy } from "convert-buddy-js";
@@ -46,10 +46,10 @@ run().catch(console.error);
       />
 
       <h2>Advanced example</h2>
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `
 import { ConvertBuddy } from "convert-buddy-js";

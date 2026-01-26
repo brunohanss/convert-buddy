@@ -593,6 +593,39 @@ impl Converter {
                 }
                 (result, ConverterState::CsvPassthrough(parser, csv_writer))
             }
+            ConverterState::CsvToCsvTransform(mut parser, mut engine, mut csv_writer) => {
+                // Parse CSV to NDJSON
+                let ndjson = {
+                    #[cfg(feature = "threads")]
+                    {
+                        parser.push_to_ndjson_parallel(chunk).map_err(JsValue::from)?
+                    }
+                    #[cfg(not(feature = "threads"))]
+                    {
+                        parser.push_to_ndjson(chunk).map_err(JsValue::from)?
+                    }
+                };
+                
+                // Count records (newlines in NDJSON intermediate)
+                let record_count = ndjson.iter().filter(|&&b| b == b'\n').count();
+                self.stats.record_records(record_count);
+                
+                // Apply transform
+                let transformed = self.apply_transform_push(&mut engine, &ndjson)?;
+                
+                // Convert transformed NDJSON to CSV
+                let ndjson_str = std::str::from_utf8(&transformed)
+                    .map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let mut result = Vec::new();
+                for line in ndjson_str.lines() {
+                    let trimmed = line.trim();
+                    if !trimmed.is_empty() {
+                        result.extend(csv_writer.process_json_line(line).map_err(JsValue::from)?);
+                    }
+                }
+                
+                (result, ConverterState::CsvToCsvTransform(parser, engine, csv_writer))
+            }
             ConverterState::CsvToNdjson(mut parser) => {
                 let result = {
                     #[cfg(feature = "threads")]
@@ -667,6 +700,67 @@ impl Converter {
                 is_first = false;
                 let result = ndjson_parser.to_json_array(&transformed, is_first_chunk, false).map_err(JsValue::from)?;
                 (result, ConverterState::CsvToJsonTransform(parser, engine, ndjson_parser, is_first))
+            }
+            ConverterState::CsvToXml(mut parser, mut xml_writer) => {
+                let ndjson_chunk = {
+                    #[cfg(feature = "threads")]
+                    {
+                        parser.push_to_ndjson_parallel(chunk).map_err(JsValue::from)?
+                    }
+                    #[cfg(not(feature = "threads"))]
+                    {
+                        parser.push_to_ndjson(chunk).map_err(JsValue::from)?
+                    }
+                };
+                
+                // Count records (newlines in NDJSON intermediate)
+                let record_count = ndjson_chunk.iter().filter(|&&b| b == b'\n').count();
+                self.stats.record_records(record_count);
+                
+                // Convert NDJSON to XML
+                let ndjson_str = std::str::from_utf8(&ndjson_chunk)
+                    .map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let mut output = Vec::new();
+                for line in ndjson_str.lines() {
+                    let trimmed: &str = line.trim();
+                    if !trimmed.is_empty() {
+                        output.extend(xml_writer.process_json_line(line)?);
+                    }
+                }
+                
+                (output, ConverterState::CsvToXml(parser, xml_writer))
+            }
+            ConverterState::CsvToXmlTransform(mut parser, mut engine, mut xml_writer) => {
+                let ndjson_chunk = {
+                    #[cfg(feature = "threads")]
+                    {
+                        parser.push_to_ndjson_parallel(chunk).map_err(JsValue::from)?
+                    }
+                    #[cfg(not(feature = "threads"))]
+                    {
+                        parser.push_to_ndjson(chunk).map_err(JsValue::from)?
+                    }
+                };
+                
+                // Count records (newlines in NDJSON intermediate)
+                let record_count = ndjson_chunk.iter().filter(|&&b| b == b'\n').count();
+                self.stats.record_records(record_count);
+                
+                // Apply transform
+                let transformed = self.apply_transform_push(&mut engine, &ndjson_chunk)?;
+                
+                // Convert transformed NDJSON to XML
+                let ndjson_str = std::str::from_utf8(&transformed)
+                    .map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let mut output = Vec::new();
+                for line in ndjson_str.lines() {
+                    let trimmed: &str = line.trim();
+                    if !trimmed.is_empty() {
+                        output.extend(xml_writer.process_json_line(line)?);
+                    }
+                }
+                
+                (output, ConverterState::CsvToXmlTransform(parser, engine, xml_writer))
             }
             ConverterState::NdjsonPassthrough(mut parser) => {
                 let result = {
@@ -781,6 +875,40 @@ impl Converter {
 
                 (output, ConverterState::XmlToCsvTransform(xml_parser, engine, csv_writer))
             }
+            ConverterState::XmlPassthrough(mut parser) => {
+                let result = parser.push_to_ndjson(chunk).map_err(JsValue::from)?;
+                
+                // Count records (newlines in NDJSON intermediate)
+                let record_count = result.iter().filter(|&&b| b == b'\n').count();
+                self.stats.record_records(record_count);
+                
+                // For passthrough, we don't actually convert - just validate
+                // Return the original chunk
+                (chunk.to_vec(), ConverterState::XmlPassthrough(parser))
+            }
+            ConverterState::XmlToXmlTransform(mut xml_parser, mut engine, mut xml_writer) => {
+                let ndjson_chunk = xml_parser.push_to_ndjson(chunk).map_err(JsValue::from)?;
+                
+                // Count records (newlines in NDJSON intermediate)
+                let record_count = ndjson_chunk.iter().filter(|&&b| b == b'\n').count();
+                self.stats.record_records(record_count);
+                
+                // Apply transform
+                let transformed = self.apply_transform_push(&mut engine, &ndjson_chunk)?;
+                
+                // Convert transformed NDJSON to XML
+                let ndjson_str = std::str::from_utf8(&transformed)
+                    .map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let mut output = Vec::new();
+                for line in ndjson_str.lines() {
+                    let trimmed: &str = line.trim();
+                    if !trimmed.is_empty() {
+                        output.extend(xml_writer.process_json_line(line)?);
+                    }
+                }
+                
+                (output, ConverterState::XmlToXmlTransform(xml_parser, engine, xml_writer))
+            }
             ConverterState::JsonPassthrough(_parser) => {
                 let result = chunk.to_vec();
                 
@@ -860,6 +988,133 @@ impl Converter {
                     _ => {}
                 }
                 (output, ConverterState::JsonToCsv(parser, csv_writer))
+            }
+            ConverterState::JsonToXml(mut parser, mut xml_writer) => {
+                let s = std::str::from_utf8(chunk).map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let value: serde_json::Value = serde_json::from_str(s).map_err(|e| JsValue::from(ConvertError::JsonParse(e.to_string())))?;
+                
+                // Count records
+                let count = match &value {
+                    serde_json::Value::Array(arr) => arr.len(),
+                    serde_json::Value::Object(_) => 1,
+                    _ => 0,
+                };
+                self.stats.record_records(count);
+                
+                // Convert to NDJSON lines then to XML
+                let mut output = Vec::new();
+                match value {
+                    serde_json::Value::Array(arr) => {
+                        for v in arr.iter() {
+                            let mut buf = Vec::new();
+                            serde_json::to_writer(&mut buf, v).map_err(|e| JsValue::from(ConvertError::JsonParse(e.to_string())))?;
+                            let line = String::from_utf8_lossy(&buf);
+                            output.extend(xml_writer.process_json_line(&line)?);
+                        }
+                    }
+                    serde_json::Value::Object(_) => {
+                        let mut buf = Vec::new();
+                        serde_json::to_writer(&mut buf, &value).map_err(|e| JsValue::from(ConvertError::JsonParse(e.to_string())))?;
+                        let line = String::from_utf8_lossy(&buf);
+                        output.extend(xml_writer.process_json_line(&line)?);
+                    }
+                    _ => {}
+                }
+                (output, ConverterState::JsonToXml(parser, xml_writer))
+            }
+            ConverterState::JsonToXmlTransform(mut parser, mut engine, mut xml_writer) => {
+                let s = std::str::from_utf8(chunk).map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let value: serde_json::Value = serde_json::from_str(s).map_err(|e| JsValue::from(ConvertError::JsonParse(e.to_string())))?;
+                
+                // Count records
+                let count = match &value {
+                    serde_json::Value::Array(arr) => arr.len(),
+                    serde_json::Value::Object(_) => 1,
+                    _ => 0,
+                };
+                self.stats.record_records(count);
+                
+                // Convert to NDJSON, apply transform, then to XML
+                let mut ndjson_lines = Vec::new();
+                match value {
+                    serde_json::Value::Array(arr) => {
+                        for v in arr.iter() {
+                            let mut buf = Vec::new();
+                            serde_json::to_writer(&mut buf, v).map_err(|e| JsValue::from(ConvertError::JsonParse(e.to_string())))?;
+                            buf.push(b'\n');
+                            ndjson_lines.extend(buf);
+                        }
+                    }
+                    serde_json::Value::Object(_) => {
+                        let mut buf = Vec::new();
+                        serde_json::to_writer(&mut buf, &value).map_err(|e| JsValue::from(ConvertError::JsonParse(e.to_string())))?;
+                        buf.push(b'\n');
+                        ndjson_lines.extend(buf);
+                    }
+                    _ => {}
+                }
+                
+                // Apply transform
+                let transformed = self.apply_transform_push(&mut engine, &ndjson_lines)?;
+                
+                // Convert transformed NDJSON to XML
+                let ndjson_str = std::str::from_utf8(&transformed).map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let mut output = Vec::new();
+                for line in ndjson_str.lines() {
+                    let trimmed: &str = line.trim();
+                    if !trimmed.is_empty() {
+                        output.extend(xml_writer.process_json_line(line)?);
+                    }
+                }
+                
+                (output, ConverterState::JsonToXmlTransform(parser, engine, xml_writer))
+            }
+            ConverterState::JsonToCsvTransform(mut parser, mut engine, mut csv_writer) => {
+                let s = std::str::from_utf8(chunk).map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let value: serde_json::Value = serde_json::from_str(s).map_err(|e| JsValue::from(ConvertError::JsonParse(e.to_string())))?;
+                
+                // Count records
+                let count = match &value {
+                    serde_json::Value::Array(arr) => arr.len(),
+                    serde_json::Value::Object(_) => 1,
+                    _ => 0,
+                };
+                self.stats.record_records(count);
+                
+                // Convert to NDJSON, apply transform, then to CSV
+                let mut ndjson_lines = Vec::new();
+                match value {
+                    serde_json::Value::Array(arr) => {
+                        for v in arr.iter() {
+                            let mut buf = Vec::new();
+                            serde_json::to_writer(&mut buf, v).map_err(|e| JsValue::from(ConvertError::JsonParse(e.to_string())))?;
+                            buf.push(b'\n');
+                            ndjson_lines.extend(buf);
+                        }
+                    }
+                    serde_json::Value::Object(_) => {
+                        let mut buf = Vec::new();
+                        serde_json::to_writer(&mut buf, &value).map_err(|e| JsValue::from(ConvertError::JsonParse(e.to_string())))?;
+                        buf.push(b'\n');
+                        ndjson_lines.extend(buf);
+                    }
+                    _ => {}
+                }
+                
+                // Apply transform
+                let transformed = self.apply_transform_push(&mut engine, &ndjson_lines)?;
+                
+                // Convert transformed NDJSON to CSV
+                let ndjson_str = std::str::from_utf8(&transformed).map_err(|e| JsValue::from(ConvertError::from(e)))?;
+                let mut output = Vec::new();
+                for line in ndjson_str.lines() {
+                    let trimmed: &str = line.trim();
+                    if !trimmed.is_empty() {
+                        output.extend(csv_writer.process_json_line(line)?);
+                    }
+                }
+                
+                (output, ConverterState::JsonToCsvTransform(parser, engine, csv_writer))
             }
             ConverterState::NdjsonToCsv(mut ndjson_parser, mut csv_writer) => {
                 let ndjson_chunk = {

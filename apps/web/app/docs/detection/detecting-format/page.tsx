@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function DetectingFormatPage() {
   return (
@@ -24,10 +24,10 @@ export default function DetectingFormatPage() {
 const format = await detectFormat(data);
 // Returns: "csv" | "json" | "ndjson" | "xml" | "unknown"`}</code></pre>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectFormat } from "convert-buddy-js";
 
@@ -90,10 +90,10 @@ run().catch(console.error);`,
         <code>detectStructure()</code> for more detailed information including confidence indicators:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { detectStructure } from "convert-buddy-js";
@@ -122,10 +122,10 @@ run().catch(console.error);`,
         <code>inputFormat</code> is omitted, <code>convertToString()</code> automatically detects it:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -155,10 +155,10 @@ run().catch(console.error);`,
         Build tools that handle any format:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectFormat, convertToString } from "convert-buddy-js";
 

@@ -188,7 +188,8 @@ async function loadWasmModule(): Promise<WasmModule> {
       return mod as WasmModule;
     }
 
-    const mod = (await import("../wasm/web/convert_buddy.js")) as unknown as WasmModule;
+    // @ts-expect-error - WASM module will be available at runtime in dist/wasm/web/
+    const mod = (await import("./wasm/web/convert_buddy.js")) as unknown as WasmModule;
     
     // Initialize threading if supported
     if (wasmThreadingSupported && (mod as any).initThreadPool) {
@@ -503,7 +504,7 @@ export class ConvertBuddy {
           const { WasmThreadPool } = await import('./thread-pool');
           threadPool = new WasmThreadPool({
             maxWorkers: actualThreads,
-            wasmPath: '../wasm/web/convert_buddy.js'
+            wasmPath: './wasm/web/convert_buddy.js'
           });
           await threadPool.initialize();
         }
@@ -887,16 +888,29 @@ export class ConvertBuddy {
     if (inputFormat && opts.outputFormat) {
       // Use withConfig for custom formats
       const Converter = (wasmModule as any).Converter;
-      converter = Converter.withConfig(
-        debug,
-        inputFormat,
-        opts.outputFormat,
-        chunkTargetBytes,
-        profile, // Enable stats tracking when profile is enabled
-        csvConfig || null,
-        opts.xmlConfig || null,
-        opts.transform || null
-      );
+      try {
+        converter = Converter.withConfig(
+          debug,
+          inputFormat,
+          opts.outputFormat,
+          chunkTargetBytes,
+          profile, // Enable stats tracking when profile is enabled
+          csvConfig || null,
+          opts.xmlConfig || null,
+          opts.transform || null
+        );
+      } catch (err: any) {
+        // Enhance error message for common issues
+        const errorMsg = typeof err === 'string' ? err : err?.message || String(err);
+        if (errorMsg.includes('Invalid output format')) {
+          const validFormats = ['csv', 'json', 'ndjson', 'xml'];
+          throw new Error(`Invalid outputFormat: "${opts.outputFormat}". Must be one of: ${validFormats.join(', ')}`);
+        } else if (errorMsg.includes('Invalid input format')) {
+          const validFormats = ['csv', 'json', 'ndjson', 'xml', 'auto'];
+          throw new Error(`Invalid inputFormat: "${inputFormat}". Must be one of: ${validFormats.join(', ')}`);
+        }
+        throw new Error(`Configuration error: ${errorMsg}`);
+      }
     } else {
       converter = new wasmModule.Converter(debug);
     }
@@ -1255,6 +1269,22 @@ export async function convert(
   opts: ConvertBuddyOptions = {}
 ): Promise<Uint8Array> {
   try {
+    // Validate outputFormat early
+    if (opts.outputFormat) {
+      const validFormats = ['csv', 'json', 'ndjson', 'xml'];
+      if (!validFormats.includes(opts.outputFormat)) {
+        throw new Error(`Invalid outputFormat: "${opts.outputFormat}". Must be one of: ${validFormats.join(', ')}`);
+      }
+    }
+
+    // Validate inputFormat early (if specified)
+    if (opts.inputFormat && opts.inputFormat !== 'auto') {
+      const validFormats = ['csv', 'json', 'ndjson', 'xml'];
+      if (!validFormats.includes(opts.inputFormat)) {
+        throw new Error(`Invalid inputFormat: "${opts.inputFormat}". Must be one of: ${validFormats.join(', ')}, or "auto"`);
+      }
+    }
+
     const inputBytes = typeof input === "string" 
       ? new TextEncoder().encode(input)
       : input;
@@ -1347,6 +1377,24 @@ export async function convertAny(
   input: string | Uint8Array | File | Blob | ReadableStream<Uint8Array>,
   opts: ConvertOptions
 ): Promise<Uint8Array> {
+  // Validate outputFormat is provided
+  if (!opts.outputFormat) {
+    throw new Error('outputFormat is required. Must be one of: csv, json, ndjson, xml');
+  }
+
+  // Validate outputFormat value
+  const validFormats = ['csv', 'json', 'ndjson', 'xml'];
+  if (!validFormats.includes(opts.outputFormat)) {
+    throw new Error(`Invalid outputFormat: "${opts.outputFormat}". Must be one of: ${validFormats.join(', ')}`);
+  }
+
+  // Validate inputFormat if specified
+  if (opts.inputFormat && opts.inputFormat !== 'auto') {
+    if (!validFormats.includes(opts.inputFormat)) {
+      throw new Error(`Invalid inputFormat: "${opts.inputFormat}". Must be one of: ${validFormats.join(', ')}, or "auto"`);
+    }
+  }
+
   const buddy = new ConvertBuddy();
   return buddy.convert(input, opts);
 }

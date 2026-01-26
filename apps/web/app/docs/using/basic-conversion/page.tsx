@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function BasicConversionPage() {
   return (
@@ -17,11 +17,11 @@ export default function BasicConversionPage() {
         Convert Buddy automatically detects the input format and converts to your desired output:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -55,11 +55,11 @@ run().catch(console.error);`,
         using <code>inputFormat</code>. This skips auto-detection:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -101,11 +101,11 @@ run().catch(console.error);`,
         for binary output (returns <code>Uint8Array</code>):
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString, convert } from "convert-buddy-js";
@@ -153,11 +153,11 @@ run().catch(console.error);`,
         Here are the most frequently used conversion patterns:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -211,11 +211,11 @@ run().catch(console.error);`,
         Each format supports specific options. For example, CSV supports custom delimiters and headers:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";

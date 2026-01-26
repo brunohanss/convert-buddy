@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function Page() {
   return (
@@ -47,11 +47,11 @@ const finalOutput = buddy.finish();`}
 
       <h3>Basic Push/Finish Example</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
 
@@ -91,11 +91,11 @@ run().catch(console.error);`,
 
       <h3>Pause and Resume</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
 
@@ -155,11 +155,11 @@ inputStream
 
       <h3>Web Streams Integration</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { ConvertBuddyTransformStream } from "convert-buddy-js";
@@ -201,11 +201,11 @@ run().catch(console.error);`,
 
       <h3>Pipeline with Progress Tracking</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { ConvertBuddyTransformStream } from "convert-buddy-js";
@@ -257,11 +257,11 @@ run().catch(console.error);`,
 
       <h3>Incremental File Processing</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
@@ -327,11 +327,11 @@ processInChunks().catch(console.error);`,
         While Convert Buddy uses Web Streams, you can integrate with Node.js patterns.
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
 

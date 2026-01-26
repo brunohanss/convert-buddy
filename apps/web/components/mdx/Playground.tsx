@@ -2,16 +2,15 @@
 
 import React from "react";
 import dynamic from "next/dynamic";
-import { SandpackExampleImpl } from "./SandpackImplementation";
 import { StackBlitzExampleImpl } from "./StackBlitzDemo";
 
 /**
  * Default export is a client-only dynamic wrapper (SSR disabled).
  * Import/use THIS component everywhere to avoid hydration mismatches.
  */
-const SandpackExample = dynamic(
+const PlaygroundExample = dynamic(
   () => Promise.resolve(StackBlitzExampleImpl),
   { ssr: false }
 );
 
-export default SandpackExample;
+export default PlaygroundExample;

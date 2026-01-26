@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function MemoryModelPage() {
   return (
@@ -87,10 +87,10 @@ export default function MemoryModelPage() {
         Control maximum memory usage with the <code>maxMemoryMB</code> option:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -141,10 +141,10 @@ run().catch(console.error);`,
         <li>Buffers are reused across chunks for efficiency</li>
       </ol>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -179,10 +179,10 @@ demonstrateBufferReuse().catch(console.error);`,
         Track memory consumption in real-time:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -261,10 +261,10 @@ run().catch(console.error);`,
         </tbody>
       </table>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 

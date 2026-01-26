@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function DetectionLimitsPage() {
   return (
@@ -20,10 +20,10 @@ export default function DetectionLimitsPage() {
 
       <h3>Single Line CSV vs Plain Text</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectFormat } from "convert-buddy-js";
 
@@ -43,10 +43,10 @@ run().catch(console.error);`,
 
       <h3>JSON-like Strings in CSV</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectFormat } from "convert-buddy-js";
 
@@ -71,10 +71,10 @@ run().catch(console.error);`,
         Very small data samples might not have enough information for reliable detection:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectFormat } from "convert-buddy-js";
 
@@ -100,10 +100,10 @@ run().catch(console.error);`,
         Invalid or corrupted data can confuse detection:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectFormat } from "convert-buddy-js";
 
@@ -148,10 +148,10 @@ run().catch(console.error);`,
         If you know the format, specifying it is faster and more reliable:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -178,10 +178,10 @@ run().catch(console.error);`,
         For high-throughput scenarios, skip detection to save ~1-2ms per conversion:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -221,10 +221,10 @@ run().catch(console.error);`,
         Let users override detection if they know better:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectFormat, convertToString } from "convert-buddy-js";
 
@@ -260,10 +260,10 @@ run().catch(console.error);`,
         Handle detection failures gracefully:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectFormat, convertToString } from "convert-buddy-js";
 
@@ -317,10 +317,10 @@ run().catch(console.error);`,
         Always validate that conversion actually works:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectFormat, convertToString } from "convert-buddy-js";
 

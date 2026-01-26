@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function AutoDetectPipelinesPage() {
   return (
@@ -18,10 +18,10 @@ export default function AutoDetectPipelinesPage() {
         The simplest pattern: detect format, then convert:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { detectFormat, convertToString } from "convert-buddy-js";
@@ -69,10 +69,10 @@ run().catch(console.error);`,
         Create a file importer that handles any format:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectStructure, convertToString } from "convert-buddy-js";
 
@@ -121,10 +121,10 @@ run().catch(console.error);`,
         Apply different logic based on detected format:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectStructure, convertToString } from "convert-buddy-js";
 
@@ -182,10 +182,10 @@ run().catch(console.error);`,
         Build a pipeline that processes data regardless of input format:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectFormat, convertToString } from "convert-buddy-js";
 
@@ -258,10 +258,10 @@ run().catch(console.error);`,
         Let users choose output format while auto-detecting input:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectFormat, convertToString } from "convert-buddy-js";
 
@@ -337,10 +337,10 @@ run().catch(console.error);`,
         Robust error handling for production use:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectFormat, convertToString } from "convert-buddy-js";
 

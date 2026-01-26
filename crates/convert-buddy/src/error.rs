@@ -18,11 +18,17 @@ pub enum ConvertError {
     #[error("Invalid format configuration: {0}")]
     InvalidConfig(String),
     
+    #[error("Transform error: {0}")]
+    Transform(String),
+    
     #[error("Buffer overflow: {0}")]
     BufferOverflow(String),
     
     #[error("IO error: {0}")]
     Io(String),
+    
+    #[error("Unsupported operation: {0}")]
+    Unsupported(String),
 }
 
 pub type Result<T> = std::result::Result<T, ConvertError>;
@@ -62,8 +68,10 @@ mod tests {
             ConvertError::CsvParse("bad csv".to_string()),
             ConvertError::XmlParse("bad xml".to_string()),
             ConvertError::InvalidConfig("invalid".to_string()),
+            ConvertError::Transform("transform failed".to_string()),
             ConvertError::BufferOverflow("overflow".to_string()),
             ConvertError::Io("io".to_string()),
+            ConvertError::Unsupported("unsupported".to_string()),
         ];
 
         for error in errors {

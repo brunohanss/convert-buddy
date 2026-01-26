@@ -1,7 +1,7 @@
 import dynamic from 'next/dynamic';
 
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function Page() {
 
@@ -12,10 +12,10 @@ export default function Page() {
       <p>Display throughput and memory usage to build user trust.</p>
 
       <h2>Minimal example</h2>
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `
@@ -51,10 +51,10 @@ run().catch(console.error);
       />
 
       <h2>Advanced example</h2>
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `

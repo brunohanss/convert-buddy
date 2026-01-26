@@ -1,7 +1,7 @@
 import dynamic from 'next/dynamic';
 
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function Page() {
   return (
@@ -13,10 +13,10 @@ export default function Page() {
       <h2>Streaming API with push/finish</h2>
       <p>Use <code>ConvertBuddy.create()</code> for chunk-by-chunk processing with real-time stats.</p>
       
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         dependencyVersion="latest"
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
@@ -85,10 +85,10 @@ lines.forEach(line => console.log(line));
       <h2>Advanced streaming with progress tracking</h2>
       <p>Monitor conversion progress, ETA, and performance metrics in real-time.</p>
       
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         dependencyVersion="latest"
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
@@ -153,10 +153,10 @@ console.log("  Records processed:", stats.recordsProcessed);
       <h2>Using stats() method for monitoring</h2>
       <p>Query stats at any point during conversion to track progress manually.</p>
       
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         dependencyVersion="0.10.5"
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";

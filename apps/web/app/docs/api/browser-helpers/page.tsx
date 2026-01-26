@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function BrowserHelpersPage() {
   return (
@@ -35,11 +35,11 @@ export default function BrowserHelpersPage() {
 
       <h4>Basic Usage</h4>
 
-      <SandpackExample
+      <PlaygroundExample
         template="vanilla"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { getMimeType } from "convert-buddy-js";
 
@@ -78,11 +78,11 @@ console.log('\\nCreated blob:', blob.type, blob.size, 'bytes');`,
 
       <h4>Basic Usage</h4>
 
-      <SandpackExample
+      <PlaygroundExample
         template="vanilla"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { getExtension } from "convert-buddy-js";
 
@@ -118,11 +118,11 @@ console.log('\\nGenerated filename:', filename);`,
 
       <h4>Basic Usage</h4>
 
-      <SandpackExample
+      <PlaygroundExample
         template="vanilla"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { getSuggestedFilename } from "convert-buddy-js";
 
@@ -162,11 +162,11 @@ console.log('\\nNo extension:', getSuggestedFilename('data', 'json'));`,
 
       <h4>Basic Usage</h4>
 
-      <SandpackExample
+      <PlaygroundExample
         template="vanilla"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { getFileTypeConfig } from "convert-buddy-js";
 
@@ -193,11 +193,11 @@ console.log('\\nXML config:', JSON.stringify(xmlConfig, null, 2));
         Convert a file and trigger a browser download with proper MIME type and filename.
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="vanilla"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { 
@@ -255,11 +255,11 @@ convertAndDownload().catch(console.error);`,
         This provides a native save dialog in supported browsers.
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="vanilla"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { 
@@ -326,11 +326,11 @@ saveWithFilePicker().catch(console.error);`,
         Handle file uploads, convert them, and provide immediate download.
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="vanilla"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { 
@@ -401,11 +401,11 @@ handleFileUpload('json')
         Handle drag-and-drop file conversions with proper file naming.
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="vanilla"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { 
   convertAny, 
@@ -461,11 +461,11 @@ handleDrop(file, 'json').catch(console.error);`,
         Convert one input to multiple formats and provide download links for each.
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="vanilla"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { 

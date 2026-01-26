@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function AutoDetectionPage() {
   return (
@@ -18,11 +18,11 @@ export default function AutoDetectionPage() {
         This gives you format information and structural insights:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { detectStructure, convertToString } from "convert-buddy-js";
@@ -70,11 +70,11 @@ run().catch(console.error);`,
         The detection result provides rich metadata about your data:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { detectStructure } from "convert-buddy-js";
@@ -128,11 +128,11 @@ run().catch(console.error);`,
         Use detection results to make intelligent decisions about conversion:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { detectStructure, convertToString } from "convert-buddy-js";
@@ -194,11 +194,11 @@ run().catch(console.error);`,
         Use detection results to configure format-specific options:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { detectStructure, convertToString } from "convert-buddy-js";
@@ -263,11 +263,11 @@ run().catch(console.error);`,
         Some data may be ambiguous. Check confidence scores and provide fallbacks:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { detectStructure, convertToString } from "convert-buddy-js";
@@ -323,11 +323,11 @@ run().catch(console.error);`,
         Efficiently detect formats for multiple files before processing:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectStructure, convertToString } from "convert-buddy-js";
 
@@ -385,11 +385,11 @@ run().catch(console.error);`,
         Combine auto-detection with user preferences for the best experience:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { detectStructure, convertToString } from "convert-buddy-js";

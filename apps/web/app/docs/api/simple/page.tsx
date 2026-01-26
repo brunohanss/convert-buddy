@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function Page() {
   return (
@@ -49,11 +49,11 @@ export default function Page() {
 
       <h4>Basic Example - Auto-Detection</h4>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -81,11 +81,11 @@ run().catch(console.error);`,
 
       <h4>Explicit Format Specification</h4>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -115,11 +115,11 @@ run().catch(console.error);`,
 
       <h4>With Progress Callback</h4>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -173,11 +173,11 @@ run().catch(console.error);`,
 
       <h4>From URL</h4>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertAny } from "convert-buddy-js";
@@ -208,11 +208,11 @@ run().catch(console.error);`,
 
       <h4>From File (Browser)</h4>
 
-      <SandpackExample
+      <PlaygroundExample
         template="vanilla"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertAny } from "convert-buddy-js";
@@ -247,11 +247,11 @@ convertFile().catch(console.error);`,
 
       <h4>From Stream</h4>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertAny } from "convert-buddy-js";
@@ -296,11 +296,11 @@ run().catch(console.error);`,
 
       <h4>One-Line Conversion</h4>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertAnyToString } from "convert-buddy-js";
@@ -331,11 +331,11 @@ run().catch(console.error);`,
 
       <h4>Browser File Upload Flow</h4>
 
-      <SandpackExample
+      <PlaygroundExample
         template="vanilla"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertAnyToString } from "convert-buddy-js";
@@ -371,11 +371,11 @@ handleFileUpload().catch(console.error);`,
 
       <h3>CSV Configuration</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -404,11 +404,11 @@ run().catch(console.error);`,
 
       <h3>XML Configuration</h3>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -461,11 +461,11 @@ run().catch(console.error);`,
 
       <h2>Complete Example - File Converter</h2>
 
-      <SandpackExample
+      <PlaygroundExample
         template="vanilla"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertAnyToString, getSuggestedFilename, getMimeType } from "convert-buddy-js";

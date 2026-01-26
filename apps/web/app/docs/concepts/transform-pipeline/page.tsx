@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function TransformPipelinePage() {
   return (
@@ -17,11 +17,11 @@ export default function TransformPipelinePage() {
         A transform is a configuration object that defines how to map input records to output records:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -72,11 +72,11 @@ Transform (augment): [{ targetFieldName: "levelNum", originFieldName: "level", c
 Output: { name: "Gandalf", level: "20", levelNum: 20 }
         ↑ Original fields preserved, new field added`}</code></pre>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -167,11 +167,11 @@ run().catch(console.error);`,
         </tbody>
       </table>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";

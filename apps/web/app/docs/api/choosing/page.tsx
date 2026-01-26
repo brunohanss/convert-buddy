@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function ChoosingAPIPage() {
   return (
@@ -80,11 +80,11 @@ export default function ChoosingAPIPage() {
         Auto-detects format and handles everything in one call.
       </p>
 
-      <SandpackExample
+        <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -114,11 +114,11 @@ run().catch(console.error);`,
         Creates one instance you can reuse, avoiding repeated initialization.
       </p>
 
-      <SandpackExample
+        <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
@@ -164,11 +164,11 @@ run().catch(console.error);`,
         or when integrating with existing streaming pipelines.
       </p>
 
-      <SandpackExample
+        <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
@@ -275,11 +275,11 @@ run().catch(console.error);`,
         Use <strong>Simple API</strong> with <strong>Browser Helpers</strong> for file upload/download flows:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="vanilla"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertAny, getSuggestedFilename, getMimeType } from "convert-buddy-js";
@@ -320,11 +320,11 @@ convertAndDownload().catch(console.error);`,
         Use <strong>Instance API</strong> for processing multiple files efficiently:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
 
@@ -372,11 +372,11 @@ processFiles(files, "json").catch(console.error);`,
         Use <strong>Streaming API</strong> for large-scale data transformation:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { ConvertBuddyTransformStream } from "convert-buddy-js";
 

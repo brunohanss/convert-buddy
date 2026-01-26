@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function ProgressAndCancellationPage() {
   return (
@@ -17,11 +17,11 @@ export default function ProgressAndCancellationPage() {
         Use the <code>onProgress</code> callback to receive real-time conversion statistics:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -62,11 +62,11 @@ run().catch(console.error);`,
         The <code>stats</code> object provided to <code>onProgress</code> contains detailed metrics:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -115,11 +115,11 @@ run().catch(console.error);`,
         Control how often progress callbacks fire using <code>progressIntervalBytes</code>:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -168,11 +168,11 @@ run().catch(console.error);`,
         Use progress stats to build responsive UIs that keep users informed:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -228,11 +228,11 @@ run().catch(console.error);`,
         Cancel long-running conversions using the <code>abort()</code> method:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { Converter } from "convert-buddy-js";
@@ -295,11 +295,11 @@ run().catch(console.error);`,
         Alternatively, use AbortController for standard cancellation patterns:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `// Example showing AbortController pattern
 async function run() {
@@ -342,11 +342,11 @@ run().catch(console.error);`,
         Build complete user experiences with both progress and cancel support:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { Converter } from "convert-buddy-js";

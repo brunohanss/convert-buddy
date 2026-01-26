@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function NDJSONFormatPage() {
   return (
@@ -29,10 +29,10 @@ export default function NDJSONFormatPage() {
 
       <h2>Basic Example</h2>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -72,10 +72,10 @@ run().catch(console.error);`,
         <li><strong>Constant memory:</strong> No need to load entire structure into memory</li>
       </ul>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -119,10 +119,10 @@ run().catch(console.error);`,
         <li><strong>JSON:</strong> Detected when file starts with <code>[</code> (an array)</li>
       </ul>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectFormat } from "convert-buddy-js";
 
@@ -149,10 +149,10 @@ run().catch(console.error);`,
         NDJSON supports all transform operations:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -193,10 +193,10 @@ run().catch(console.error);`,
         NDJSON is perfect for structured log data:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -228,10 +228,10 @@ run().catch(console.error);`,
         NDJSON handles multi-gigabyte datasets efficiently:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 

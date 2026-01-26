@@ -1,1 +1,1 @@
-export * from '../../../packages/convert-buddy-js/src/browser';
+export * from 'convert-buddy-js/browser';

@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function DetectingStructurePage() {
   return (
@@ -18,10 +18,10 @@ export default function DetectingStructurePage() {
         This function performs unified detection and returns comprehensive metadata:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectStructure } from "convert-buddy-js";
 
@@ -37,10 +37,10 @@ run().catch(console.error);`,
         }}
       />
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectStructure } from "convert-buddy-js";
 
@@ -109,10 +109,10 @@ run().catch(console.error);`,
         <code>detectStructure()</code> identifies all field names from your data:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectStructure } from "convert-buddy-js";
 
@@ -142,10 +142,10 @@ run().catch(console.error);`,
         For CSV files, the structure includes detected delimiter information:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectStructure } from "convert-buddy-js";
 
@@ -179,10 +179,10 @@ run().catch(console.error);`,
         For XML files, the structure reveals the detected record element:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectStructure } from "convert-buddy-js";
 
@@ -220,10 +220,10 @@ run().catch(console.error);`,
         Use the structure to configure conversions or build UI:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectStructure, convertToString } from "convert-buddy-js";
 
@@ -274,10 +274,10 @@ run().catch(console.error);`,
         Use field information to generate previews:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectStructure } from "convert-buddy-js";
 
@@ -320,10 +320,10 @@ run().catch(console.error);`,
         Analyze different formats side-by-side:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { detectStructure } from "convert-buddy-js";
 

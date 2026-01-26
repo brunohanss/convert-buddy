@@ -1,5 +1,6 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
+import { CodeBlock } from '@/components/mdx/CodeBlock';
 
 export default function StreamingFirstPage() {
   return (
@@ -17,16 +18,16 @@ export default function StreamingFirstPage() {
         Instead of loading an entire file into memory, streaming processes data in small chunks:
       </p>
 
-      <pre><code>{`Traditional approach:
-1. Read entire 5GB file into memory (💥 crash)
-2. Parse all data
-3. Write all output
+      <CodeBlock code={`Traditional approach:
+    1. Read entire 5GB file into memory (💥 crash)
+    2. Parse all data
+    3. Write all output
 
-Streaming approach:
-1. Read 1MB chunk
-2. Parse chunk → emit output
-3. Read next 1MB chunk
-4. Repeat (memory stays constant at ~10MB)`}</code></pre>
+    Streaming approach:
+    1. Read 1MB chunk
+    2. Parse chunk → emit output
+    3. Read next 1MB chunk
+    4. Repeat (memory stays constant at ~10MB)`} language="text" />
 
       <h2>Chunked processing</h2>
 
@@ -35,11 +36,11 @@ Streaming approach:
         the parse → transform → write pipeline independently.
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
@@ -90,12 +91,12 @@ demonstrateChunking().catch(console.error);`,
         When using ReadableStream inputs/outputs, backpressure is handled automatically:
       </p>
 
-      <pre><code>{`Reader produces faster than writer can consume:
-├─► Reader PAUSES automatically
-├─► Writer catches up
-└─► Reader RESUMES
+      <CodeBlock code={`Reader produces faster than writer can consume:
+    ├─► Reader PAUSES automatically
+    ├─► Writer catches up
+    └─► Reader RESUMES
 
-This prevents memory buildup while maintaining throughput.`}</code></pre>
+    This prevents memory buildup while maintaining throughput.`} language="text" />
 
       <h3>2. Manual backpressure control</h3>
       <p>
@@ -103,14 +104,7 @@ This prevents memory buildup while maintaining throughput.`}</code></pre>
         This is useful when your consumer needs time to process results (e.g., writing to disk, network calls, UI updates).
       </p>
 
-      <SandpackExample
-        template="node"
-        dependencyVersion="latest"
-        activeFile="/index.js"
-        preview={false}
-        enableFilePicker={false}
-        files={{
-          '/index.js': `import { ConvertBuddy } from "convert-buddy-js";
+      <CodeBlock code={`import { ConvertBuddy } from "convert-buddy-js";
 
 // Simulate a slow consumer (e.g., database writes, API calls)
 async function slowConsumer(data, chunkNumber) {
@@ -178,9 +172,7 @@ Bart,The Simpsons,Son\`;
   console.log('\\n🎉 Final result:', result);
 }
 
-demonstrateBackpressure().catch(console.error);`,
-        }}
-      />
+demonstrateBackpressure().catch(console.error);`} language="javascript" />
 
       <h3>Real-world example: Streaming with backpressure</h3>
       <p>
@@ -188,11 +180,11 @@ demonstrateBackpressure().catch(console.error);`,
         We'll simulate a slow consumer and show how pause/resume prevents overwhelming it:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         console={true}
         enableFilePicker={false}
         files={{
@@ -359,80 +351,7 @@ demonstrateStreamingWithBackpressure().catch((err) => {
       />
 ```
 
-      <h3>Using the 50MB file in your own environment</h3>
-      <p>
-        We've prepared a 50MB <code>cartoon_characters.csv</code> file with ~600K records for real-world testing.
-        Here's how to use it outside of Sandpack (in your own browser or Node.js app):
-      </p>
-
-      <pre><code>{`// Browser example with fetch and streaming
-import { ConvertBuddy } from "convert-buddy-js";
-
-async function processLargeFile() {
-  const fileUrl = "/samples/cartoon_characters.csv"; // 50MB file
-  
-  console.log('📥 Fetching 50MB file...');
-  const response = await fetch(fileUrl);
-  
-  if (!response.ok || !response.body) {
-    throw new Error(\\\`Failed to fetch: \\\${response.status}\\\`);
-  }
-
-  const buddy = await ConvertBuddy.create({
-    inputFormat: 'csv',
-    outputFormat: 'json',
-    chunkTargetBytes: 512 * 1024, // 512KB chunks
-    onProgress: (stats) => {
-      const sizeMB = (stats.bytesIn / 1024 / 1024).toFixed(2);
-      const memoryMB = (stats.maxBufferSize / 1024 / 1024).toFixed(2);
-      console.log(\\\`📊 \\\${sizeMB}MB | \\\${stats.recordsProcessed.toLocaleString()} records | Memory: \\\${memoryMB}MB\\\`);
-    }
-  });
-
-  const reader = response.body.getReader();
-  let processedChunks = 0;
-  const output = [];
-  
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    
-    const chunk = buddy.push(value);
-    processedChunks++;
-    
-    // Simulate slow consumer (database write, API call, etc.)
-    if (processedChunks % 10 === 0 && chunk.length > 0) {
-      buddy.pause();
-      console.log('⏸️  Pausing - consumer is busy...');
       
-      await saveToDatabase(chunk); // Your slow operation
-      
-      console.log('▶️  Resuming');
-      buddy.resume();
-    }
-    
-    if (chunk.length > 0) {
-      output.push(chunk);
-    }
-  }
-  
-  const final = buddy.finish();
-  if (final.length > 0) output.push(final);
-  
-  const stats = buddy.stats();
-  console.log(\\\`✅ Processed \\\${stats.recordsProcessed.toLocaleString()} records\\\`);
-  console.log(\\\`💾 Peak memory: \\\${(stats.maxBufferSize / 1024 / 1024).toFixed(2)}MB\\\`);
-  console.log(\\\`⚡ Throughput: \\\${stats.throughputMbPerSec.toFixed(2)} MB/s\\\`);
-}
-
-// The key: memory stays constant (~3-5MB) even with 50MB input
-// and even when your consumer is slow!`}</code></pre>
-
-      <blockquote>
-        <strong>Why not in Sandpack?</strong> Sandpack's in-browser bundler has limitations with large files
-        and complex WASM modules. The demo above uses generated data to work within those constraints,
-        but the same code works perfectly with real files in your actual application.
-      </blockquote>
 
       <h3>Key backpressure patterns</h3>
 
@@ -539,15 +458,15 @@ async function processLargeFile() {
       </p>
 
       <h3>Buffered (simple, for small files)</h3>
-      <pre><code>{`import { convertToString } from "convert-buddy-js";
+      <CodeBlock code={`import { convertToString } from "convert-buddy-js";
 
 // Entire result loaded into memory
 const output = await convertToString(input, { 
   outputFormat: 'json' 
-});`}</code></pre>
+});`} language="javascript" />
 
       <h3>Streaming (scalable, for large files)</h3>
-      <pre><code>{`import { ConvertBuddy } from "convert-buddy-js";
+      <CodeBlock code={`import { ConvertBuddy } from "convert-buddy-js";
 
 const buddy = await ConvertBuddy.create({
   inputFormat: 'csv',
@@ -561,7 +480,7 @@ for await (const chunk of inputStream) {
 }
 
 const finalChunk = buddy.finish();
-// Write finalChunk`}</code></pre>
+// Write finalChunk`} language="javascript" />
 
       <p>
         For most use cases, the simple API is fine. Use streaming when:

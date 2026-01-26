@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function StreamingLargeInputsPage() {
   return (
@@ -40,11 +40,11 @@ const stream = createReadStream("100GB.csv");
         to process data in chunks:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { Converter } from "convert-buddy-js";
@@ -104,11 +104,11 @@ run().catch(console.error);`,
         For true streaming, use <code>ReadableStream</code> to process data as it arrives:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { Converter } from "convert-buddy-js";
@@ -176,11 +176,11 @@ run().catch(console.error);`,
         Add progress callbacks to show conversion progress for large files:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { Converter } from "convert-buddy-js";
@@ -266,11 +266,11 @@ writeStream.end();`}</code></pre>
         the entire file into memory:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { Converter } from "convert-buddy-js";
 
@@ -323,11 +323,11 @@ run().catch(console.error);`,
         For processing multiple large files, reuse converter instances to minimize memory:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { Converter } from "convert-buddy-js";
 

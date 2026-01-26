@@ -1,5 +1,5 @@
 import React from 'react';
-import SandpackExample from '@/components/mdx/Sandpack';
+import PlaygroundExample from '@/components/mdx/Playground';
 
 export default function FilesAndUrlsPage() {
   return (
@@ -18,11 +18,11 @@ export default function FilesAndUrlsPage() {
         Convert Buddy automatically streams the file without loading it entirely into memory:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -79,11 +79,11 @@ function handleFileSelect(event) {
         file I/O to handle files of any size efficiently:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 import { writeFile } from "fs/promises";
@@ -145,11 +145,11 @@ convertFile("./data.csv", "./output.json");
         This works with HTTP/HTTPS URLs:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
 
@@ -191,11 +191,11 @@ run().catch(console.error);`,
         Both browser and Node.js support <code>ReadableStream</code> inputs for streaming data:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
@@ -229,11 +229,11 @@ run().catch(console.error);`,
         Convert Buddy also accepts <code>Blob</code>, <code>ArrayBuffer</code>, and <code>Uint8Array</code> inputs:
       </p>
 
-      <SandpackExample
+      <PlaygroundExample
         template="node"
         dependencyVersion="latest"
         activeFile="/index.js"
-        preview={false}
+        preview={true}
         enableFilePicker={true}
         files={{
           '/index.js': `import { convertToString } from "convert-buddy-js";
